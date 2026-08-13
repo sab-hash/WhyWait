@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+final fullNameController = TextEditingController();
+final phoneController = TextEditingController();
+final emailController = TextEditingController();
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -88,8 +91,87 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
 
       Expanded(
-        child: Container(),
-      ),
+  child: SingleChildScrollView(
+    padding: const EdgeInsets.all(24),
+
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        const Text(
+          'FULL NAME',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF555555),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        TextField(
+          controller: fullNameController,
+
+          decoration: const InputDecoration(
+            hintText: 'Abebe Kebede',
+            prefixIcon: Icon(Icons.person_outline),
+            border: OutlineInputBorder(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        const Text(
+          'PHONE NUMBER',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF555555),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        TextField(
+          controller: phoneController,
+
+          keyboardType: TextInputType.phone,
+
+          decoration: const InputDecoration(
+            hintText: '09XXXXXXXX',
+            prefixIcon: Icon(Icons.phone_outlined),
+            border: OutlineInputBorder(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        const Text(
+          'EMAIL',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF555555),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        TextField(
+          controller: emailController,
+
+          keyboardType: TextInputType.emailAddress,
+
+          decoration: const InputDecoration(
+            hintText: 'you@example.com',
+            prefixIcon: Icon(Icons.email_outlined),
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    ),
+  ),
+),
     ],
   ),
 );
