@@ -17,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool hidePassword = true;
   bool hideConfirmPassword = true;
   bool agreeToTerms = false;
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -28,7 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void register() {
+  Future<void> register() async {
     final fullName = fullNameController.text.trim();
     final phone = phoneController.text.trim();
     final email = emailController.text.trim();
@@ -79,6 +80,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       showMessage('Please agree to the Terms & Conditions');
       return;
     }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+    });
 
     showMessage('Registration successful');
   }
@@ -282,11 +295,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Checkbox(
                         value: agreeToTerms,
-                        onChanged: (value) {
-                          setState(() {
-                            agreeToTerms = value ?? false;
-                          });
-                        },
+                        onChanged: isLoading
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  agreeToTerms = value ?? false;
+                                });
+                              },
                       ),
                       const Expanded(
                         child: Text(
@@ -304,21 +319,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: register,
+                      onPressed: isLoading ? null : register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1565C0),
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFF90CAF9),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text(
-                        'REGISTER',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'REGISTER',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],
