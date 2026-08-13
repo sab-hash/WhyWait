@@ -28,6 +28,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  void register() {
+    final fullName = fullNameController.text.trim();
+    final phone = phoneController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
+
+    if (fullName.isEmpty) {
+      showMessage('Please enter your full name');
+      return;
+    }
+
+    if (phone.isEmpty) {
+      showMessage('Please enter your phone number');
+      return;
+    }
+
+    if (email.isEmpty) {
+      showMessage('Please enter your email');
+      return;
+    }
+
+    if (!email.contains('@') || !email.contains('.')) {
+      showMessage('Please enter a valid email address');
+      return;
+    }
+
+    if (password.isEmpty) {
+      showMessage('Please enter a password');
+      return;
+    }
+
+    if (password.length < 6) {
+      showMessage('Password must be at least 6 characters');
+      return;
+    }
+
+    if (confirmPassword.isEmpty) {
+      showMessage('Please confirm your password');
+      return;
+    }
+
+    if (password != confirmPassword) {
+      showMessage('Passwords do not match');
+      return;
+    }
+
+    if (!agreeToTerms) {
+      showMessage('Please agree to the Terms & Conditions');
+      return;
+    }
+
+    showMessage('Registration successful');
+  }
+
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -216,7 +279,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 20),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Checkbox(
                         value: agreeToTerms,
@@ -236,6 +298,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: register,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1565C0),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'REGISTER',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
