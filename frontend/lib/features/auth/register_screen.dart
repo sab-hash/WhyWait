@@ -29,6 +29,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  bool isValidEmail(String email) {
+    return RegExp(
+      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+    ).hasMatch(email);
+  }
+
+  bool isValidPhone(String phone) {
+    return RegExp(
+      r'^09\d{8}$',
+    ).hasMatch(phone);
+  }
+
   Future<void> register() async {
     final fullName = fullNameController.text.trim();
     final phone = phoneController.text.trim();
@@ -46,12 +58,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (!isValidPhone(phone)) {
+      showMessage('Please enter a valid phone number');
+      return;
+    }
+
     if (email.isEmpty) {
       showMessage('Please enter your email');
       return;
     }
 
-    if (!email.contains('@') || !email.contains('.')) {
+    if (!isValidEmail(email)) {
       showMessage('Please enter a valid email address');
       return;
     }
@@ -97,9 +114,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -125,9 +147,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                          },
                     icon: const Icon(
                       Icons.arrow_back,
                       color: Colors.white,
@@ -184,6 +208,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: fullNameController,
+                    enabled: !isLoading,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       hintText: 'Abebe Kebede',
                       prefixIcon: Icon(Icons.person_outline),
@@ -202,6 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: phoneController,
+                    enabled: !isLoading,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
                       hintText: '09XXXXXXXX',
@@ -221,6 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: emailController,
+                    enabled: !isLoading,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       hintText: 'you@example.com',
@@ -240,6 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: passwordController,
+                    enabled: !isLoading,
                     obscureText: hidePassword,
                     decoration: InputDecoration(
                       hintText: 'Enter password',
@@ -271,6 +300,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: confirmPasswordController,
+                    enabled: !isLoading,
                     obscureText: hideConfirmPassword,
                     decoration: InputDecoration(
                       hintText: 'Confirm password',
@@ -278,7 +308,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       suffixIcon: IconButton(
                         onPressed: () {
                           setState(() {
-                            hideConfirmPassword = !hideConfirmPassword;
+                            hideConfirmPassword =
+                                !hideConfirmPassword;
                           });
                         },
                         icon: Icon(
@@ -323,7 +354,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1565C0),
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFF90CAF9),
+                        disabledBackgroundColor:
+                            const Color(0xFF90CAF9),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
