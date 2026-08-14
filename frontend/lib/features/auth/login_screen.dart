@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'register_screen.dart';
 
 void main() {
   runApp(const TaxiTrackApp());
@@ -381,22 +383,29 @@ void _showMessage(String message) {
   }
 
   Widget _buildSignUpRow() {
-    return Center(
-      child: RichText(
-        text: TextSpan(
-          style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          children: [
-            const TextSpan(text: "Don't have an account? "),
-            TextSpan(
-              text: 'Sign up',
-              style: TextStyle(
-                color: primaryBlue,
-                fontWeight: FontWeight.w600,
-              ),
+  return Center(
+    child: RichText(
+      text: TextSpan(
+        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+        children: [
+          const TextSpan(text: "Don't have an account? "),
+          TextSpan(
+            text: 'Sign up',
+            style: TextStyle(
+              color: primaryBlue,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                );
+              },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
