@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -98,19 +100,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
+  setState(() {
+  isLoading = true;
+});
+
+try {
+  final url = Uri.parse('http://localhost:8080/register');
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'fullName': fullName,
+      'phone': phone,
+      'email': email,
+      'password': password,
+    }),
+  );
+
+  if (!mounted) return;
+
+  setState(() {
+    isLoading = false;
+  });
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    showMessage('✅ Registration successful! Welcome ${data['user']['fullName']}');
+    
+    // Optional: Go back to login after 1 second
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.pop(context);
     });
-
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-
-    setState(() {
-      isLoading = false;
-    });
-
-    showMessage('Registration successful');
+  } else {
+    // Try to get error message from response
+    try {
+      final error = jsonDecode(response.body);
+      showMessage('❌ Registration failed: ${error['error'] ?? 'Unknown error'}');
+    } catch (_) {
+      showMessage('❌ Registration failed. Please try again.');
+    }
+  }
+} catch (e) {
+  if (!mounted) return;
+  setState(() {
+    isLoading = false;
+  });
+  showMessage('❌ Could not connect to server. Is the backend running?');
+  print('Error: $e');
+}
   }
 
   void showMessage(String message) {
