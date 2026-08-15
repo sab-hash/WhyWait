@@ -237,6 +237,27 @@ func generateToken(userID, email string) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
+func validateToken(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Make sure the token was signed using HMAC
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrTokenSignatureInvalid
+		}
+
+		return jwtSecret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, jwt.ErrTokenInvalidClaims
+	}
+
+	return token, nil
+}
+
 // ==================== CORS MIDDLEWARE ====================
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
