@@ -59,6 +59,37 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 24),
+
+              Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: Colors.grey.shade300,
+                  ),
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Where are you going?',
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 15,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: navy,
+                      size: 27,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
