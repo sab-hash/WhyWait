@@ -6,7 +6,7 @@
 
 ---
 
-##  The Problem Your Project Solves
+##  The Problem Project Solves
 
 In many cities, especially in developing regions, taxi services face significant challenges:
 
@@ -20,9 +20,7 @@ In many cities, especially in developing regions, taxi services face significant
 
 ---
 
-##  Main Features You Plan to Develop
-
-###  Completed Features
+##  Main Features 
 
 - [x] **Secure User Authentication** – Users can register and log in securely with JWT-based authentication and bcrypt-hashed passwords.
 - [x] **PostgreSQL Database** – Stores user profiles, trip history, and driver information securely.
