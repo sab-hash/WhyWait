@@ -3,9 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -256,6 +258,22 @@ func validateToken(tokenString string) (*jwt.Token, error) {
 	}
 
 	return token, nil
+}
+
+func extractToken(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("Authorization")
+
+	if authHeader == "" {
+		return "", fmt.Errorf("authorization header is missing")
+	}
+
+	parts := strings.Split(authHeader, " ")
+
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return "", fmt.Errorf("invalid authorization header")
+	}
+
+	return parts[1], nil
 }
 
 // ==================== CORS MIDDLEWARE ====================
