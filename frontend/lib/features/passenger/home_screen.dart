@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';  // 👈 NEW: Import the API service
+import '../../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String fullName;
+  final String email;
+
+  const HomeScreen({
+    super.key,
+    required this.fullName,
+    required this.email,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -16,11 +23,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int selectedIndex = 0;
 
-  // 👇 These will now come from the API
   String selectedStation = 'Bole Taxi Station';
   String stationDistance = '1.2 km away';
 
-  // 👇 NEW: Variables for real data from the API
   List<dynamic> _terminals = [];
   int _taxiCount = 0;
   int _nearbyCount = 0;
@@ -28,7 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _popularRoutes = [];
   bool _isLoading = true;
 
-  // 👇 This was the old static list – you can keep it or remove it later
   final List<String> stations = [
     'Bole Taxi Station',
     'Piazza Taxi Station',
@@ -36,14 +40,12 @@ class _HomeScreenState extends State<HomeScreen> {
     'Mexico Taxi Station',
   ];
 
-  // 👇 NEW: Lifecycle method – loads data when screen opens
   @override
   void initState() {
     super.initState();
     _loadData();
   }
 
-  // 👇 NEW: Load real data from the API
   void _loadData() async {
     setState(() {
       _isLoading = true;
@@ -79,9 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 18),
               _buildStationCard(),
               const SizedBox(height: 20),
-              _buildSummaryCards(),      // 👈 Now uses real data
+              _buildSummaryCards(),
               const SizedBox(height: 28),
-              _buildPopularRoutes(),     // 👈 Now uses real data
+              _buildPopularRoutes(),
             ],
           ),
         ),
@@ -90,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ==================== HEADER ====================
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -106,9 +109,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Rara!',
-              style: TextStyle(
+            Text(
+              '${widget.fullName}!',
+              style: const TextStyle(
                 fontSize: 27,
                 fontWeight: FontWeight.bold,
                 color: primaryBlue,
@@ -116,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        // Profile Icon
         GestureDetector(
           onTap: () {},
           child: Container(
@@ -147,6 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ==================== SEARCH BAR ====================
   Widget _buildSearchBar() {
     return Container(
       height: 58,
@@ -197,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ==================== STATION CARD ====================
   Widget _buildStationCard() {
     return Container(
       width: double.infinity,
@@ -289,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 👇 UPDATED: Now uses real data from the API
+  // ==================== SUMMARY CARDS ====================
   Widget _buildSummaryCards() {
     return Row(
       children: [
@@ -382,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 👇 UPDATED: Now uses real data from the API
+  // ==================== POPULAR ROUTES ====================
   Widget _buildPopularRoutes() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -543,6 +549,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ==================== BOTTOM NAVIGATION ====================
   Widget _buildBottomNavigation() {
     return Container(
       decoration: BoxDecoration(
@@ -634,16 +641,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 vertical: 5,
               ),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? lightBlue
-                    : Colors.transparent,
+                color: isSelected ? lightBlue : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 isSelected ? activeIcon : icon,
-                color: isSelected
-                    ? primaryBlue
-                    : Colors.grey.shade500,
+                color: isSelected ? primaryBlue : Colors.grey.shade500,
                 size: 23,
               ),
             ),
@@ -652,12 +655,8 @@ class _HomeScreenState extends State<HomeScreen> {
               label,
               style: TextStyle(
                 fontSize: 10.5,
-                fontWeight: isSelected
-                    ? FontWeight.bold
-                    : FontWeight.w500,
-                color: isSelected
-                    ? primaryBlue
-                    : Colors.grey.shade500,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? primaryBlue : Colors.grey.shade500,
               ),
             ),
           ],
@@ -666,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 👇 UPDATED: Now uses real data from the API
+  // ==================== CHANGE STATION ====================
   void _changeStation() {
     if (_terminals.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -763,6 +762,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ==================== ROUTE DETAILS ====================
   void _showRouteDetails({
     required String from,
     required String to,
@@ -830,7 +830,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     Navigator.pop(context);
 
-                    ScaffoldMessenger.of(this.context).showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
                           'You joined the $from → $to queue',

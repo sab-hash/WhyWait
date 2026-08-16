@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'features/passenger/home_screen.dart';
+import 'features/auth/login_screen.dart';
 
 void main() {
-  runApp(const TaxiApp());
+  runApp(const MyApp());
 }
 
-class TaxiApp extends StatelessWidget {
-  const TaxiApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      home: Scaffold(
+        body: LoginScreen(),
+      ),
     );
   }
 }

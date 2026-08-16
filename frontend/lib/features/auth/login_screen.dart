@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register_screen.dart';
+import '../passenger/home_screen.dart'; // 👈 Import HomeScreen
 
 void main() {
   runApp(const TaxiTrackApp());
@@ -46,64 +47,71 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // new function to handle sign in
-Future<void> _handleSignIn() async {
-  // Get the phone number and password from the text fields
-  final phone = _phoneController.text.trim();
-  final password = _passwordController.text.trim();
+  // ==================== HANDLE SIGN IN ====================
+  Future<void> _handleSignIn() async {
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
 
-  // Validate input
-  if (phone.isEmpty || password.isEmpty) {
-    _showMessage('Please fill in all fields');
-    return;
-  }
+    // Validate input
+    if (phone.isEmpty || password.isEmpty) {
+      _showMessage('Please fill in all fields');
+      return;
+    }
 
-  // Show loading indicator
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Logging in...'),
-      duration: Duration(seconds: 1),
-    ),
-  );
-
-  try {
-    // Send POST request to your Go backend
-    final url = Uri.parse('http://localhost:8080/login');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': phone,      // Using phone as email for now (or change to 'phone' if backend expects it)
-        'password': password,
-      }),
+    // Show loading indicator
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Logging in...'),
+        duration: Duration(seconds: 1),
+      ),
     );
 
-    // Check the response
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      // Success! Show token or user info
-      _showMessage('✅ Login successful! Token: ${data['token']}');
-      
-      // Optional: Navigate to home screen
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
-    } else {
-      _showMessage('❌ Login failed. Check your credentials.');
-    }
-  } catch (e) {
-    _showMessage('❌ Could not connect to server. Is the backend running?');
-    print('Error: $e');
-  }
-}
+    try {
+      final url = Uri.parse('http://localhost:8080/login');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': phone,
+          'password': password,
+        }),
+      );
 
-void _showMessage(String message) {
-  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      duration: const Duration(seconds: 3),
-    ),
-  );
-}
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = data['user'];
+
+        _showMessage('✅ Welcome back, ${user['fullName'] ?? 'User'}!');
+
+        // 👇 NAVIGATE TO HOME SCREEN
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(
+              fullName: user['fullName'] ?? 'User',
+              email: user['email'] ?? '',
+            ),
+          ),
+        );
+      } else {
+        _showMessage('❌ Invalid phone number or password');
+      }
+    } catch (e) {
+      _showMessage('❌ Could not connect to server. Is the backend running?');
+      print('Error: $e');
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -317,7 +325,7 @@ void _showMessage(String message) {
     return SizedBox(
       height: 52,
       child: ElevatedButton(
-        onPressed: _handleSignIn, // new
+        onPressed: _handleSignIn,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
           shape: RoundedRectangleBorder(
@@ -383,29 +391,29 @@ void _showMessage(String message) {
   }
 
   Widget _buildSignUpRow() {
-  return Center(
-    child: RichText(
-      text: TextSpan(
-        style: TextStyle(color: Colors.grey[600], fontSize: 13),
-        children: [
-          const TextSpan(text: "Don't have an account? "),
-          TextSpan(
-            text: 'Sign up',
-            style: TextStyle(
-              color: primaryBlue,
-              fontWeight: FontWeight.w600,
+    return Center(
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          children: [
+            const TextSpan(text: "Don't have an account? "),
+            TextSpan(
+              text: 'Sign up',
+              style: TextStyle(
+                color: primaryBlue,
+                fontWeight: FontWeight.w600,
+              ),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                  );
+                },
             ),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                );
-              },
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
