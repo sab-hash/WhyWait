@@ -12,6 +12,8 @@ class _HomeScreenState extends State<HomeScreen> {
   static const yellow = Color(0xFFFACC15);
   static const softWhite = Color(0xFFF8FAFC);
 
+  int selectedIndex = 0;
+
   String selectedStation = 'Bole Taxi Station';
   String stationDistance = '1.2 km away';
 
@@ -33,52 +35,19 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-
               const SizedBox(height: 24),
-
               _buildSearchBar(),
-
               const SizedBox(height: 18),
-
               _buildStationCard(),
-
               const SizedBox(height: 22),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _summaryCard(
-                      icon: Icons.local_taxi_outlined,
-                      value: '12',
-                      label: 'Taxis\navailable',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _summaryCard(
-                      icon: Icons.location_city_outlined,
-                      value: '4',
-                      label: 'Nearby\nstations',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _summaryCard(
-                      icon: Icons.access_time,
-                      value: '~8 min',
-                      label: 'Average\nwaiting time',
-                    ),
-                  ),
-                ],
-              ),
-
+              _buildSummaryCards(),
               const SizedBox(height: 28),
-
               _buildPopularRoutes(),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
@@ -236,6 +205,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildSummaryCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.local_taxi_outlined,
+            value: '12',
+            label: 'Taxis\navailable',
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.location_city_outlined,
+            value: '4',
+            label: 'Nearby\nstations',
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.access_time,
+            value: '~8 min',
+            label: 'Average\nwaiting time',
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _summaryCard({
     required IconData icon,
     required String value,
@@ -254,7 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 2),
           Icon(
             icon,
             color: navy,
@@ -406,6 +404,97 @@ class _HomeScreenState extends State<HomeScreen> {
             const Icon(
               Icons.chevron_right,
               color: navy,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: Colors.grey.shade200,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 8,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home,
+                label: 'Home',
+                index: 0,
+              ),
+              _navItem(
+                icon: Icons.location_on_outlined,
+                activeIcon: Icons.location_on,
+                label: 'Track',
+                index: 1,
+              ),
+              _navItem(
+                icon: Icons.description_outlined,
+                activeIcon: Icons.description,
+                label: 'Trips',
+                index: 2,
+              ),
+              _navItem(
+                icon: Icons.person_outline,
+                activeIcon: Icons.person,
+                label: 'Profile',
+                index: 3,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+  }) {
+    final isSelected = selectedIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedIndex = index;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 75,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? navy : Colors.grey.shade500,
+              size: 25,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight:
+                    isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? navy : Colors.grey.shade500,
+              ),
             ),
           ],
         ),
