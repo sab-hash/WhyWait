@@ -80,6 +80,10 @@ func main() {
 	mux.HandleFunc("/register", registerHandler)
 	mux.HandleFunc("/login", loginHandler)
 
+	// New endpoints for taxi tracking
+	mux.HandleFunc("/terminals", getTerminalsHandler)
+	mux.HandleFunc("/routes/popular", getPopularRoutesHandler)
+	mux.HandleFunc("/taxis/status", getTaxiStatusHandler)
 	// Wrap with CORS
 	handler := corsMiddleware(mux)
 
@@ -97,6 +101,173 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Hello from Go backend!",
 		"items":   []string{"item1", "item2", "item3"},
+	})
+}
+
+func getTerminalsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	log.Println("🔍 /terminals called")
+
+	query := `
+		SELECT id, name, latitude, longitude, address, city
+		FROM terminals
+		ORDER BY name
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Println("❌ Error querying terminals:", err)
+		http.Error(w, "Failed to fetch terminals", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// Initialize as empty slice (returns [] instead of null)
+	terminals := make([]map[string]interface{}, 0)
+	rowCount := 0
+
+	for rows.Next() {
+		rowCount++
+
+		var id string
+		var name string
+		var lat float64
+		var lng float64
+		var address sql.NullString
+		var city sql.NullString
+
+		err := rows.Scan(
+			&id,
+			&name,
+			&lat,
+			&lng,
+			&address,
+			&city,
+		)
+
+		if err != nil {
+			log.Printf("❌ Error scanning row %d: %v", rowCount, err)
+			http.Error(w, "Failed to read terminal data", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf(
+			"📌 Row %d: id=%s, name=%s, lat=%f, lng=%f, address=%s, city=%s",
+			rowCount,
+			id,
+			name,
+			lat,
+			lng,
+			address.String,
+			city.String,
+		)
+
+		terminal := map[string]interface{}{
+			"id":        id,
+			"name":      name,
+			"latitude":  lat,
+			"longitude": lng,
+			"address":   address.String,
+			"city":      city.String,
+		}
+		terminals = append(terminals, terminal)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("❌ Rows iteration error:", err)
+		http.Error(w, "Error reading terminal data", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("✅ Successfully fetched %d terminals", len(terminals))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"terminals": terminals,
+	})
+}
+
+// ==================== POPULAR ROUTES ====================
+func getPopularRoutesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	query := `
+		SELECT 
+			t1.name as from_name,
+			t2.name as to_name,
+			pr.average_wait_time
+		FROM popular_routes pr
+		JOIN terminals t1 ON pr.from_terminal_id = t1.id
+		JOIN terminals t2 ON pr.to_terminal_id = t2.id
+		ORDER BY pr.popularity_score DESC
+		LIMIT 5
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		http.Error(w, "Failed to fetch popular routes", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var routes []map[string]interface{}
+	for rows.Next() {
+		var fromName, toName string
+		var waitTime int
+		err := rows.Scan(&fromName, &toName, &waitTime)
+		if err != nil {
+			continue
+		}
+		routes = append(routes, map[string]interface{}{
+			"from":     fromName,
+			"to":       toName,
+			"waitTime": waitTime,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"routes":  routes,
+	})
+}
+
+// ==================== TAXI STATUS ====================
+func getTaxiStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var availableCount int
+	err := db.QueryRow("SELECT COUNT(*) FROM taxis WHERE status = 'available'").Scan(&availableCount)
+	if err != nil {
+		http.Error(w, "Failed to get taxi status", http.StatusInternalServerError)
+		return
+	}
+
+	var totalCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM taxis").Scan(&totalCount)
+	if err != nil {
+		http.Error(w, "Failed to get total taxis", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":         true,
+		"available":       availableCount,
+		"total":           totalCount,
+		"average_wait":    8, // You can calculate this from data later
+		"nearby_stations": 4, // You can calculate this from data later
 	})
 }
 
