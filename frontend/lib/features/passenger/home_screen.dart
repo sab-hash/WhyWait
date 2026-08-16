@@ -8,9 +8,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const navy = Color(0xFF0F172A);
-  static const yellow = Color(0xFFFACC15);
-  static const softWhite = Color(0xFFF8FAFC);
+  static const Color primaryBlue = Color(0xFF1565C0);
+  static const Color backgroundColor = Color(0xFFF7F9FC);
+  static const Color lightBlue = Color(0xFFE3F2FD);
+  static const Color darkText = Color(0xFF333333);
 
   int selectedIndex = 0;
 
@@ -27,10 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: softWhite,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -39,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildSearchBar(),
               const SizedBox(height: 18),
               _buildStationCard(),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               _buildSummaryCards(),
               const SizedBox(height: 28),
               _buildPopularRoutes(),
@@ -61,36 +62,47 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               'Good morning,',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 4),
             const Text(
               'Rara!',
               style: TextStyle(
-                fontSize: 26,
+                fontSize: 27,
                 fontWeight: FontWeight.bold,
-                color: navy,
+                color: primaryBlue,
               ),
             ),
           ],
         ),
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: navy,
-              width: 1.5,
+        GestureDetector(
+          onTap: () {},
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: primaryBlue,
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-          ),
-          child: const Icon(
-            Icons.person_outline,
-            size: 29,
-            color: navy,
+            child: const Icon(
+              Icons.person_outline_rounded,
+              size: 27,
+              color: primaryBlue,
+            ),
           ),
         ),
       ],
@@ -99,29 +111,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      height: 60,
+      height: 58,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Colors.grey.shade300,
+          color: Colors.grey.shade200,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Where are you going?',
           hintStyle: TextStyle(
             color: Colors.grey.shade500,
-            fontSize: 15,
+            fontSize: 14,
           ),
           prefixIcon: const Icon(
-            Icons.search,
-            color: navy,
-            size: 27,
+            Icons.search_rounded,
+            color: primaryBlue,
+            size: 25,
+          ),
+          suffixIcon: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: lightBlue,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.tune_rounded,
+              color: primaryBlue,
+              size: 20,
+            ),
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            vertical: 18,
+            vertical: 17,
           ),
         ),
       ),
@@ -133,38 +164,43 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
+        color: primaryBlue,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 45,
-            height: 45,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: yellow.withOpacity(0.2),
-              shape: BoxShape.circle,
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
-              Icons.location_on_outlined,
-              color: navy,
+              Icons.location_on_rounded,
+              color: primaryBlue,
               size: 25,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'YOUR STATION',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade700,
+                    color: Colors.white70,
+                    letterSpacing: 1,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -172,16 +208,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedStation,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: navy,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   stationDistance,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
                   ),
                 ),
               ],
@@ -190,15 +226,25 @@ class _HomeScreenState extends State<HomeScreen> {
           OutlinedButton(
             onPressed: _changeStation,
             style: OutlinedButton.styleFrom(
-              foregroundColor: navy,
+              foregroundColor: Colors.white,
               side: const BorderSide(
-                color: navy,
+                color: Colors.white,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 9,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Change'),
+            child: const Text(
+              'Change',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -210,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Expanded(
           child: _summaryCard(
-            icon: Icons.local_taxi_outlined,
+            icon: Icons.local_taxi_rounded,
             value: '12',
             label: 'Taxis\navailable',
           ),
@@ -218,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 10),
         Expanded(
           child: _summaryCard(
-            icon: Icons.location_city_outlined,
+            icon: Icons.location_city_rounded,
             value: '4',
             label: 'Nearby\nstations',
           ),
@@ -226,9 +272,9 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 10),
         Expanded(
           child: _summaryCard(
-            icon: Icons.access_time,
+            icon: Icons.access_time_rounded,
             value: '~8 min',
-            label: 'Average\nwaiting time',
+            label: 'Average\nwaiting',
           ),
         ),
       ],
@@ -241,39 +287,55 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
   }) {
     return Container(
-      height: 140,
-      padding: const EdgeInsets.all(12),
+      height: 137,
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey.shade300,
+          color: Colors.grey.shade200,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.025),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: navy,
-            size: 27,
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: lightBlue,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(
+              icon,
+              color: primaryBlue,
+              size: 21,
+            ),
           ),
           const Spacer(),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 21,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: navy,
+              color: primaryBlue,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              height: 1.3,
+              fontSize: 10.5,
+              height: 1.25,
               color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -291,41 +353,47 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text(
               'POPULAR ROUTES',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: navy,
-                letterSpacing: 0.5,
+                color: primaryBlue,
+                letterSpacing: 0.8,
               ),
             ),
             TextButton(
               onPressed: () {},
-              child: Text(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
                 'View all',
                 style: TextStyle(
-                  color: Colors.grey.shade700,
-                  fontSize: 13,
+                  color: primaryBlue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 10),
         _routeCard(
           from: 'Bole',
           to: 'Piazza',
-          waitTime: '~10 min wait',
+          waitTime: '~10 min',
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _routeCard(
           from: 'Bole',
           to: 'Megenagna',
-          waitTime: '~7 min wait',
+          waitTime: '~7 min',
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _routeCard(
           from: 'Bole',
           to: 'Mexico',
-          waitTime: '~9 min wait',
+          waitTime: '~9 min',
         ),
       ],
     );
@@ -345,65 +413,88 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
       child: Container(
-        height: 62,
         padding: const EdgeInsets.symmetric(
-          horizontal: 16,
+          horizontal: 15,
+          vertical: 13,
         ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: Colors.grey.shade300,
+            color: Colors.grey.shade200,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.025),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: lightBlue,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.local_taxi_rounded,
+                color: primaryBlue,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Row(
                 children: [
                   Text(
                     from,
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: navy,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 7),
                   const Icon(
-                    Icons.arrow_forward,
-                    size: 18,
-                    color: yellow,
+                    Icons.arrow_forward_rounded,
+                    color: primaryBlue,
+                    size: 17,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 7),
                   Text(
                     to,
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: navy,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
                     ),
                   ),
                 ],
               ),
             ),
             Icon(
-              Icons.access_time,
-              size: 17,
-              color: Colors.grey.shade700,
+              Icons.access_time_rounded,
+              size: 15,
+              color: Colors.grey.shade500,
             ),
             const SizedBox(width: 4),
             Text(
               waitTime,
               style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade700,
+                fontSize: 10,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 3),
             const Icon(
-              Icons.chevron_right,
-              color: navy,
+              Icons.chevron_right_rounded,
+              color: primaryBlue,
+              size: 21,
             ),
           ],
         ),
@@ -415,16 +506,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: Colors.grey.shade200,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -3),
           ),
-        ),
+        ],
       ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: 8,
+            horizontal: 10,
             vertical: 8,
           ),
           child: Row(
@@ -432,25 +525,25 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _navItem(
                 icon: Icons.home_outlined,
-                activeIcon: Icons.home,
+                activeIcon: Icons.home_rounded,
                 label: 'Home',
                 index: 0,
               ),
               _navItem(
                 icon: Icons.location_on_outlined,
-                activeIcon: Icons.location_on,
+                activeIcon: Icons.location_on_rounded,
                 label: 'Track',
                 index: 1,
               ),
               _navItem(
-                icon: Icons.description_outlined,
-                activeIcon: Icons.description,
+                icon: Icons.receipt_long_outlined,
+                activeIcon: Icons.receipt_long_rounded,
                 label: 'Trips',
                 index: 2,
               ),
               _navItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
                 label: 'Profile',
                 index: 3,
               ),
@@ -467,33 +560,63 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required int index,
   }) {
-    final isSelected = selectedIndex == index;
+    final bool isSelected = selectedIndex == index;
 
     return GestureDetector(
       onTap: () {
         setState(() {
           selectedIndex = index;
         });
+
+        if (index != 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '$label screen will be connected later',
+              ),
+              backgroundColor: primaryBlue,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
       },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 75,
+        width: 70,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? navy : Colors.grey.shade500,
-              size: 25,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 5,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? lightBlue
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                color: isSelected
+                    ? primaryBlue
+                    : Colors.grey.shade500,
+                size: 23,
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight:
-                    isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? navy : Colors.grey.shade500,
+                fontSize: 10.5,
+                fontWeight: isSelected
+                    ? FontWeight.bold
+                    : FontWeight.w500,
+                color: isSelected
+                    ? primaryBlue
+                    : Colors.grey.shade500,
               ),
             ),
           ],
@@ -508,44 +631,67 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
+          top: Radius.circular(25),
         ),
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
               const Text(
                 'Select Station',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 21,
                   fontWeight: FontWeight.bold,
-                  color: navy,
+                  color: primaryBlue,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 15),
               ...stations.map(
                 (station) {
+                  final bool isSelected =
+                      station == selectedStation;
+
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.location_on_outlined,
-                      color: navy,
+                    leading: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: lightBlue,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.location_on_rounded,
+                        color: primaryBlue,
+                        size: 21,
+                      ),
                     ),
                     title: Text(
                       station,
                       style: const TextStyle(
-                        color: navy,
-                        fontWeight: FontWeight.w500,
+                        color: darkText,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    trailing: station == selectedStation
+                    trailing: isSelected
                         ? const Icon(
-                            Icons.check_circle,
-                            color: yellow,
+                            Icons.check_circle_rounded,
+                            color: primaryBlue,
                           )
                         : null,
                     onTap: () {
@@ -579,18 +725,18 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
+          top: Radius.circular(25),
         ),
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 45,
-                height: 5,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(10),
@@ -598,36 +744,37 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24),
               Container(
-                width: 65,
-                height: 65,
+                width: 68,
+                height: 68,
                 decoration: BoxDecoration(
-                  color: yellow.withOpacity(0.2),
-                  shape: BoxShape.circle,
+                  color: lightBlue,
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
-                  Icons.local_taxi,
-                  size: 35,
-                  color: navy,
+                  Icons.local_taxi_rounded,
+                  color: primaryBlue,
+                  size: 36,
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 '$from → $to',
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 23,
                   fontWeight: FontWeight.bold,
-                  color: navy,
+                  color: primaryBlue,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 7),
               Text(
-                waitTime,
+                '$waitTime waiting time',
                 style: const TextStyle(
+                  fontSize: 14,
                   color: Colors.green,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -640,13 +787,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         content: Text(
                           'You joined the $from → $to queue',
                         ),
-                        backgroundColor: navy,
+                        backgroundColor: primaryBlue,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: yellow,
-                    foregroundColor: navy,
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
