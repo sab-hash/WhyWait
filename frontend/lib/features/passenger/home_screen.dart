@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';  // 👈 NEW: Import the API service
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,15 +16,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int selectedIndex = 0;
 
+  // 👇 These will now come from the API
   String selectedStation = 'Bole Taxi Station';
   String stationDistance = '1.2 km away';
 
+  // 👇 NEW: Variables for real data from the API
+  List<dynamic> _terminals = [];
+  int _taxiCount = 0;
+  int _nearbyCount = 0;
+  int _avgWait = 0;
+  List<dynamic> _popularRoutes = [];
+  bool _isLoading = true;
+
+  // 👇 This was the old static list – you can keep it or remove it later
   final List<String> stations = [
     'Bole Taxi Station',
     'Piazza Taxi Station',
     'Megenagna Taxi Station',
     'Mexico Taxi Station',
   ];
+
+  // 👇 NEW: Lifecycle method – loads data when screen opens
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  // 👇 NEW: Load real data from the API
+  void _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final terminals = await ApiService.getTerminals();
+    final status = await ApiService.getTaxiStatus();
+    final routes = await ApiService.getPopularRoutes();
+
+    setState(() {
+      _terminals = terminals;
+      _taxiCount = status['available'] ?? 0;
+      _nearbyCount = status['nearby_stations'] ?? 0;
+      _avgWait = status['average_wait'] ?? 0;
+      _popularRoutes = routes;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 18),
               _buildStationCard(),
               const SizedBox(height: 20),
-              _buildSummaryCards(),
+              _buildSummaryCards(),      // 👈 Now uses real data
               const SizedBox(height: 28),
-              _buildPopularRoutes(),
+              _buildPopularRoutes(),     // 👈 Now uses real data
             ],
           ),
         ),
@@ -251,13 +289,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 👇 UPDATED: Now uses real data from the API
   Widget _buildSummaryCards() {
     return Row(
       children: [
         Expanded(
           child: _summaryCard(
             icon: Icons.local_taxi_rounded,
-            value: '12',
+            value: _isLoading ? '...' : '$_taxiCount',
             label: 'Taxis\navailable',
           ),
         ),
@@ -265,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: _summaryCard(
             icon: Icons.location_city_rounded,
-            value: '4',
+            value: _isLoading ? '...' : '$_nearbyCount',
             label: 'Nearby\nstations',
           ),
         ),
@@ -273,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: _summaryCard(
             icon: Icons.access_time_rounded,
-            value: '~8 min',
+            value: _isLoading ? '...' : '~$_avgWait min',
             label: 'Average\nwaiting',
           ),
         ),
@@ -343,7 +382,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 👇 UPDATED: Now uses real data from the API
   Widget _buildPopularRoutes() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_popularRoutes.isEmpty) {
+      return const Center(child: Text('No popular routes available'));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -378,23 +426,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        _routeCard(
-          from: 'Bole',
-          to: 'Piazza',
-          waitTime: '~10 min',
-        ),
-        const SizedBox(height: 10),
-        _routeCard(
-          from: 'Bole',
-          to: 'Megenagna',
-          waitTime: '~7 min',
-        ),
-        const SizedBox(height: 10),
-        _routeCard(
-          from: 'Bole',
-          to: 'Mexico',
-          waitTime: '~9 min',
-        ),
+        ..._popularRoutes.map((route) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _routeCard(
+              from: route['from'] ?? 'Unknown',
+              to: route['to'] ?? 'Unknown',
+              waitTime: '~${route['waitTime'] ?? 5} min',
+            ),
+          );
+        }).toList(),
       ],
     );
   }
@@ -625,7 +666,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 👇 UPDATED: Now uses real data from the API
   void _changeStation() {
+    if (_terminals.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No terminals available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -661,10 +713,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              ...stations.map(
-                (station) {
-                  final bool isSelected =
-                      station == selectedStation;
+              ..._terminals.map(
+                (terminal) {
+                  final stationName = terminal['name'] ?? 'Unknown';
+                  final isSelected = stationName == selectedStation;
 
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -682,7 +734,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     title: Text(
-                      station,
+                      stationName,
                       style: const TextStyle(
                         color: darkText,
                         fontWeight: FontWeight.w600,
@@ -696,13 +748,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         : null,
                     onTap: () {
                       setState(() {
-                        selectedStation = station;
-                        stationDistance =
-                            station == 'Bole Taxi Station'
-                                ? '1.2 km away'
-                                : '2.4 km away';
+                        selectedStation = stationName;
+                        stationDistance = '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
                       });
-
                       Navigator.pop(context);
                     },
                   );
