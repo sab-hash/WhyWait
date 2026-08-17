@@ -2,10 +2,10 @@ package auth
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,12 +19,7 @@ func NewHandler(db *sql.DB, tm *TokenManager) *Handler {
 }
 
 // ==================== REGISTER ====================
-func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *Handler) RegisterHandler(c *gin.Context) {
 	var user struct {
 		FullName string `json:"fullName"`
 		Phone    string `json:"phone"`
@@ -32,47 +27,67 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid JSON",
+		})
 		return
 	}
 
 	// Validate
 	if user.FullName == "" || user.Phone == "" || user.Email == "" || user.Password == "" {
-		http.Error(w, "All fields are required", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "All fields are required",
+		})
 		return
 	}
 
 	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(user.Password),
+		bcrypt.DefaultCost,
+	)
 	if err != nil {
-		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to hash password",
+		})
 		return
 	}
 
 	// Insert into database
 	query := `INSERT INTO users (full_name, phone, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id`
+
 	var id string
-	err = h.DB.QueryRow(query, user.FullName, user.Phone, user.Email, string(hashedPassword)).Scan(&id)
+	err = h.DB.QueryRow(
+		query,
+		user.FullName,
+		user.Phone,
+		user.Email,
+		string(hashedPassword),
+	).Scan(&id)
+
 	if err != nil {
 		log.Println("Registration error:", err)
-		http.Error(w, "Failed to register. Email or phone may already exist.", http.StatusConflict)
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "Failed to register. Email or phone may already exist.",
+		})
 		return
 	}
 
 	// Generate token
 	token, err := h.Token.generateToken(id, user.Email)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate token",
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"token":   token,
-		"user": map[string]string{
+		"user": gin.H{
 			"id":       id,
 			"fullName": user.FullName,
 			"email":    user.Email,
@@ -82,62 +97,81 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ==================== LOGIN ====================
-func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *Handler) LoginHandler(c *gin.Context) {
 	var creds struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&creds)
+	err := c.ShouldBindJSON(&creds)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid JSON",
+		})
 		return
 	}
 
 	if creds.Email == "" || creds.Password == "" {
-		http.Error(w, "Email and password required", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Email and password required",
+		})
 		return
 	}
 
 	// Query user from database by email OR phone
 	var id, fullName, email, phone, passwordHash string
+
 	query := `SELECT id, full_name, email, phone, password_hash FROM users WHERE email = $1 OR phone = $1`
-	err = h.DB.QueryRow(query, creds.Email).Scan(&id, &fullName, &email, &phone, &passwordHash)
+
+	err = h.DB.QueryRow(query, creds.Email).Scan(
+		&id,
+		&fullName,
+		&email,
+		&phone,
+		&passwordHash,
+	)
 
 	if err == sql.ErrNoRows {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid credentials",
+		})
 		return
 	}
+
 	if err != nil {
 		log.Println("Login database error:", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal server error",
+		})
 		return
 	}
 
 	// Check password
-	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(creds.Password))
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(passwordHash),
+		[]byte(creds.Password),
+	)
+
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid credentials",
+		})
 		return
 	}
 
 	// Generate token
 	token, err := h.Token.generateToken(id, email)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate token",
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"token":   token,
-		"user": map[string]string{
+		"user": gin.H{
 			"id":       id,
 			"fullName": fullName,
 			"email":    email,

@@ -35,8 +35,8 @@ func main() {
 	router.GET("/api/health", gin.WrapF(healthHandler))
 	router.GET("/api/data", gin.WrapF(dataHandler))
 
-	router.POST("/register", gin.WrapF(authHandler.RegisterHandler))
-	router.POST("/login", gin.WrapF(authHandler.LoginHandler))
+	router.POST("/register", authHandler.RegisterHandler)
+	router.POST("/login", authHandler.LoginHandler)
 
 	router.GET("/terminals", terminalsHandler.GetTerminalsHandler)
 	router.GET("/routes/popular", routesHandler.GetPopularRoutesHandler)
