@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-// MODEL
+
 enum TaxiStatus { available, filling }
 
 class Taxi {
@@ -54,3 +54,47 @@ class Taxi {
     };
   }
 }
+
+// SERVICE
+class TaxiService {
+  Future<List<Taxi>> fetchNearbyTaxis() async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return _mockTaxis;
+  }
+}
+
+// Pickup point: Mexico (Addis Ababa)
+const LatLng pickupLocation = LatLng(9.0092, 38.7469);
+
+final List<Taxi> _mockTaxis = [
+  const Taxi(
+    id: '1',
+    name: 'Taxi 1',
+    plate: 'AA 32-81',
+    distanceKm: 1.2,
+    etaMinutes: 4,
+    status: TaxiStatus.available,
+    latitude: 9.0125,
+    longitude: 38.7510,
+  ),
+  const Taxi(
+    id: '2',
+    name: 'Taxi 2',
+    plate: 'AA 14-72',
+    distanceKm: 2.8,
+    etaMinutes: 9,
+    status: TaxiStatus.filling,
+    latitude: 9.0165,
+    longitude: 38.7440,
+  ),
+  const Taxi(
+    id: '3',
+    name: 'Taxi 3',
+    plate: 'AA 55-03',
+    distanceKm: 4.1,
+    etaMinutes: 13,
+    status: TaxiStatus.available,
+    latitude: 9.0200,
+    longitude: 38.7550,
+  ),
+];
