@@ -11,72 +11,91 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   static const Color primeBlue = Color(0xFF1565C0);
   static const Color backgroundColor = Color(0xFFF7F9FC);
+  static const Color darkText = Color(0xFF172B4D);
 
-  int selectedTab = 0;
-
-  final List<String> tabs = [
-    'All',
-    'Completed',
-    'Cancelled',
-  ];
-
-  final List<Map<String, String>> trips = [
+  final List<Map<String, dynamic>> trips = [
     {
       'date': 'Today',
       'from': 'Bole',
       'to': 'Mexico Square',
       'time': '10:30 AM',
-      'price': 'ETB 250',
-      'status': 'Completed',
+      'fare': 'ETB 35',
+      'legs': [
+        {
+          'type': 'Taxi',
+          'from': 'Bole',
+          'to': 'Mexico Square',
+          'fare': 'ETB 35',
+        },
+      ],
     },
     {
       'date': 'Today',
-      'from': 'Kazanchis',
+      'from': 'CMC',
       'to': 'Piassa',
       'time': '1:15 PM',
-      'price': 'ETB 180',
-      'status': 'Completed',
-    },
-    {
-      'date': 'Yesterday',
-      'from': 'CMC',
-      'to': 'Bole',
-      'time': '9:20 AM',
-      'price': 'ETB 300',
-      'status': 'Completed',
+      'fare': 'ETB 45',
+      'legs': [
+        {
+          'type': 'Minibus',
+          'from': 'CMC',
+          'to': 'Megenagna',
+          'fare': 'ETB 25',
+        },
+        {
+          'type': 'Taxi',
+          'from': 'Megenagna',
+          'to': 'Piassa',
+          'fare': 'ETB 20',
+        },
+      ],
     },
     {
       'date': 'Yesterday',
       'from': 'Sarbet',
-      'to': 'Megenagna',
+      'to': 'Bole',
+      'time': '9:20 AM',
+      'fare': 'ETB 20',
+      'legs': [
+        {
+          'type': 'Minibus',
+          'from': 'Sarbet',
+          'to': 'Bole',
+          'fare': 'ETB 20',
+        },
+      ],
+    },
+    {
+      'date': 'Yesterday',
+      'from': 'Kazanchis',
+      'to': 'CMC',
       'time': '4:45 PM',
-      'price': 'ETB 220',
-      'status': 'Cancelled',
+      'fare': 'ETB 40',
+      'legs': [
+        {
+          'type': 'Taxi',
+          'from': 'Kazanchis',
+          'to': 'Megenagna',
+          'fare': 'ETB 25',
+        },
+        {
+          'type': 'Minibus',
+          'from': 'Megenagna',
+          'to': 'CMC',
+          'fare': 'ETB 15',
+        },
+      ],
     },
   ];
 
-  List<Map<String, String>> get filteredTrips {
-    if (selectedTab == 0) {
-      return trips;
-    }
-
-    final status = selectedTab == 1
-        ? 'Completed'
-        : 'Cancelled';
-
+  List<Map<String, dynamic>> get todayTrips {
     return trips
-        .where((trip) => trip['status'] == status)
-        .toList();
-  }
-
-  List<Map<String, String>> get todayTrips {
-    return filteredTrips
         .where((trip) => trip['date'] == 'Today')
         .toList();
   }
 
-  List<Map<String, String>> get yesterdayTrips {
-    return filteredTrips
+  List<Map<String, dynamic>> get yesterdayTrips {
+    return trips
         .where((trip) => trip['date'] == 'Yesterday')
         .toList();
   }
@@ -92,17 +111,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 18),
-
               _buildHeader(),
-
-              const SizedBox(height: 24),
-
-              _buildTabs(),
-
-              const SizedBox(height: 24),
-
+              const SizedBox(height: 28),
+              const Text(
+                'Your journeys',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: darkText,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'See the public transportation you used.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 22),
               Expanded(
-                child: filteredTrips.isEmpty
+                child: trips.isEmpty
                     ? _buildEmptyState()
                     : _buildTripList(),
               ),
@@ -140,76 +169,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
         ),
-
         const SizedBox(width: 14),
-
         const Text(
           'Trip History',
           style: TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF172B4D),
+            color: darkText,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildTabs() {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: List.generate(
-          tabs.length,
-          (index) {
-            final bool isSelected = selectedTab == index;
-
-            return Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedTab = index;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? primeBlue
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    tabs[index],
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.w500,
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF718096),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
     );
   }
 
@@ -219,26 +188,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
       children: [
         if (todayTrips.isNotEmpty) ...[
           _buildSectionTitle('Today'),
-
           const SizedBox(height: 12),
-
           ...todayTrips.map(
             (trip) => _buildTripCard(trip),
           ),
         ],
-
         if (yesterdayTrips.isNotEmpty) ...[
-          const SizedBox(height: 8),
-
+          const SizedBox(height: 10),
           _buildSectionTitle('Yesterday'),
-
           const SizedBox(height: 12),
-
           ...yesterdayTrips.map(
             (trip) => _buildTripCard(trip),
           ),
         ],
-
         const SizedBox(height: 20),
       ],
     );
@@ -250,13 +212,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF172B4D),
+        color: darkText,
       ),
     );
   }
 
-  Widget _buildTripCard(Map<String, String> trip) {
-    final bool isCancelled = trip['status'] == 'Cancelled';
+  Widget _buildTripCard(Map<String, dynamic> trip) {
+    final List<dynamic> legs = trip['legs'];
+
+    final Set<String> transportTypes = legs
+        .map<String>(
+          (leg) => leg['type'] as String,
+        )
+        .toSet();
 
     return GestureDetector(
       onTap: () {
@@ -270,7 +238,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(17),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -295,14 +263,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: const Icon(
-                    Icons.local_taxi,
+                    Icons.directions_transit,
                     color: primeBlue,
                     size: 26,
                   ),
                 ),
-
                 const SizedBox(width: 13),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
@@ -313,12 +279,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF172B4D),
+                          color: darkText,
                         ),
                       ),
-
                       const SizedBox(height: 5),
-
                       Row(
                         children: [
                           Icon(
@@ -326,11 +290,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             size: 14,
                             color: Colors.grey[500],
                           ),
-
                           const SizedBox(width: 4),
-
                           Text(
-                            trip['time']!,
+                            trip['time'],
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey[600],
@@ -341,9 +303,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ],
                   ),
                 ),
-
                 Text(
-                  trip['price']!,
+                  trip['fare'],
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -352,78 +313,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 15),
-
             Divider(
               height: 1,
               color: Colors.grey[200],
             ),
-
             const SizedBox(height: 12),
-
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isCancelled
-                        ? Colors.red.withValues(alpha: 0.08)
-                        : Colors.green.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isCancelled
-                            ? Icons.cancel
-                            : Icons.check_circle,
-                        color: isCancelled
-                            ? Colors.red
-                            : Colors.green,
-                        size: 15,
-                      ),
-
-                      const SizedBox(width: 5),
-
-                      Text(
-                        trip['status']!,
-                        style: TextStyle(
-                          color: isCancelled
-                              ? Colors.red
-                              : Colors.green,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                const Icon(
+                  Icons.directions_car_outlined,
+                  size: 17,
+                  color: primeBlue,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _transportText(
+                      transportTypes,
+                      legs.length,
+                    ),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-
-                const Spacer(),
-
-                Row(
-                  children: [
-                    const Text(
-                      'View details',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: primeBlue,
-                      ),
-                    ),
-
-                    const SizedBox(width: 4),
-
-                    const Icon(
-                      Icons.chevron_right,
-                      color: primeBlue,
-                      size: 20,
-                    ),
-                  ],
+                const Text(
+                  'Details',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: primeBlue,
+                  ),
+                ),
+                const SizedBox(width: 3),
+                const Icon(
+                  Icons.chevron_right,
+                  color: primeBlue,
+                  size: 20,
                 ),
               ],
             ),
@@ -433,17 +362,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    String title;
-
-    if (selectedTab == 1) {
-      title = 'No completed trips';
-    } else if (selectedTab == 2) {
-      title = 'No cancelled trips';
-    } else {
-      title = 'No trips yet';
+  String _transportText(
+    Set<String> types,
+    int numberOfLegs,
+  ) {
+    if (numberOfLegs == 1) {
+      return types.first;
     }
 
+    return '$numberOfLegs vehicles · ${types.join(' + ')}';
+  }
+
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -456,27 +386,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
               shape: BoxShape.circle,
             ),
             child: const Icon(
-              Icons.history,
+              Icons.directions_transit,
               size: 46,
               color: primeBlue,
             ),
           ),
-
           const SizedBox(height: 20),
-
-          Text(
-            title,
-            style: const TextStyle(
+          const Text(
+            'No journeys yet',
+            style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF172B4D),
+              color: darkText,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
-            'Your trip history will appear here.',
+            'Your public transportation history will appear here.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
