@@ -9,6 +9,9 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  static const Color primeBlue = Color(0xFF1565C0);
+  static const Color backgroundColor = Color(0xFFF7F9FC);
+
   int selectedTab = 0;
 
   final List<String> tabs = [
@@ -81,22 +84,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
               _buildHeader(),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 24),
 
               _buildTabs(),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 24),
 
               Expanded(
                 child: filteredTrips.isEmpty
@@ -113,18 +116,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildHeader() {
     return Row(
       children: [
-        IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(Icons.arrow_back),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(
+              Icons.arrow_back,
+              color: primeBlue,
+            ),
+          ),
         ),
-        const SizedBox(width: 8),
+
+        const SizedBox(width: 14),
+
         const Text(
           'Trip History',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 25,
             fontWeight: FontWeight.bold,
+            color: Color(0xFF172B4D),
           ),
         ),
       ],
@@ -133,17 +157,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildTabs() {
     return Container(
-      height: 48,
-      padding: const EdgeInsets.all(4),
+      height: 52,
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: List.generate(
           tabs.length,
           (index) {
-            final isSelected = selectedTab == index;
+            final bool isSelected = selectedTab == index;
 
             return Expanded(
               child: GestureDetector(
@@ -152,12 +183,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     selectedTab = index;
                   });
                 },
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFFFFC107)
+                        ? primeBlue
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -168,8 +200,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ? FontWeight.bold
                           : FontWeight.w500,
                       color: isSelected
-                          ? Colors.black
-                          : Colors.grey[600],
+                          ? Colors.white
+                          : const Color(0xFF718096),
                     ),
                   ),
                 ),
@@ -183,31 +215,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildTripList() {
     return ListView(
+      physics: const BouncingScrollPhysics(),
       children: [
         if (todayTrips.isNotEmpty) ...[
-          const Text(
-            'Today',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          _buildSectionTitle('Today'),
+
           const SizedBox(height: 12),
+
           ...todayTrips.map(
             (trip) => _buildTripCard(trip),
           ),
         ],
 
         if (yesterdayTrips.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          const Text(
-            'Yesterday',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const SizedBox(height: 8),
+
+          _buildSectionTitle('Yesterday'),
+
           const SizedBox(height: 12),
+
           ...yesterdayTrips.map(
             (trip) => _buildTripCard(trip),
           ),
@@ -218,30 +244,42 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF172B4D),
+      ),
+    );
+  }
+
   Widget _buildTripCard(Map<String, String> trip) {
-    final isCancelled = trip['status'] == 'Cancelled';
+    final bool isCancelled = trip['status'] == 'Cancelled';
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                TripDetailsScreen(trip: trip),
+            builder: (context) => TripDetailsScreen(
+              trip: trip,
+            ),
           ),
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(17),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              color: Colors.black.withValues(alpha: 0.045),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -250,22 +288,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Row(
               children: [
                 Container(
-                  width: 45,
-                  height: 45,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFC107)
-                        .withValues(alpha: 0.15),
-                    borderRadius:
-                        BorderRadius.circular(12),
+                    color: primeBlue.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(13),
                   ),
                   child: const Icon(
                     Icons.local_taxi,
-                    color: Color(0xFFFFC107),
-                    size: 25,
+                    color: primeBlue,
+                    size: 26,
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 13),
 
                 Expanded(
                   child: Column(
@@ -277,15 +313,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFF172B4D),
                         ),
                       ),
+
                       const SizedBox(height: 5),
-                      Text(
-                        trip['time']!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
-                        ),
+
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: Colors.grey[500],
+                          ),
+
+                          const SizedBox(width: 4),
+
+                          Text(
+                            trip['time']!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -296,51 +347,83 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
+                    color: primeBlue,
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 15),
 
-            const Divider(height: 1),
+            Divider(
+              height: 1,
+              color: Colors.grey[200],
+            ),
 
             const SizedBox(height: 12),
 
             Row(
               children: [
-                Icon(
-                  isCancelled
-                      ? Icons.cancel
-                      : Icons.check_circle,
-                  color: isCancelled
-                      ? Colors.red
-                      : Colors.green,
-                  size: 18,
-                ),
-
-                const SizedBox(width: 6),
-
-                Text(
-                  trip['status']!,
-                  style: TextStyle(
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
                     color: isCancelled
-                        ? Colors.red
-                        : Colors.green,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                        ? Colors.red.withValues(alpha: 0.08)
+                        : Colors.green.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isCancelled
+                            ? Icons.cancel
+                            : Icons.check_circle,
+                        color: isCancelled
+                            ? Colors.red
+                            : Colors.green,
+                        size: 15,
+                      ),
+
+                      const SizedBox(width: 5),
+
+                      Text(
+                        trip['status']!,
+                        style: TextStyle(
+                          color: isCancelled
+                              ? Colors.red
+                              : Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
                 const Spacer(),
 
-                const Text(
-                  'View details',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFFFA000),
-                  ),
+                Row(
+                  children: [
+                    const Text(
+                      'View details',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: primeBlue,
+                      ),
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    const Icon(
+                      Icons.chevron_right,
+                      color: primeBlue,
+                      size: 20,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -366,17 +449,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 90,
-            height: 90,
+            width: 95,
+            height: 95,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFC107)
-                  .withValues(alpha: 0.15),
+              color: primeBlue.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.history,
-              size: 45,
-              color: Color(0xFFFFA000),
+              size: 46,
+              color: primeBlue,
             ),
           ),
 
@@ -385,8 +467,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 19,
               fontWeight: FontWeight.bold,
+              color: Color(0xFF172B4D),
             ),
           ),
 
