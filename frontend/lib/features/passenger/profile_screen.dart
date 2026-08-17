@@ -366,3 +366,40 @@ class _SettingsTile extends StatelessWidget {
     );
   }
 }
+class _SignOutTile extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: const Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.logout_rounded,
+                color: Colors.redAccent,
+                size: 22,
+              ),
+              SizedBox(width: 14),
+              Text(
+                'Sign Out',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
