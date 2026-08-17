@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-
+// MODEL
 enum TaxiStatus { available, filling }
 
 class Taxi {
@@ -56,6 +56,7 @@ class Taxi {
 }
 
 // SERVICE
+
 class TaxiService {
   Future<List<Taxi>> fetchNearbyTaxis() async {
     await Future.delayed(const Duration(milliseconds: 400));
@@ -63,7 +64,6 @@ class TaxiService {
   }
 }
 
-// Pickup point: Mexico (Addis Ababa)
 const LatLng pickupLocation = LatLng(9.0092, 38.7469);
 
 final List<Taxi> _mockTaxis = [
@@ -98,3 +98,51 @@ final List<Taxi> _mockTaxis = [
     longitude: 38.7550,
   ),
 ];
+
+// SCREEN
+class TrackScreen extends StatefulWidget {
+  const TrackScreen({super.key});
+
+  @override
+  State<TrackScreen> createState() => _TrackScreenState();
+}
+
+class _TrackScreenState extends State<TrackScreen> {
+  static const Color primaryBlue = Color(0xFF0B3D78);
+
+  final MapController _mapController = MapController();
+  final TaxiService _taxiService = TaxiService();
+
+  List<Taxi> _taxis = [];
+  bool _isLoading = true;
+  int _currentNavIndex = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTaxis();
+  }
+
+  Future<void> _loadTaxis() async {
+    setState(() => _isLoading = true);
+
+    final taxis = await _taxiService.fetchNearbyTaxis();
+
+    if (!mounted) return;
+
+    setState(() {
+      _taxis = taxis;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FA),
+      body: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
