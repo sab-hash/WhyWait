@@ -5,10 +5,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"whywait-backend/internal/auth"
 	"whywait-backend/internal/config"
 	"whywait-backend/internal/db"
-	"whywait-backend/internal/middleware"
 	"whywait-backend/internal/routes"
 	"whywait-backend/internal/taxis"
 	"whywait-backend/internal/terminals"
@@ -27,22 +28,20 @@ func main() {
 	taxisHandler := taxis.NewHandler(conn)
 
 	// Set up routes
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/health", healthHandler)
-	mux.HandleFunc("/api/data", dataHandler)
-	mux.HandleFunc("/register", authHandler.RegisterHandler)
-	mux.HandleFunc("/login", authHandler.LoginHandler)
+	router := gin.Default()
 
-	// New endpoints for taxi tracking
-	mux.HandleFunc("/terminals", terminalsHandler.GetTerminalsHandler)
-	mux.HandleFunc("/routes/popular", routesHandler.GetPopularRoutesHandler)
-	mux.HandleFunc("/taxis/status", taxisHandler.GetTaxiStatusHandler)
+	router.GET("/api/health", gin.WrapF(healthHandler))
+	router.GET("/api/data", gin.WrapF(dataHandler))
 
-	// Wrap with CORS
-	handler := middleware.CORS(mux)
+	router.POST("/register", gin.WrapF(authHandler.RegisterHandler))
+	router.POST("/login", gin.WrapF(authHandler.LoginHandler))
+
+	router.GET("/terminals", gin.WrapF(terminalsHandler.GetTerminalsHandler))
+	router.GET("/routes/popular", gin.WrapF(routesHandler.GetPopularRoutesHandler))
+	router.GET("/taxis/status", gin.WrapF(taxisHandler.GetTaxiStatusHandler))
 
 	log.Println("✅ Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	log.Fatal(router.Run(":8080"))
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
