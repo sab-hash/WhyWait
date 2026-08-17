@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 
@@ -33,8 +31,8 @@ func main() {
 	router.Use(middleware.CORS())
 
 	router.Use(middleware.SecurityHeaders())
-	router.GET("/api/health", gin.WrapF(healthHandler))
-	router.GET("/api/data", gin.WrapF(dataHandler))
+	router.GET("/api/health", healthHandler)
+	router.GET("/api/data", dataHandler)
 
 	router.POST("/register", authHandler.RegisterHandler)
 	router.POST("/login", authHandler.LoginHandler)
@@ -46,25 +44,15 @@ func main() {
 	log.Fatal(router.Run(":8080"))
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-}
-
-func dataHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Hello from Go backend!",
-		"items":   []string{"item1", "item2", "item3"},
+func healthHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status": "ok",
 	})
 }
 
-func SecurityHeaders() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Header("X-Content-Type-Options", "nosniff")
-		c.Header("X-Frame-Options", "DENY")
-		c.Header("Content-Security-Policy", "default-src 'self'")
-		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-		c.Next()
-	}
+func dataHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"message": "Hello from Go backend!",
+		"items":   []string{"item1", "item2", "item3"},
+	})
 }
