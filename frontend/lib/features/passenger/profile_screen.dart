@@ -63,62 +63,152 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: primaryBlue,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
+  return Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Container(
+        decoration: const BoxDecoration(
+          color: primaryBlue,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(28),
+            bottomRight: Radius.circular(28),
+          ),
+        ),
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 16,
+          bottom: 48,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 3,
+                ),
+                image: const DecorationImage(
+                  image: NetworkImage(_UserData.avatarUrl),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              _UserData.name,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _UserData.phone,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 36,
+              child: ElevatedButton(
+                onPressed: () {},
+                child: const Text('Edit Profile'),
+              ),
+            ),
+          ],
         ),
       ),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 16,
-        bottom: 32,
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 3,
+
+      Positioned(
+        left: 20,
+        right: 20,
+        bottom: -34,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
-              image: const DecorationImage(
-                image: NetworkImage(_UserData.avatarUrl),
-                fit: BoxFit.cover,
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _StatItem(
+                value: _UserData.trips,
+                label: 'Trips',
               ),
-            ),
+              _VerticalDivider(),
+              _StatItem(
+                value: _UserData.favorites,
+                label: 'Favorites',
+              ),
+              _VerticalDivider(),
+              _StatItem(
+                value: _UserData.avgWait,
+                label: 'Avg wait',
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          const Text(
-            _UserData.name,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _UserData.phone,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 36,
-            child: ElevatedButton(
-              onPressed: () {},
-              child: const Text('Edit Profile'),
-            ),
-          ),
-        ],
+        ),
       ),
+
+      const SizedBox(height: 34),
+    ],
+  );
+}
+}
+class _StatItem extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _StatItem({
+    required this.value,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: ProfileScreen.darkText,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: ProfileScreen.subText,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VerticalDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 32,
+      color: const Color(0xFFE3E6EC),
     );
   }
 }
