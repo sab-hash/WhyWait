@@ -2,8 +2,9 @@ package routes
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -15,20 +16,17 @@ func NewHandler(db *sql.DB) *Handler {
 }
 
 // ==================== POPULAR ROUTES ====================
-func (h *Handler) GetPopularRoutesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *Handler) GetPopularRoutesHandler(c *gin.Context) {
 	routesList, err := h.Repo.GetPopular()
 	if err != nil {
-		http.Error(w, "Failed to fetch popular routes", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch popular routes",
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"routes":  routesList,
 	})
