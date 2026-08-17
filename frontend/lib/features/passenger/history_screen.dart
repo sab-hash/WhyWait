@@ -33,6 +33,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
     },
   ];
 
+  final List<Map<String, String>> yesterdayTrips = [
+    {
+      'from': 'CMC',
+      'to': 'Bole',
+      'time': '9:20 AM',
+      'price': 'ETB 300',
+      'status': 'Completed',
+    },
+    {
+      'from': 'Sarbet',
+      'to': 'Megenagna',
+      'time': '4:45 PM',
+      'price': 'ETB 220',
+      'status': 'Cancelled',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,7 +62,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // Header
               Row(
                 children: [
                   IconButton(
@@ -67,7 +83,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
               const SizedBox(height: 25),
 
-              // Filter tabs
               Container(
                 height: 48,
                 padding: const EdgeInsets.all(4),
@@ -116,137 +131,160 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 25),
 
-              // Today title
-              const Text(
-                'Today',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Today's trips
               Expanded(
-                child: ListView.builder(
-                  itemCount: todayTrips.length,
-                  itemBuilder: (context, index) {
-                    final trip = todayTrips[index];
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 15),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+                child: ListView(
+                  children: [
+                    const Text(
+                      'Today',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 45,
-                                height: 45,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFC107)
-                                      .withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.local_taxi,
-                                  color: Color(0xFFFFC107),
-                                  size: 25,
-                                ),
-                              ),
+                    ),
 
-                              const SizedBox(width: 12),
+                    const SizedBox(height: 12),
 
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${trip['from']} → ${trip['to']}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      trip['time']!,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                    ...todayTrips.map(
+                      (trip) => _buildTripCard(trip),
+                    ),
 
-                              Text(
-                                trip['price']!,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                    const SizedBox(height: 10),
 
-                          const SizedBox(height: 14),
-
-                          const Divider(height: 1),
-
-                          const SizedBox(height: 12),
-
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                trip['status']!,
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const Spacer(),
-                              const Text(
-                                'View details',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFFFA000),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                    const Text(
+                      'Yesterday',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    ...yesterdayTrips.map(
+                      (trip) => _buildTripCard(trip),
+                    ),
+
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTripCard(Map<String, String> trip) {
+    final bool isCancelled = trip['status'] == 'Cancelled';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 45,
+                height: 45,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFC107).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.local_taxi,
+                  color: Color(0xFFFFC107),
+                  size: 25,
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${trip['from']} → ${trip['to']}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      trip['time']!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Text(
+                trip['price']!,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          const Divider(height: 1),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Icon(
+                isCancelled ? Icons.cancel : Icons.check_circle,
+                color: isCancelled ? Colors.red : Colors.green,
+                size: 18,
+              ),
+
+              const SizedBox(width: 6),
+
+              Text(
+                trip['status']!,
+                style: TextStyle(
+                  color: isCancelled ? Colors.red : Colors.green,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const Spacer(),
+
+              const Text(
+                'View details',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFFFA000),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
