@@ -38,7 +38,7 @@ func main() {
 	router.POST("/register", gin.WrapF(authHandler.RegisterHandler))
 	router.POST("/login", gin.WrapF(authHandler.LoginHandler))
 
-	router.GET("/terminals", gin.WrapF(terminalsHandler.GetTerminalsHandler))
+	router.GET("/terminals", terminalsHandler.GetTerminalsHandler)
 	router.GET("/routes/popular", gin.WrapF(routesHandler.GetPopularRoutesHandler))
 	router.GET("/taxis/status", taxisHandler.GetTaxiStatusHandler)
 	log.Println("✅ Server running on http://localhost:8080")
