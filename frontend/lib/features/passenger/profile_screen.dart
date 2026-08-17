@@ -22,6 +22,20 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class _UserData {
+  static const String name = 'Abebe Kebede';
+  static const String phone = '+251 912 345 678';
+  static const String avatarUrl =
+      'https://i.pravatar.cc/300?img=13';
+
+  static const String trips = '24';
+  static const String favorites = '3';
+  static const String avgWait = '~6m';
+
+  static const String savedStations = 'Mexico, Bole, CMC';
+  static const String language = 'English';
+}
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
