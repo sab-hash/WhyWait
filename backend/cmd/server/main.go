@@ -32,6 +32,7 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.CORS())
 
+	router.Use(middleware.SecurityHeaders())
 	router.GET("/api/health", gin.WrapF(healthHandler))
 	router.GET("/api/data", gin.WrapF(dataHandler))
 
@@ -56,4 +57,14 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "Hello from Go backend!",
 		"items":   []string{"item1", "item2", "item3"},
 	})
+}
+
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("Content-Security-Policy", "default-src 'self'")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Next()
+	}
 }
