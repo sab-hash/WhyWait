@@ -39,11 +39,34 @@ class _UserData {
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  static const Color primaryBlue = Color(0xFF14448C);
+  static const Color darkText = Color(0xFF1A1D29);
+  static const Color subText = Color(0xFF7A8194);
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('Profile'),
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 40),
+              const Text(
+                'Profile',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: darkText,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
