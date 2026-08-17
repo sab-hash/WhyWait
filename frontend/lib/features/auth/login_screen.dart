@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'register_screen.dart';
+import '../passenger/home_screen.dart'; // 👈 Import HomeScreen
 
 void main() {
   runApp(const TaxiTrackApp());
@@ -40,6 +45,71 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // ==================== HANDLE SIGN IN ====================
+  Future<void> _handleSignIn() async {
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Validate input
+    if (phone.isEmpty || password.isEmpty) {
+      _showMessage('Please fill in all fields');
+      return;
+    }
+
+    // Show loading indicator
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Logging in...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    try {
+      final url = Uri.parse('http://localhost:8080/login');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': phone,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = data['user'];
+
+        _showMessage('✅ Welcome back, ${user['fullName'] ?? 'User'}!');
+
+        // 👇 NAVIGATE TO HOME SCREEN
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(
+              fullName: user['fullName'] ?? 'User',
+              email: user['email'] ?? '',
+            ),
+          ),
+        );
+      } else {
+        _showMessage('❌ Invalid phone number or password');
+      }
+    } catch (e) {
+      _showMessage('❌ Could not connect to server. Is the backend running?');
+      print('Error: $e');
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -255,9 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return SizedBox(
       height: 52,
       child: ElevatedButton(
-        onPressed: () {
-          // TODO: handle sign in
-        },
+        onPressed: _handleSignIn,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
           shape: RoundedRectangleBorder(
@@ -335,6 +403,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: primaryBlue,
                 fontWeight: FontWeight.w600,
               ),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                  );
+                },
             ),
           ],
         ),
