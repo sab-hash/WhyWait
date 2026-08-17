@@ -403,3 +403,89 @@ class _SignOutTile extends StatelessWidget {
     );
   }
 }
+class _BottomNavBar extends StatelessWidget {
+  const _BottomNavBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: const [
+              _NavBarItem(
+                icon: Icons.home_outlined,
+                label: 'Home',
+              ),
+              _NavBarItem(
+                icon: Icons.map_outlined,
+                label: 'Track',
+              ),
+              _NavBarItem(
+                icon: Icons.history_rounded,
+                label: 'History',
+              ),
+              _NavBarItem(
+                icon: Icons.person,
+                label: 'Profile',
+                selected: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavBarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+
+  const _NavBarItem({
+    required this.icon,
+    required this.label,
+    this.selected = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? ProfileScreen.primaryBlue
+        : const Color(0xFF9AA0AC);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: color,
+          size: 24,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: color,
+            fontWeight:
+                selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+}
