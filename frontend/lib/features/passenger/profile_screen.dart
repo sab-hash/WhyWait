@@ -22,11 +22,16 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// -----------------------------------------------------------------------
+// Static data models — the backend team will replace these with real
+// values coming from the API. Everything below is hard-coded on purpose.
+// -----------------------------------------------------------------------
+
 class _UserData {
   static const String name = 'Abebe Kebede';
   static const String phone = '+251 912 345 678';
   static const String avatarUrl =
-      'https://i.pravatar.cc/300?img=13';
+      'https://i.pravatar.cc/300?img=13'; // placeholder image
 
   static const String trips = '24';
   static const String favorites = '3';
@@ -49,6 +54,10 @@ class _SettingsItem {
     this.iconColor = const Color(0xFF1B4DB1),
   });
 }
+
+// -----------------------------------------------------------------------
+// Profile Screen
+// -----------------------------------------------------------------------
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -108,6 +117,7 @@ class ProfileScreen extends StatelessWidget {
                       _SettingsTile(item: item),
                       const SizedBox(height: 12),
                     ],
+                    _SignOutTile(),
                   ],
                 ),
               ),
@@ -115,6 +125,7 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const _BottomNavBar(),
     );
   }
 
@@ -141,10 +152,7 @@ class ProfileScreen extends StatelessWidget {
                 height: 88,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 3,
-                  ),
+                  border: Border.all(color: Colors.white, width: 3),
                   image: const DecorationImage(
                     image: NetworkImage(_UserData.avatarUrl),
                     fit: BoxFit.cover,
@@ -172,13 +180,31 @@ class ProfileScreen extends StatelessWidget {
               SizedBox(
                 height: 36,
                 child: ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Edit Profile'),
+                  onPressed: () {
+                    // TODO(backend): hook up edit profile navigation/API
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: primaryBlue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Edit Profile',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         ),
+        // Floating stats card, overlapping the header bottom edge.
         Positioned(
           left: 20,
           right: 20,
@@ -199,38 +225,31 @@ class ProfileScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _StatItem(
-                  value: _UserData.trips,
-                  label: 'Trips',
-                ),
+                _StatItem(value: _UserData.trips, label: 'Trips'),
                 _VerticalDivider(),
-                _StatItem(
-                  value: _UserData.favorites,
-                  label: 'Favorites',
-                ),
+                _StatItem(value: _UserData.favorites, label: 'Favorites'),
                 _VerticalDivider(),
-                _StatItem(
-                  value: _UserData.avgWait,
-                  label: 'Avg wait',
-                ),
+                _StatItem(value: _UserData.avgWait, label: 'Avg wait'),
               ],
             ),
           ),
         ),
+        // Reserve space below the header for the overlapping card.
         const SizedBox(height: 34),
       ],
     );
   }
 }
 
+// -----------------------------------------------------------------------
+// Small reusable pieces
+// -----------------------------------------------------------------------
+
 class _StatItem extends StatelessWidget {
   final String value;
   final String label;
 
-  const _StatItem({
-    required this.value,
-    required this.label,
-  });
+  const _StatItem({required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -270,16 +289,12 @@ class _VerticalDivider extends StatelessWidget {
 
 class _SectionLabel extends StatelessWidget {
   final String text;
-
   const _SectionLabel(this.text);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(
-        left: 24,
-        top: 8,
-      ),
+      padding: const EdgeInsets.only(left: 24, top: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
@@ -298,10 +313,7 @@ class _SectionLabel extends StatelessWidget {
 
 class _SettingsTile extends StatelessWidget {
   final _SettingsItem item;
-
-  const _SettingsTile({
-    required this.item,
-  });
+  const _SettingsTile({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -310,26 +322,21 @@ class _SettingsTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () {
+          // TODO(backend): navigate to the relevant settings sub-screen
+        },
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEAF0FB),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF0FB),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  item.icon,
-                  size: 20,
-                  color: item.iconColor,
-                ),
+                child: Icon(item.icon, size: 20, color: item.iconColor),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -366,6 +373,7 @@ class _SettingsTile extends StatelessWidget {
     );
   }
 }
+
 class _SignOutTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -374,19 +382,14 @@ class _SignOutTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () {
+          // TODO(backend): hook up sign-out / clear session API call
+        },
         child: const Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(
-                Icons.logout_rounded,
-                color: Colors.redAccent,
-                size: 22,
-              ),
+              Icon(Icons.logout_rounded, color: Colors.redAccent, size: 22),
               SizedBox(width: 14),
               Text(
                 'Sign Out',
@@ -403,6 +406,7 @@ class _SignOutTile extends StatelessWidget {
     );
   }
 }
+
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
@@ -425,18 +429,9 @@ class _BottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: const [
-              _NavBarItem(
-                icon: Icons.home_outlined,
-                label: 'Home',
-              ),
-              _NavBarItem(
-                icon: Icons.map_outlined,
-                label: 'Track',
-              ),
-              _NavBarItem(
-                icon: Icons.history_rounded,
-                label: 'History',
-              ),
+              _NavBarItem(icon: Icons.home_outlined, label: 'Home'),
+              _NavBarItem(icon: Icons.map_outlined, label: 'Track'),
+              _NavBarItem(icon: Icons.history_rounded, label: 'History'),
               _NavBarItem(
                 icon: Icons.person,
                 label: 'Profile',
@@ -463,26 +458,18 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected
-        ? ProfileScreen.primaryBlue
-        : const Color(0xFF9AA0AC);
-
+    final color = selected ? ProfileScreen.primaryBlue : const Color(0xFF9AA0AC);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          color: color,
-          size: 24,
-        ),
+        Icon(icon, color: color, size: 24),
         const SizedBox(height: 2),
         Text(
           label,
           style: TextStyle(
             fontSize: 11,
             color: color,
-            fontWeight:
-                selected ? FontWeight.w600 : FontWeight.normal,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
       ],
