@@ -59,6 +59,34 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settingsItems = <_SettingsItem>[
+      const _SettingsItem(
+        icon: Icons.notifications_none_rounded,
+        title: 'Notifications',
+        subtitle: 'Alerts when taxi is 1 min away',
+      ),
+      const _SettingsItem(
+        icon: Icons.location_on_outlined,
+        title: 'Saved Stations',
+        subtitle: _UserData.savedStations,
+      ),
+      const _SettingsItem(
+        icon: Icons.shield_outlined,
+        title: 'Privacy & Security',
+        subtitle: 'Password, data settings',
+      ),
+      const _SettingsItem(
+        icon: Icons.translate_rounded,
+        title: 'Language',
+        subtitle: _UserData.language,
+      ),
+      const _SettingsItem(
+        icon: Icons.headset_mic_outlined,
+        title: 'Support',
+        subtitle: 'Help center, contact us',
+      ),
+    ];
+
     return Scaffold(
       body: SafeArea(
         top: false,
@@ -69,6 +97,8 @@ class ProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(context),
+              const SizedBox(height: 16),
+              const _SectionLabel('SETTINGS'),
             ],
           ),
         ),
@@ -137,7 +167,6 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
-
         Positioned(
           left: 20,
           right: 20,
@@ -176,7 +205,6 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ),
-
         const SizedBox(height: 34),
       ],
     );
@@ -224,6 +252,34 @@ class _VerticalDivider extends StatelessWidget {
       width: 1,
       height: 32,
       color: const Color(0xFFE3E6EC),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: 24,
+        top: 8,
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: ProfileScreen.subText,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
     );
   }
 }
