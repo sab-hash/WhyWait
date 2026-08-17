@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
-import 'features/passenger/home_screen.dart';
+import 'features/passenger/profile_screen.dart';
 
 void main() {
-  runApp(const TaxiApp());
+  runApp(const MyApp());
 }
 
-class TaxiApp extends StatelessWidget {
-  const TaxiApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Taxi App',
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      theme: ThemeData(
+        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: const Color(0xFFF3F5F8),
+        useMaterial3: true,
+      ),
+      home: const ProfileScreen(),
     );
   }
 }
