@@ -99,6 +99,18 @@ class ProfileScreen extends StatelessWidget {
               _buildHeader(context),
               const SizedBox(height: 16),
               const _SectionLabel('SETTINGS'),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    for (final item in settingsItems) ...[
+                      _SettingsTile(item: item),
+                      const SizedBox(height: 12),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -277,6 +289,77 @@ class _SectionLabel extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: ProfileScreen.subText,
             letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final _SettingsItem item;
+
+  const _SettingsTile({
+    required this.item,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEAF0FB),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  item.icon,
+                  size: 20,
+                  color: item.iconColor,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: ProfileScreen.darkText,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.subtitle,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: ProfileScreen.subText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFFB6BAC5),
+              ),
+            ],
           ),
         ),
       ),
