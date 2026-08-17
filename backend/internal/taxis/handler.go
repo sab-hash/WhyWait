@@ -2,8 +2,9 @@ package taxis
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -15,30 +16,28 @@ func NewHandler(db *sql.DB) *Handler {
 }
 
 // ==================== TAXI STATUS ====================
-func (h *Handler) GetTaxiStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *Handler) GetTaxiStatusHandler(c *gin.Context) {
 	availableCount, err := h.Repo.GetAvailableCount()
 	if err != nil {
-		http.Error(w, "Failed to get taxi status", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get taxi status",
+		})
 		return
 	}
 
 	totalCount, err := h.Repo.GetTotalCount()
 	if err != nil {
-		http.Error(w, "Failed to get total taxis", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get total taxis",
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"success":         true,
 		"available":       availableCount,
 		"total":           totalCount,
-		"average_wait":    8, // You can calculate this from data later
-		"nearby_stations": 4, // You can calculate this from data later
+		"average_wait":    8,
+		"nearby_stations": 4,
 	})
 }

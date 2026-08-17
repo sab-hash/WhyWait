@@ -31,6 +31,7 @@ func main() {
 	// Set up routes
 	router := gin.Default()
 	router.Use(middleware.CORS())
+
 	router.GET("/api/health", gin.WrapF(healthHandler))
 	router.GET("/api/data", gin.WrapF(dataHandler))
 
@@ -39,8 +40,7 @@ func main() {
 
 	router.GET("/terminals", gin.WrapF(terminalsHandler.GetTerminalsHandler))
 	router.GET("/routes/popular", gin.WrapF(routesHandler.GetPopularRoutesHandler))
-	router.GET("/taxis/status", gin.WrapF(taxisHandler.GetTaxiStatusHandler))
-
+	router.GET("/taxis/status", taxisHandler.GetTaxiStatusHandler)
 	log.Println("✅ Server running on http://localhost:8080")
 	log.Fatal(router.Run(":8080"))
 }
