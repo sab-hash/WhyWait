@@ -40,6 +40,7 @@ func main() {
 	router.GET("/terminals", terminalsHandler.GetTerminalsHandler)
 	router.GET("/routes/popular", routesHandler.GetPopularRoutesHandler)
 	router.GET("/taxis/status", taxisHandler.GetTaxiStatusHandler)
+	router.GET("/taxis/approaching", taxisHandler.GetApproachingTaxisHandler)
 	log.Println("✅ Server running on http://localhost:8080")
 	log.Fatal(router.Run(":8080"))
 }

@@ -41,3 +41,25 @@ func (h *Handler) GetTaxiStatusHandler(c *gin.Context) {
 		"nearby_stations": 4,
 	})
 }
+
+// ==================== APPROACHING TAXIS ====================
+func (h *Handler) GetApproachingTaxisHandler(c *gin.Context) {
+	stationName := c.Query("station")
+	if stationName == "" {
+		stationName = "Bole Taxi Station"
+	}
+
+	taxis, err := h.Repo.GetApproachingTaxis(stationName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch approaching taxis",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"taxis":   taxis,
+		"station": stationName,
+	})
+}
