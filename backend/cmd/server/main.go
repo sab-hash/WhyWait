@@ -10,6 +10,7 @@ import (
 	"whywait-backend/internal/auth"
 	"whywait-backend/internal/config"
 	"whywait-backend/internal/db"
+	"whywait-backend/internal/middleware"
 	"whywait-backend/internal/routes"
 	"whywait-backend/internal/taxis"
 	"whywait-backend/internal/terminals"
@@ -29,7 +30,7 @@ func main() {
 
 	// Set up routes
 	router := gin.Default()
-
+	router.Use(middleware.CORS())
 	router.GET("/api/health", gin.WrapF(healthHandler))
 	router.GET("/api/data", gin.WrapF(dataHandler))
 
