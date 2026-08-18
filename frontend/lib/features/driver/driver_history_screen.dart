@@ -17,8 +17,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
-
-      // App Bar
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -32,63 +30,163 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           ),
         ),
       ),
-
-      // Main content
-      body: const SafeArea(
-        child: Center(
-          child: Text(
-            'Trip history will appear here',
-            style: TextStyle(
-              color: Colors.black54,
-              fontSize: 16,
-            ),
-          ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: _buildSummaryCard(),
         ),
       ),
-
-      // Bottom Navigation
       bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildSummaryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: primaryBlue,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Today's Performance",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetric(
+                  icon: Icons.payments_outlined,
+                  value: '1,280 ETB',
+                  label: 'Total Earnings',
+                ),
+              ),
+              Expanded(
+                child: _buildMetric(
+                  icon: Icons.directions_car_outlined,
+                  value: '8',
+                  label: 'Trips',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetric(
+                  icon: Icons.star_outline,
+                  value: '4.8',
+                  label: 'Rating',
+                ),
+              ),
+              Expanded(
+                child: _buildMetric(
+                  icon: Icons.route_outlined,
+                  value: '32.2 km',
+                  label: 'Distance',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetric({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: 22,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildBottomNavigationBar() {
     return BottomNavigationBar(
       currentIndex: _selectedTab,
-
       onTap: (index) {
         setState(() {
           _selectedTab = index;
         });
       },
-
       type: BottomNavigationBarType.fixed,
       backgroundColor: Colors.white,
-
       selectedItemColor: primaryBlue,
       unselectedItemColor: Colors.grey,
-
       selectedFontSize: 12,
       unselectedFontSize: 12,
-
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
           activeIcon: Icon(Icons.home),
           label: 'Home',
         ),
-
         BottomNavigationBarItem(
           icon: Icon(Icons.map_outlined),
           activeIcon: Icon(Icons.map),
           label: 'Map',
         ),
-
         BottomNavigationBarItem(
           icon: Icon(Icons.history_outlined),
           activeIcon: Icon(Icons.history),
           label: 'History',
         ),
-
         BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),
           activeIcon: Icon(Icons.person),
