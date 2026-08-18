@@ -31,6 +31,9 @@ In many cities, especially in developing regions, taxi services face significant
 
 - [ ] **Real-Time Tracking** – Passengers can see nearby taxis and estimated arrival times on an interactive map using Google Maps API or OpenStreetMap.
 - [ ] **Live Taxi Tracking** – Passengers can track their driver's location in real-time during the trip.
+- [ ] **Admin Dashboard** – A dedicated admin panel for managing system data with role-based access control.
+- [ ] **Admin Terminal Management** – Admins can add, edit, view, and delete taxi terminals (stations) with their GPS coordinates.
+- [ ] **Admin Taxi Management** – Admins can register new taxis, update driver details, change vehicle status, and deactivate taxis.
 - [ ] **Trip History** – Users can view their past trips, including routes, times, and costs.
 - [ ] **Driver Registration** – Drivers can register their vehicles and manage their availability.
 - [ ] **Rating System** – Passengers and drivers can rate each other after each trip.
