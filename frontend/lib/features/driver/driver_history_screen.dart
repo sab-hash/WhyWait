@@ -9,6 +9,7 @@ class DriverHistoryScreen extends StatefulWidget {
 
 class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   int _selectedTab = 2;
+  int _selectedFilter = 0;
 
   static const Color primaryBlue = Color(0xFF1565C0);
   static const Color backgroundColor = Color(0xFFF7F9FC);
@@ -33,7 +34,14 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          child: _buildSummaryCard(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSummaryCard(),
+              const SizedBox(height: 20),
+              _buildFilterTabs(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -154,6 +162,69 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFilterTabs() {
+    const filters = [
+      'Today',
+      'This week',
+      'All time',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Row(
+        children: List.generate(
+          filters.length,
+          (index) {
+            final isSelected = _selectedFilter == index;
+
+            return Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = index;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? primaryBlue
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    filters[index],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.black54,
+                      fontSize: 13,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
