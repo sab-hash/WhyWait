@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/auth/login_screen.dart';
-
+import 'features/passenger/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,10 +11,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Taxi App',
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: LoginScreen(),
+      theme: ThemeData(
+        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: const Color(0xFFF3F5F8),
+        useMaterial3: true,
       ),
+      home: const ProfileScreen(),
     );
   }
 }
