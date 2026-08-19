@@ -43,6 +43,14 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
+
+              Transform.translate(
+                offset: const Offset(0, -24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildStatsCard(),
+                ),
+              ),
             ],
           ),
         ),
@@ -169,6 +177,78 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatsCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _statColumn(
+              '${widget.rating.toStringAsFixed(1)} ★',
+              'Rating',
+            ),
+          ),
+          _statDivider(),
+          Expanded(
+            child: _statColumn(
+              '${widget.totalTrips}',
+              'Trips',
+            ),
+          ),
+          _statDivider(),
+          Expanded(
+            child: _statColumn(
+              '${widget.earningsToday.toStringAsFixed(0)} ETB',
+              'Today',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statColumn(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[500],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _statDivider() {
+    return Container(
+      width: 1,
+      height: 34,
+      color: Colors.grey[200],
     );
   }
 }
