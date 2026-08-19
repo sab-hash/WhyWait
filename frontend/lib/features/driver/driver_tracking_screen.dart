@@ -40,6 +40,8 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
 
   final MapController _mapController = MapController();
 
+  int _currentNavIndex = 1;
+
   static const LatLng startPoint = LatLng(9.0092, 38.7469);
   static const LatLng driverPosition = LatLng(9.0110, 38.7472);
 
@@ -62,6 +64,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
@@ -76,11 +79,13 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
             children: [
               InkWell(
                 onTap: () => Navigator.maybePop(context),
+                borderRadius: BorderRadius.circular(20),
                 child: const Padding(
                   padding: EdgeInsets.all(4),
                   child: Icon(
                     Icons.arrow_back,
                     color: Colors.white,
+                    size: 22,
                   ),
                 ),
               ),
@@ -95,17 +100,26 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   ),
                 ),
               ),
-              const Icon(
-                Icons.phone,
-                color: Colors.white,
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.phone,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 32),
+          Padding(
+            padding: const EdgeInsets.only(left: 32),
+            child: Align(
+              alignment: Alignment.centerLeft,
               child: Text(
                 '${widget.passengersOnBoard} / '
                 '${widget.passengersTotal} passengers • '
@@ -288,6 +302,12 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           color: Colors.white,
           width: 3,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 6,
+          ),
+        ],
       ),
       child: const Icon(
         Icons.directions_bus_filled_rounded,
@@ -410,9 +430,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
             child: SizedBox(
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: trigger call to passenger
-                },
+                onPressed: () {},
                 icon: const Icon(
                   Icons.phone,
                   size: 18,
@@ -440,9 +458,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
             child: SizedBox(
               height: 50,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: open messaging with passenger
-                },
+                onPressed: () {},
                 icon: const Icon(
                   Icons.chat_bubble_outline_rounded,
                   size: 18,
@@ -467,6 +483,76 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    final items = [
+      (Icons.home_outlined, 'Home'),
+      (Icons.map_outlined, 'Map'),
+      (Icons.history, 'History'),
+      (Icons.person_outline, 'Profile'),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(
+              items.length,
+              (index) {
+                final selected = index == _currentNavIndex;
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _currentNavIndex = index;
+                    });
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        items[index].$1,
+                        color: selected
+                            ? primaryBlue
+                            : Colors.grey[400],
+                        size: 22,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        items[index].$2,
+                        style: TextStyle(
+                          color: selected
+                              ? primaryBlue
+                              : Colors.grey[400],
+                          fontSize: 11,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
