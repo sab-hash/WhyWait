@@ -44,21 +44,9 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   static const LatLng driverPosition = LatLng(9.0110, 38.7472);
 
   final List<RouteStop> stops = const [
-    RouteStop(
-      number: 1,
-      latitude: 9.0140,
-      longitude: 38.7490,
-    ),
-    RouteStop(
-      number: 2,
-      latitude: 9.0175,
-      longitude: 38.7520,
-    ),
-    RouteStop(
-      number: 3,
-      latitude: 9.0205,
-      longitude: 38.7555,
-    ),
+    RouteStop(number: 1, latitude: 9.0140, longitude: 38.7490),
+    RouteStop(number: 2, latitude: 9.0175, longitude: 38.7520),
+    RouteStop(number: 3, latitude: 9.0205, longitude: 38.7555),
   ];
 
   @override
@@ -144,55 +132,100 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           width: 2,
         ),
       ),
-      child: FlutterMap(
-        mapController: _mapController,
-        options: const MapOptions(
-          initialCenter: driverPosition,
-          initialZoom: 14.5,
-          minZoom: 10,
-          maxZoom: 18,
-        ),
+      child: Stack(
         children: [
-          TileLayer(
-            urlTemplate:
-                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.taxitrack',
-          ),
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: startPoint,
-                width: 60,
-                height: 56,
-                child: _buildStartMarker(),
+          FlutterMap(
+            mapController: _mapController,
+            options: const MapOptions(
+              initialCenter: driverPosition,
+              initialZoom: 14.5,
+              minZoom: 10,
+              maxZoom: 18,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.taxitrack',
               ),
-              Marker(
-                point: driverPosition,
-                width: 46,
-                height: 46,
-                child: _buildDriverMarker(),
-              ),
-              ...stops.map(
-                (stop) => Marker(
-                  point: LatLng(
-                    stop.latitude,
-                    stop.longitude,
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: startPoint,
+                    width: 60,
+                    height: 56,
+                    child: _buildStartMarker(),
                   ),
-                  width: 42,
-                  height: 42,
-                  child: _buildStopMarker(stop),
-                ),
-              ),
-              Marker(
-                point: LatLng(
-                  stops.last.latitude,
-                  stops.last.longitude,
-                ),
-                width: 70,
-                height: 60,
-                child: _buildDestinationFlag(),
+                  Marker(
+                    point: driverPosition,
+                    width: 46,
+                    height: 46,
+                    child: _buildDriverMarker(),
+                  ),
+                  ...stops.map(
+                    (stop) => Marker(
+                      point: LatLng(
+                        stop.latitude,
+                        stop.longitude,
+                      ),
+                      width: 42,
+                      height: 42,
+                      child: _buildStopMarker(stop),
+                    ),
+                  ),
+                  Marker(
+                    point: LatLng(
+                      stops.last.latitude,
+                      stops.last.longitude,
+                    ),
+                    width: 70,
+                    height: 60,
+                    child: _buildDestinationFlag(),
+                  ),
+                ],
               ),
             ],
+          ),
+          Positioned(
+            left: 12,
+            bottom: 12,
+            child: Column(
+              children: [
+                _buildMapButton(
+                  Icons.add,
+                  onTap: () {
+                    _mapController.move(
+                      _mapController.camera.center,
+                      _mapController.camera.zoom + 1,
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildMapButton(
+                  Icons.remove,
+                  onTap: () {
+                    _mapController.move(
+                      _mapController.camera.center,
+                      _mapController.camera.zoom - 1,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: _buildMapButton(
+              Icons.my_location,
+              filled: true,
+              onTap: () {
+                _mapController.move(
+                  driverPosition,
+                  14.5,
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -334,6 +367,36 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMapButton(
+    IconData icon, {
+    bool filled = false,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: filled ? primaryBlue : Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: filled ? Colors.white : Colors.black87,
+        ),
+      ),
     );
   }
 }
