@@ -15,11 +15,11 @@ class BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (Icons.home_outlined, 'Home'),
-      (Icons.route_outlined, 'Trips'),
-      (Icons.account_balance_wallet_outlined, 'Earnings'),
-      (Icons.person_outline, 'Profile'),
-    ];
+  (Icons.home_outlined, 'Home'),
+  (Icons.location_on_outlined, 'Track'),
+  (Icons.history_outlined, 'History'),
+  (Icons.person_outline, 'Profile'),
+];
 
     return Container(
       decoration: BoxDecoration(
@@ -93,9 +93,9 @@ class BottomNav extends StatelessWidget {
       case 0:
         return Icons.home_rounded;
       case 1:
-        return Icons.route_rounded;
+        return Icons.location_on;
       case 2:
-        return Icons.account_balance_wallet_rounded;
+        return Icons.history;
       case 3:
         return Icons.person_rounded;
       default:
