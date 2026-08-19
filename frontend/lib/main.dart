@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
-import 'features/auth/login_screen.dart';
-import 'features/passenger/home_screen.dart';
+import 'features/driver/driver_profile_screen.dart'; // adjust path to wherever you saved it
 
 void main() {
-  runApp(const TaxiApp());
+  runApp(const MyApp());
 }
 
-class TaxiApp extends StatelessWidget {
-  const TaxiApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'TaxiTrack Driver',
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0B3D78)),
+      ),
+      home: const DriverProfileScreen(
+        fullName: 'Yonas Tesfaye',
+        phoneNumber: '+251 911 223 344',
+        rating: 4.8,
+        totalTrips: 312,
+        earningsToday: 850,
+        vehicleModel: 'Toyota Vitz',
+        vehiclePlate: 'AA 21-45',
+        vehicleColor: 'White',
+      ),
     );
   }
 }
