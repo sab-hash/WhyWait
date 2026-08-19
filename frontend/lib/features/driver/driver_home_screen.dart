@@ -1,15 +1,139 @@
 import 'package:flutter/material.dart';
 
-class DriverHomeScreen extends StatelessWidget {
+class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
 
   static const Color primaryBlue = Color(0xFF1565C0);
   static const Color backgroundColor = Color(0xFFF7F9FC);
 
   @override
+  State<DriverHomeScreen> createState() => _DriverHomeScreenState();
+}
+
+class _DriverHomeScreenState extends State<DriverHomeScreen> {
+  int passengerCount = 7;
+  final int maximumPassengers = 12;
+
+  void _showPassengerDialog() {
+    int temporaryCount = passengerCount;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text(
+                'Update Passengers',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Update the number of passengers currently on board.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _PassengerCounterButton(
+                        icon: Icons.remove,
+                        onPressed: temporaryCount > 0
+                            ? () {
+                                setDialogState(() {
+                                  temporaryCount--;
+                                });
+                              }
+                            : null,
+                      ),
+
+                      const SizedBox(width: 24),
+
+                      Column(
+                        children: [
+                          Text(
+                            '$temporaryCount',
+                            style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: DriverHomeScreen.primaryBlue,
+                            ),
+                          ),
+                          Text(
+                            'of $maximumPassengers',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(width: 24),
+
+                      _PassengerCounterButton(
+                        icon: Icons.add,
+                        onPressed: temporaryCount < maximumPassengers
+                            ? () {
+                                setDialogState(() {
+                                  temporaryCount++;
+                                });
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      passengerCount = temporaryCount;
+                    });
+
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: DriverHomeScreen.primaryBlue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: DriverHomeScreen.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -17,7 +141,7 @@ class DriverHomeScreen extends StatelessWidget {
         title: const Text(
           'WhyWait',
           style: TextStyle(
-            color: primaryBlue,
+            color: DriverHomeScreen.primaryBlue,
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
@@ -50,6 +174,10 @@ class _DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final driverState = context.findAncestorStateOfType<_DriverHomeScreenState>();
+
+    final passengerCount = driverState?.passengerCount ?? 7;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,7 +191,9 @@ class _DashboardContent extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        const _ActiveTripCard(),
+        _ActiveTripCard(
+          passengerCount: passengerCount,
+        ),
 
         const SizedBox(height: 20),
 
@@ -199,7 +329,11 @@ class _DriverHeader extends StatelessWidget {
 }
 
 class _ActiveTripCard extends StatelessWidget {
-  const _ActiveTripCard();
+  final int passengerCount;
+
+  const _ActiveTripCard({
+    required this.passengerCount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +354,6 @@ class _ActiveTripCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Active trip label.
           Row(
             children: [
               Container(
@@ -246,7 +379,6 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // Vehicle information.
           Row(
             children: [
               Container(
@@ -293,7 +425,6 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Route.
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -383,7 +514,6 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Divider.
           const Divider(
             height: 1,
             color: Color(0xFFE8E8E8),
@@ -391,10 +521,9 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Trip statistics.
           Row(
-            children: const [
-              Expanded(
+            children: [
+              const Expanded(
                 child: _TripStatistic(
                   icon: Icons.route_rounded,
                   value: '2.4 km',
@@ -402,9 +531,9 @@ class _ActiveTripCard extends StatelessWidget {
                 ),
               ),
 
-              _StatisticDivider(),
+              const _StatisticDivider(),
 
-              Expanded(
+              const Expanded(
                 child: _TripStatistic(
                   icon: Icons.access_time_rounded,
                   value: '~8 min',
@@ -412,12 +541,12 @@ class _ActiveTripCard extends StatelessWidget {
                 ),
               ),
 
-              _StatisticDivider(),
+              const _StatisticDivider(),
 
               Expanded(
                 child: _TripStatistic(
                   icon: Icons.people_alt_rounded,
-                  value: '7 / 12',
+                  value: '$passengerCount / 12',
                   label: 'Passengers',
                 ),
               ),
@@ -503,10 +632,17 @@ class _QuickActions extends StatelessWidget {
                     child: _QuickActionButton(
                       icon: Icons.people_alt_rounded,
                       label: 'Passengers',
-                      onTap: () {},
+                      onTap: () {
+                        final state = context
+                            .findAncestorStateOfType<_DriverHomeScreenState>();
+
+                        state?._showPassengerDialog();
+                      },
                     ),
                   ),
+
                   const SizedBox(width: 10),
+
                   Expanded(
                     child: _QuickActionButton(
                       icon: Icons.map_rounded,
@@ -516,7 +652,9 @@ class _QuickActions extends StatelessWidget {
                   ),
                 ],
               ),
+
               const SizedBox(height: 10),
+
               SizedBox(
                 width: double.infinity,
                 child: _QuickActionButton(
@@ -536,10 +674,17 @@ class _QuickActions extends StatelessWidget {
               child: _QuickActionButton(
                 icon: Icons.people_alt_rounded,
                 label: 'Passengers',
-                onTap: () {},
+                onTap: () {
+                  final state = context
+                      .findAncestorStateOfType<_DriverHomeScreenState>();
+
+                  state?._showPassengerDialog();
+                },
               ),
             ),
+
             const SizedBox(width: 10),
+
             Expanded(
               child: _QuickActionButton(
                 icon: Icons.map_rounded,
@@ -547,7 +692,9 @@ class _QuickActions extends StatelessWidget {
                 onTap: () {},
               ),
             ),
+
             const SizedBox(width: 10),
+
             Expanded(
               child: _QuickActionButton(
                 icon: Icons.stop_circle_rounded,
@@ -622,7 +769,9 @@ class _QuickActionButton extends StatelessWidget {
                   size: 23,
                 ),
               ),
+
               const SizedBox(height: 9),
+
               Text(
                 label,
                 style: TextStyle(
@@ -638,6 +787,32 @@ class _QuickActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PassengerCounterButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  const _PassengerCounterButton({
+    required this.icon,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: DriverHomeScreen.primaryBlue.withValues(
+          alpha: 0.10,
+        ),
+        foregroundColor: DriverHomeScreen.primaryBlue,
+        disabledForegroundColor: Colors.grey.shade300,
+        minimumSize: const Size(50, 50),
+      ),
+      icon: Icon(icon),
     );
   }
 }
@@ -661,8 +836,8 @@ class _TodaysSummary extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           Expanded(
             child: _SummaryStatistic(
               icon: Icons.directions_bus_rounded,
@@ -865,7 +1040,9 @@ class _BottomNavigationItem extends StatelessWidget {
               color: itemColor,
               size: 24,
             ),
+
             const SizedBox(height: 4),
+
             Text(
               label,
               style: TextStyle(
