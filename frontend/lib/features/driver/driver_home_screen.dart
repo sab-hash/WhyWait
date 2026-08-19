@@ -14,6 +14,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   int passengerCount = 7;
   final int maximumPassengers = 12;
 
+  String pickupLocation = 'Bole';
+  String destinationLocation = 'Mexico';
+
   void _showPassengerDialog() {
     int temporaryCount = passengerCount;
 
@@ -40,9 +43,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                       fontSize: 14,
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -56,9 +57,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                               }
                             : null,
                       ),
-
                       const SizedBox(width: 24),
-
                       Column(
                         children: [
                           Text(
@@ -78,9 +77,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(width: 24),
-
                       _PassengerCounterButton(
                         icon: Icons.add,
                         onPressed: temporaryCount < maximumPassengers
@@ -107,7 +104,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                     ),
                   ),
                 ),
-
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
@@ -121,6 +117,151 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                     foregroundColor: Colors.white,
                   ),
                   child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showChangeRouteDialog() {
+    String temporaryPickup = pickupLocation;
+    String temporaryDestination = destinationLocation;
+
+    final locations = [
+      'Bole',
+      'Mexico',
+      'Piassa',
+      'Megenagna',
+      'Kazanchis',
+      'CMC',
+      'Sarbet',
+      '4 Kilo',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text(
+                'Change Route',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select the pickup and destination for this trip.',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Pickup',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: temporaryPickup,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.my_location_rounded,
+                        color: DriverHomeScreen.primaryBlue,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: locations.map((location) {
+                      return DropdownMenuItem(
+                        value: location,
+                        child: Text(location),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() {
+                          temporaryPickup = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Destination',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: temporaryDestination,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.location_on_rounded,
+                        color: DriverHomeScreen.primaryBlue,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: locations.map((location) {
+                      return DropdownMenuItem(
+                        value: location,
+                        child: Text(location),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() {
+                          temporaryDestination = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: temporaryPickup == temporaryDestination
+                      ? null
+                      : () {
+                          setState(() {
+                            pickupLocation = temporaryPickup;
+                            destinationLocation = temporaryDestination;
+                          });
+
+                          Navigator.pop(context);
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: DriverHomeScreen.primaryBlue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Save Route'),
                 ),
               ],
             );
@@ -158,10 +299,16 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: const SafeArea(
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 30),
-          child: _DashboardContent(),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+          child: _DashboardContent(
+            passengerCount: passengerCount,
+            pickupLocation: pickupLocation,
+            destinationLocation: destinationLocation,
+            onPassengersPressed: _showPassengerDialog,
+            onChangeRoutePressed: _showChangeRouteDialog,
+          ),
         ),
       ),
       bottomNavigationBar: const _DriverBottomNavigation(),
@@ -170,14 +317,22 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
 }
 
 class _DashboardContent extends StatelessWidget {
-  const _DashboardContent();
+  final int passengerCount;
+  final String pickupLocation;
+  final String destinationLocation;
+  final VoidCallback onPassengersPressed;
+  final VoidCallback onChangeRoutePressed;
+
+  const _DashboardContent({
+    required this.passengerCount,
+    required this.pickupLocation,
+    required this.destinationLocation,
+    required this.onPassengersPressed,
+    required this.onChangeRoutePressed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final driverState = context.findAncestorStateOfType<_DriverHomeScreenState>();
-
-    final passengerCount = driverState?.passengerCount ?? 7;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -193,6 +348,8 @@ class _DashboardContent extends StatelessWidget {
 
         _ActiveTripCard(
           passengerCount: passengerCount,
+          pickupLocation: pickupLocation,
+          destinationLocation: destinationLocation,
         ),
 
         const SizedBox(height: 20),
@@ -203,7 +360,10 @@ class _DashboardContent extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        const _QuickActions(),
+        _QuickActions(
+          onPassengersPressed: onPassengersPressed,
+          onChangeRoutePressed: onChangeRoutePressed,
+        ),
 
         const SizedBox(height: 20),
 
@@ -330,9 +490,13 @@ class _DriverHeader extends StatelessWidget {
 
 class _ActiveTripCard extends StatelessWidget {
   final int passengerCount;
+  final String pickupLocation;
+  final String destinationLocation;
 
   const _ActiveTripCard({
     required this.passengerCount,
+    required this.pickupLocation,
+    required this.destinationLocation,
   });
 
   @override
@@ -464,38 +628,44 @@ class _ActiveTripCard extends StatelessWidget {
 
               const SizedBox(width: 14),
 
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Pickup',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
                       ),
                     ),
-                    SizedBox(height: 3),
+
+                    const SizedBox(height: 3),
+
                     Text(
-                      'Bole',
-                      style: TextStyle(
+                      pickupLocation,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
-                    SizedBox(height: 25),
-                    Text(
+
+                    const SizedBox(height: 25),
+
+                    const Text(
                       'Destination',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
                       ),
                     ),
-                    SizedBox(height: 3),
+
+                    const SizedBox(height: 3),
+
                     Text(
-                      'Mexico',
-                      style: TextStyle(
+                      destinationLocation,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
@@ -578,7 +748,9 @@ class _TripStatistic extends StatelessWidget {
           color: DriverHomeScreen.primaryBlue,
           size: 22,
         ),
+
         const SizedBox(height: 8),
+
         Text(
           value,
           style: const TextStyle(
@@ -587,7 +759,9 @@ class _TripStatistic extends StatelessWidget {
             color: Colors.black87,
           ),
         ),
+
         const SizedBox(height: 3),
+
         Text(
           label,
           style: const TextStyle(
@@ -615,7 +789,13 @@ class _StatisticDivider extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+  final VoidCallback onPassengersPressed;
+  final VoidCallback onChangeRoutePressed;
+
+  const _QuickActions({
+    required this.onPassengersPressed,
+    required this.onChangeRoutePressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -632,12 +812,7 @@ class _QuickActions extends StatelessWidget {
                     child: _QuickActionButton(
                       icon: Icons.people_alt_rounded,
                       label: 'Passengers',
-                      onTap: () {
-                        final state = context
-                            .findAncestorStateOfType<_DriverHomeScreenState>();
-
-                        state?._showPassengerDialog();
-                      },
+                      onTap: onPassengersPressed,
                     ),
                   ),
 
@@ -647,7 +822,7 @@ class _QuickActions extends StatelessWidget {
                     child: _QuickActionButton(
                       icon: Icons.map_rounded,
                       label: 'Change Route',
-                      onTap: () {},
+                      onTap: onChangeRoutePressed,
                     ),
                   ),
                 ],
@@ -674,12 +849,7 @@ class _QuickActions extends StatelessWidget {
               child: _QuickActionButton(
                 icon: Icons.people_alt_rounded,
                 label: 'Passengers',
-                onTap: () {
-                  final state = context
-                      .findAncestorStateOfType<_DriverHomeScreenState>();
-
-                  state?._showPassengerDialog();
-                },
+                onTap: onPassengersPressed,
               ),
             ),
 
@@ -689,7 +859,7 @@ class _QuickActions extends StatelessWidget {
               child: _QuickActionButton(
                 icon: Icons.map_rounded,
                 label: 'Change Route',
-                onTap: () {},
+                onTap: onChangeRoutePressed,
               ),
             ),
 
@@ -809,7 +979,7 @@ class _PassengerCounterButton extends StatelessWidget {
           alpha: 0.10,
         ),
         foregroundColor: DriverHomeScreen.primaryBlue,
-        disabledForegroundColor: Colors.grey.shade300,
+        disabledForegroundColor: Colors.grey,
         minimumSize: const Size(50, 50),
       ),
       icon: Icon(icon),
