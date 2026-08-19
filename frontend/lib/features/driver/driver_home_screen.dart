@@ -25,6 +25,7 @@ class DriverHomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {},
+            tooltip: 'Notifications',
             icon: const Icon(
               Icons.notifications_none_rounded,
               color: Colors.black87,
@@ -36,62 +37,74 @@ class DriverHomeScreen extends StatelessWidget {
       body: const SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 20, 20, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DriverHeader(),
-
-              SizedBox(height: 24),
-
-              Text(
-                'Active Trip',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-
-              SizedBox(height: 12),
-
-              _ActiveTripCard(),
-
-              SizedBox(height: 20),
-
-              Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-
-              SizedBox(height: 12),
-
-              _QuickActions(),
-
-              SizedBox(height: 20),
-
-              Text(
-                "Today's Summary",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-
-              SizedBox(height: 12),
-
-              _TodaysSummary(),
-            ],
-          ),
+          child: _DashboardContent(),
         ),
       ),
-
-      // Bottom navigation for the main driver sections.
       bottomNavigationBar: const _DriverBottomNavigation(),
+    );
+  }
+}
+
+class _DashboardContent extends StatelessWidget {
+  const _DashboardContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _DriverHeader(),
+
+        const SizedBox(height: 24),
+
+        const _SectionTitle(
+          title: 'Active Trip',
+        ),
+
+        const SizedBox(height: 12),
+
+        const _ActiveTripCard(),
+
+        const SizedBox(height: 20),
+
+        const _SectionTitle(
+          title: 'Quick Actions',
+        ),
+
+        const SizedBox(height: 12),
+
+        const _QuickActions(),
+
+        const SizedBox(height: 20),
+
+        const _SectionTitle(
+          title: "Today's Summary",
+        ),
+
+        const SizedBox(height: 12),
+
+        const _TodaysSummary(),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+
+  const _SectionTitle({
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
     );
   }
 }
@@ -126,6 +139,7 @@ class _DriverHeader extends StatelessWidget {
             children: [
               Text(
                 'Good morning, Driver',
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -135,6 +149,7 @@ class _DriverHeader extends StatelessWidget {
               SizedBox(height: 4),
               Text(
                 'Ready for your next trip?',
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey,
@@ -144,9 +159,11 @@ class _DriverHeader extends StatelessWidget {
           ),
         ),
 
+        const SizedBox(width: 8),
+
         Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 12,
+            horizontal: 11,
             vertical: 8,
           ),
           decoration: BoxDecoration(
@@ -327,9 +344,7 @@ class _ActiveTripCard extends StatelessWidget {
                         color: Colors.grey,
                       ),
                     ),
-
                     SizedBox(height: 3),
-
                     Text(
                       'Bole',
                       style: TextStyle(
@@ -338,9 +353,7 @@ class _ActiveTripCard extends StatelessWidget {
                         color: Colors.black87,
                       ),
                     ),
-
                     SizedBox(height: 25),
-
                     Text(
                       'Destination',
                       style: TextStyle(
@@ -348,9 +361,7 @@ class _ActiveTripCard extends StatelessWidget {
                         color: Colors.grey,
                       ),
                     ),
-
                     SizedBox(height: 3),
-
                     Text(
                       'Mexico',
                       style: TextStyle(
@@ -438,9 +449,7 @@ class _TripStatistic extends StatelessWidget {
           color: DriverHomeScreen.primaryBlue,
           size: 22,
         ),
-
         const SizedBox(height: 8),
-
         Text(
           value,
           style: const TextStyle(
@@ -449,9 +458,7 @@ class _TripStatistic extends StatelessWidget {
             color: Colors.black87,
           ),
         ),
-
         const SizedBox(height: 3),
-
         Text(
           label,
           style: const TextStyle(
@@ -483,37 +490,75 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _QuickActionButton(
-            icon: Icons.people_alt_rounded,
-            label: 'Passengers',
-            onTap: () {},
-          ),
-        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isNarrow = constraints.maxWidth < 430;
 
-        const SizedBox(width: 10),
+        if (isNarrow) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickActionButton(
+                      icon: Icons.people_alt_rounded,
+                      label: 'Passengers',
+                      onTap: () {},
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _QuickActionButton(
+                      icon: Icons.map_rounded,
+                      label: 'Change Route',
+                      onTap: () {},
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: _QuickActionButton(
+                  icon: Icons.stop_circle_rounded,
+                  label: 'End Trip',
+                  isDestructive: true,
+                  onTap: () {},
+                ),
+              ),
+            ],
+          );
+        }
 
-        Expanded(
-          child: _QuickActionButton(
-            icon: Icons.map_rounded,
-            label: 'Change Route',
-            onTap: () {},
-          ),
-        ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: _QuickActionButton(
-            icon: Icons.stop_circle_rounded,
-            label: 'End Trip',
-            isDestructive: true,
-            onTap: () {},
-          ),
-        ),
-      ],
+        return Row(
+          children: [
+            Expanded(
+              child: _QuickActionButton(
+                icon: Icons.people_alt_rounded,
+                label: 'Passengers',
+                onTap: () {},
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickActionButton(
+                icon: Icons.map_rounded,
+                label: 'Change Route',
+                onTap: () {},
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickActionButton(
+                icon: Icons.stop_circle_rounded,
+                label: 'End Trip',
+                isDestructive: true,
+                onTap: () {},
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -577,9 +622,7 @@ class _QuickActionButton extends StatelessWidget {
                   size: 23,
                 ),
               ),
-
               const SizedBox(height: 9),
-
               Text(
                 label,
                 style: TextStyle(
@@ -822,9 +865,7 @@ class _BottomNavigationItem extends StatelessWidget {
               color: itemColor,
               size: 24,
             ),
-
             const SizedBox(height: 4),
-
             Text(
               label,
               style: TextStyle(
