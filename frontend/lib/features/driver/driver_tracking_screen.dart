@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 class RouteStop {
@@ -35,7 +36,8 @@ class DriverMapScreen extends StatefulWidget {
 
 class _DriverMapScreenState extends State<DriverMapScreen> {
   static const Color primaryBlue = Color(0xFF0B3D78);
-  static const Color startGreen = Color(0xFF2E9E4F);
+
+  final MapController _mapController = MapController();
 
   static const LatLng startPoint = LatLng(9.0092, 38.7469);
   static const LatLng driverPosition = LatLng(9.0110, 38.7472);
@@ -54,17 +56,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
         child: Column(
           children: [
             _buildHeader(),
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'Driver Map',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+            Expanded(child: _buildMap()),
           ],
         ),
       ),
@@ -75,9 +67,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      decoration: const BoxDecoration(
-        color: primaryBlue,
-      ),
+      color: primaryBlue,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -106,18 +96,9 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   ),
                 ),
               ),
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.phone,
-                  color: Colors.white,
-                  size: 18,
-                ),
+              const Icon(
+                Icons.phone,
+                color: Colors.white,
               ),
             ],
           ),
@@ -133,6 +114,36 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                 fontSize: 13,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMap() {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryBlue,
+          width: 2,
+        ),
+      ),
+      child: FlutterMap(
+        mapController: _mapController,
+        options: const MapOptions(
+          initialCenter: driverPosition,
+          initialZoom: 14.5,
+          minZoom: 10,
+          maxZoom: 18,
+        ),
+        children: [
+          TileLayer(
+            urlTemplate:
+                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.example.taxitrack',
           ),
         ],
       ),
