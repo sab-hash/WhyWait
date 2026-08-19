@@ -36,6 +36,7 @@ class DriverMapScreen extends StatefulWidget {
 
 class _DriverMapScreenState extends State<DriverMapScreen> {
   static const Color primaryBlue = Color(0xFF0B3D78);
+  static const Color startGreen = Color(0xFF2E9E4F);
 
   final MapController _mapController = MapController();
 
@@ -69,19 +70,16 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       color: primaryBlue,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               InkWell(
                 onTap: () => Navigator.maybePop(context),
-                borderRadius: BorderRadius.circular(20),
                 child: const Padding(
                   padding: EdgeInsets.all(4),
                   child: Icon(
                     Icons.arrow_back,
                     color: Colors.white,
-                    size: 22,
                   ),
                 ),
               ),
@@ -103,15 +101,18 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.only(left: 32),
-            child: Text(
-              '${widget.passengersOnBoard} / '
-              '${widget.passengersTotal} passengers • '
-              '~${widget.etaMinutes} min',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.85),
-                fontSize: 13,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Text(
+                '${widget.passengersOnBoard} / '
+                '${widget.passengersTotal} passengers • '
+                '~${widget.etaMinutes} min',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
@@ -145,7 +146,87 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.example.taxitrack',
           ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: startPoint,
+                width: 60,
+                height: 56,
+                child: _buildStartMarker(),
+              ),
+              Marker(
+                point: driverPosition,
+                width: 46,
+                height: 46,
+                child: _buildDriverMarker(),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStartMarker() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: startGreen,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 3,
+            ),
+          ),
+          child: const Icon(
+            Icons.location_on,
+            color: Colors.white,
+            size: 16,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 3,
+          ),
+          decoration: BoxDecoration(
+            color: startGreen,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            'Start',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDriverMarker() {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: primaryBlue,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white,
+          width: 3,
+        ),
+      ),
+      child: const Icon(
+        Icons.directions_bus_filled_rounded,
+        color: Colors.white,
+        size: 20,
       ),
     );
   }
