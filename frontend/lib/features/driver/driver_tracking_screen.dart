@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-// =============================================================================
-// Route stop model
-// =============================================================================
-
 class RouteStop {
   final int number;
   final double latitude;
@@ -18,9 +14,6 @@ class RouteStop {
   });
 }
 
-// =============================================================================
-// Driver Map Screen
-// =============================================================================
 
 class DriverMapScreen extends StatefulWidget {
   final String fromLabel;
@@ -43,18 +36,13 @@ class DriverMapScreen extends StatefulWidget {
 }
 
 class _DriverMapScreenState extends State<DriverMapScreen> {
-  // ===========================================================================
-  // Constants
-  // ===========================================================================
+  
 
   static const Color primaryBlue = Color(0xFF0B3D78);
   static const Color startGreen = Color(0xFF2E9E4F);
   static const Color backgroundColor = Color(0xFFF7F8FA);
 
-  // ===========================================================================
-  // Map state
-  // ===========================================================================
-
+  
   final MapController _mapController = MapController();
 
   int _currentNavIndex = 1;
@@ -87,10 +75,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     ),
   ];
 
-  // ===========================================================================
-  // Main layout
-  // ===========================================================================
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -187,9 +172,6 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     );
   }
 
-  // ===========================================================================
-  // Map
-  // ===========================================================================
 
   Widget _buildMap() {
     return Container(
@@ -277,10 +259,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     ];
   }
 
-  // ===========================================================================
-  // Map markers
-  // ===========================================================================
-
+  
   Widget _buildStartMarker() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -425,10 +404,6 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     );
   }
 
-  // ===========================================================================
-  // Map controls
-  // ===========================================================================
-
   Widget _buildZoomControls() {
     return Positioned(
       left: 12,
@@ -508,9 +483,6 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     );
   }
 
-  // ===========================================================================
-  // Passenger actions
-  // ===========================================================================
 
   Widget _buildActionRow() {
     return Padding(
@@ -589,9 +561,6 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     );
   }
 
-  // ===========================================================================
-  // Bottom navigation
-  // ===========================================================================
 
   Widget _buildBottomNav() {
     final items = [
