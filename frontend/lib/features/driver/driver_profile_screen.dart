@@ -51,6 +51,24 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                   child: _buildStatsCard(),
                 ),
               ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  'VEHICLE',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey[500],
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildVehicleCard(),
+              ),
             ],
           ),
         ),
@@ -249,6 +267,68 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       width: 1,
       height: 34,
       color: Colors.grey[200],
+    );
+  }
+
+  Widget _buildVehicleCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: primaryBlue.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.directions_car_filled_rounded,
+              color: primaryBlue,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${widget.vehicleColor} ${widget.vehicleModel}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  widget.vehiclePlate,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.grey[400],
+          ),
+        ],
+      ),
     );
   }
 }
