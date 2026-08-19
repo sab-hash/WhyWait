@@ -118,7 +118,9 @@ class _DriverHeader extends StatelessWidget {
             size: 30,
           ),
         ),
+
         const SizedBox(width: 14),
+
         const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,6 +144,7 @@ class _DriverHeader extends StatelessWidget {
             ],
           ),
         ),
+
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 12,
@@ -292,6 +295,7 @@ class _ActiveTripCard extends StatelessWidget {
                       ),
                     ),
                   ),
+
                   Container(
                     width: 2,
                     height: 46,
@@ -299,6 +303,7 @@ class _ActiveTripCard extends StatelessWidget {
                       alpha: 0.25,
                     ),
                   ),
+
                   Container(
                     width: 14,
                     height: 14,
@@ -323,7 +328,9 @@ class _ActiveTripCard extends StatelessWidget {
                         color: Colors.grey,
                       ),
                     ),
+
                     SizedBox(height: 3),
+
                     Text(
                       'Bole',
                       style: TextStyle(
@@ -342,7 +349,9 @@ class _ActiveTripCard extends StatelessWidget {
                         color: Colors.grey,
                       ),
                     ),
+
                     SizedBox(height: 3),
+
                     Text(
                       'Mexico',
                       style: TextStyle(
@@ -361,8 +370,111 @@ class _ActiveTripCard extends StatelessWidget {
               ),
             ],
           ),
+
+          const SizedBox(height: 24),
+
+          // Divider
+          const Divider(
+            height: 1,
+            color: Color(0xFFE8E8E8),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Trip statistics
+          Row(
+            children: const [
+              Expanded(
+                child: _TripStatistic(
+                  icon: Icons.route_rounded,
+                  value: '2.4 km',
+                  label: 'Distance',
+                ),
+              ),
+
+              _StatisticDivider(),
+
+              Expanded(
+                child: _TripStatistic(
+                  icon: Icons.access_time_rounded,
+                  value: '~8 min',
+                  label: 'ETA',
+                ),
+              ),
+
+              _StatisticDivider(),
+
+              Expanded(
+                child: _TripStatistic(
+                  icon: Icons.people_alt_rounded,
+                  value: '7 / 12',
+                  label: 'Passengers',
+                ),
+              ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _TripStatistic extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+
+  const _TripStatistic({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: DriverHomeScreen.primaryBlue,
+          size: 22,
+        ),
+
+        const SizedBox(height: 8),
+
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+
+        const SizedBox(height: 3),
+
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+class _StatisticDivider extends StatelessWidget {
+  const _StatisticDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 55,
+      color: const Color(0xFFE8E8E8),
     );
   }
 }
