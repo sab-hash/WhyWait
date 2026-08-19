@@ -89,6 +89,9 @@ class DriverHomeScreen extends StatelessWidget {
           ),
         ),
       ),
+
+      // Bottom navigation for the main driver sections.
+      bottomNavigationBar: const _DriverBottomNavigation(),
     );
   }
 }
@@ -200,7 +203,7 @@ class _ActiveTripCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Active trip label
+          // Active trip label.
           Row(
             children: [
               Container(
@@ -226,7 +229,7 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // Vehicle information
+          // Vehicle information.
           Row(
             children: [
               Container(
@@ -273,7 +276,7 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Route
+          // Route.
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -369,7 +372,7 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Divider
+          // Divider.
           const Divider(
             height: 1,
             color: Color(0xFFE8E8E8),
@@ -377,7 +380,7 @@ class _ActiveTripCard extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Trip statistics
+          // Trip statistics.
           Row(
             children: const [
               Expanded(
@@ -721,34 +724,118 @@ class _SummaryDivider extends StatelessWidget {
   }
 }
 
-class _SectionPlaceholder extends StatelessWidget {
-  final String title;
-
-  const _SectionPlaceholder({
-    required this.title,
-  });
+class _DriverBottomNavigation extends StatelessWidget {
+  const _DriverBottomNavigation();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, -3),
           ),
         ],
       ),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _BottomNavigationItem(
+                  icon: Icons.home_rounded,
+                  label: 'Home',
+                  isSelected: true,
+                  onTap: () {},
+                ),
+              ),
+
+              Expanded(
+                child: _BottomNavigationItem(
+                  icon: Icons.map_rounded,
+                  label: 'Map',
+                  onTap: () {},
+                ),
+              ),
+
+              Expanded(
+                child: _BottomNavigationItem(
+                  icon: Icons.history_rounded,
+                  label: 'History',
+                  onTap: () {},
+                ),
+              ),
+
+              Expanded(
+                child: _BottomNavigationItem(
+                  icon: Icons.person_rounded,
+                  label: 'Profile',
+                  onTap: () {},
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavigationItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _BottomNavigationItem({
+    required this.icon,
+    required this.label,
+    this.isSelected = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color itemColor = isSelected
+        ? DriverHomeScreen.primaryBlue
+        : Colors.grey;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 7,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: itemColor,
+              size: 24,
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              label,
+              style: TextStyle(
+                color: itemColor,
+                fontSize: 11,
+                fontWeight: isSelected
+                    ? FontWeight.w600
+                    : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
