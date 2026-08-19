@@ -576,47 +576,71 @@ Widget _buildStatsCard() {
   }
 
   Widget _buildSignOutButton() {
-    return InkWell(
-      onTap: () {},
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          vertical: 16,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+  return InkWell(
+    onTap: () {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Sign Out'),
+            content: const Text(
+              'Are you sure you want to sign out?',
             ),
-          ],
-        ),
-        child: const Row(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.logout_rounded,
-              color: Colors.redAccent,
-              size: 20,
-            ),
-
-            SizedBox(width: 8),
-
-            Text(
-              'Sign Out',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
               ),
-            ),
-          ],
-        ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Sign Out'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+    borderRadius: BorderRadius.circular(16),
+    child: Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: 16,
       ),
-    );
-  }
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisAlignment:
+            MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.logout_rounded,
+            color: Colors.redAccent,
+            size: 20,
+          ),
+          SizedBox(width: 8),
+          Text(
+            'Sign Out',
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 }
