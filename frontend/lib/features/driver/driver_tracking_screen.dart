@@ -58,6 +58,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           children: [
             _buildHeader(),
             Expanded(child: _buildMap()),
+            _buildActionRow(),
           ],
         ),
       ),
@@ -123,7 +124,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
 
   Widget _buildMap() {
     return Container(
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -396,6 +397,76 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           size: 18,
           color: filled ? Colors.white : Colors.black87,
         ),
+      ),
+    );
+  }
+
+  Widget _buildActionRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // TODO: trigger call to passenger
+                },
+                icon: const Icon(
+                  Icons.phone,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  'Call Passenger',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryBlue,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  // TODO: open messaging with passenger
+                },
+                icon: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 18,
+                  color: Colors.black87,
+                ),
+                label: const Text(
+                  'Message',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: Colors.grey[300]!,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
