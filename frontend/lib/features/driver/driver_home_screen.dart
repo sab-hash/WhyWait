@@ -54,9 +54,7 @@ class DriverHomeScreen extends StatelessWidget {
 
               SizedBox(height: 12),
 
-              _SectionPlaceholder(
-                title: 'Active Trip',
-              ),
+              _ActiveTripCard(),
 
               SizedBox(height: 20),
 
@@ -120,9 +118,7 @@ class _DriverHeader extends StatelessWidget {
             size: 30,
           ),
         ),
-
         const SizedBox(width: 14),
-
         const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +142,6 @@ class _DriverHeader extends StatelessWidget {
             ],
           ),
         ),
-
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 12,
@@ -180,6 +175,194 @@ class _DriverHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ActiveTripCard extends StatelessWidget {
+  const _ActiveTripCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Active trip label
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'ACTIVE TRIP',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          // Vehicle information
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: DriverHomeScreen.primaryBlue.withValues(
+                    alpha: 0.10,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.directions_bus_rounded,
+                  color: DriverHomeScreen.primaryBlue,
+                  size: 28,
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Vehicle',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'AA 32-81',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Route
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                children: [
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: DriverHomeScreen.primaryBlue,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: DriverHomeScreen.primaryBlue,
+                        width: 3,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 2,
+                    height: 46,
+                    color: DriverHomeScreen.primaryBlue.withValues(
+                      alpha: 0.25,
+                    ),
+                  ),
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: const BoxDecoration(
+                      color: DriverHomeScreen.primaryBlue,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(width: 14),
+
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pickup',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Bole',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+
+                    SizedBox(height: 25),
+
+                    Text(
+                      'Destination',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Mexico',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Icon(
+                Icons.arrow_forward_rounded,
+                color: DriverHomeScreen.primaryBlue,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
