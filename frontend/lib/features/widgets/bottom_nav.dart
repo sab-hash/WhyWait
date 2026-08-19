@@ -406,7 +406,10 @@ Widget _buildStatsCard() {
   }
 
   Widget _buildVehicleCard() {
-    return Container(
+  return InkWell(
+    onTap: () {},
+    borderRadius: BorderRadius.circular(16),
+    child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -471,8 +474,9 @@ Widget _buildStatsCard() {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   List<_SettingItem> get _settingItems => [
         _SettingItem(
