@@ -183,6 +183,15 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   child: _buildStopMarker(stop),
                 ),
               ),
+              Marker(
+                point: LatLng(
+                  stops.last.latitude,
+                  stops.last.longitude,
+                ),
+                width: 70,
+                height: 60,
+                child: _buildDestinationFlag(),
+              ),
             ],
           ),
         ],
@@ -281,6 +290,50 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           fontSize: 13,
         ),
       ),
+    );
+  }
+
+  Widget _buildDestinationFlag() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: primaryBlue,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 3,
+            ),
+          ),
+          child: const Icon(
+            Icons.flag_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 3,
+          ),
+          decoration: BoxDecoration(
+            color: primaryBlue,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            widget.toLabel,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
