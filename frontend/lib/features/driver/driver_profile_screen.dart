@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 
+class _SettingItem {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  const _SettingItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+}
+
 class DriverProfileScreen extends StatefulWidget {
   final String fullName;
   final String phoneNumber;
@@ -32,6 +46,29 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
   static const Color primaryBlue = Color(0xFF0B3D78);
 
   bool _isOnline = true;
+
+  List<_SettingItem> get _settingItems => [
+        _SettingItem(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Earnings & Payouts',
+          subtitle: 'View history, cash out',
+        ),
+        _SettingItem(
+          icon: Icons.notifications_none_rounded,
+          title: 'Notifications',
+          subtitle: 'Alerts for new ride requests',
+        ),
+        _SettingItem(
+          icon: Icons.shield_outlined,
+          title: 'Privacy & Security',
+          subtitle: 'Password, data settings',
+        ),
+        _SettingItem(
+          icon: Icons.headset_mic_outlined,
+          title: 'Support',
+          subtitle: 'Help center, contact us',
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +105,33 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildVehicleCard(),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Text(
+                  'SETTINGS',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey[500],
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: _settingItems
+                      .map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildSettingRow(item),
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
             ],
           ),
@@ -328,6 +392,72 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
             color: Colors.grey[400],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingRow(_SettingItem item) {
+    return InkWell(
+      onTap: item.onTap ?? () {},
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: primaryBlue.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                item.icon,
+                color: primaryBlue,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey[400],
+            ),
+          ],
+        ),
       ),
     );
   }
