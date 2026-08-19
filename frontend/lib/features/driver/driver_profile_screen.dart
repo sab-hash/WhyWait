@@ -71,12 +71,16 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                 width: 3,
               ),
             ),
-            child: const ClipOval(
-              child: Icon(
-                Icons.person,
-                size: 44,
-                color: Colors.white,
-              ),
+            child: ClipOval(
+              child: widget.avatarUrl != null
+                  ? Image.network(
+                      widget.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _avatarFallback();
+                      },
+                    )
+                  : _avatarFallback(),
             ),
           ),
           const SizedBox(height: 14),
@@ -97,6 +101,17 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _avatarFallback() {
+    return Container(
+      color: Colors.white.withOpacity(0.2),
+      child: const Icon(
+        Icons.person,
+        size: 44,
+        color: Colors.white,
       ),
     );
   }
