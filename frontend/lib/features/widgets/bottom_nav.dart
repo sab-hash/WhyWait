@@ -48,38 +48,13 @@ class _DriverProfileScreenState
     extends State<DriverProfileScreen> {
   static const Color primaryBlue = Color(0xFF0B3D78);
 
-  bool _isOnline = true;
-
   int _currentNavIndex = 3;
-
-  List<_SettingItem> get _settingItems => [
-        _SettingItem(
-          icon: Icons.account_balance_wallet_outlined,
-          title: 'Earnings & Payouts',
-          subtitle: 'View history, cash out',
-        ),
-        _SettingItem(
-          icon: Icons.notifications_none_rounded,
-          title: 'Notifications',
-          subtitle: 'Alerts for new ride requests',
-        ),
-        _SettingItem(
-          icon: Icons.shield_outlined,
-          title: 'Privacy & Security',
-          subtitle: 'Password, data settings',
-        ),
-        _SettingItem(
-          icon: Icons.headset_mic_outlined,
-          title: 'Support',
-          subtitle: 'Help center, contact us',
-        ),
-      ];
+  bool _isOnline = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
-
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -201,28 +176,50 @@ class _DriverProfileScreenState
       ),
       child: Column(
         children: [
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 3,
+          Stack(
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
+                ),
+                child: ClipOval(
+                  child: widget.avatarUrl != null
+                      ? Image.network(
+                          widget.avatarUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (context, error, stackTrace) =>
+                                  _avatarFallback(),
+                        )
+                      : _avatarFallback(),
+                ),
               ),
-            ),
-            child: ClipOval(
-              child: widget.avatarUrl != null
-                  ? Image.network(
-                      widget.avatarUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (context, error, stackTrace) {
-                        return _avatarFallback();
-                      },
-                    )
-                  : _avatarFallback(),
-            ),
+
+              Positioned(
+                bottom: 2,
+                right: 2,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: _isOnline
+                        ? Colors.greenAccent.shade400
+                        : Colors.grey,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: primaryBlue,
+                      width: 3,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 14),
@@ -266,7 +263,11 @@ class _DriverProfileScreenState
   }
 
   Widget _buildOnlineToggle() {
-    return GestureDetector(
+  return Tooltip(
+    message: _isOnline
+        ? 'Tap to go offline'
+        : 'Tap to go online',
+    child: GestureDetector(
       onTap: () {
         setState(() {
           _isOnline = !_isOnline;
@@ -302,9 +303,7 @@ class _DriverProfileScreenState
                 shape: BoxShape.circle,
               ),
             ),
-
             const SizedBox(width: 8),
-
             Text(
               _isOnline
                   ? 'Online — accepting rides'
@@ -320,8 +319,9 @@ class _DriverProfileScreenState
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStatsCard() {
     return Container(
@@ -474,6 +474,29 @@ class _DriverProfileScreenState
       ),
     );
   }
+
+  List<_SettingItem> get _settingItems => [
+        _SettingItem(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Earnings & Payouts',
+          subtitle: 'View history, cash out',
+        ),
+        _SettingItem(
+          icon: Icons.notifications_none_rounded,
+          title: 'Notifications',
+          subtitle: 'Alerts for new ride requests',
+        ),
+        _SettingItem(
+          icon: Icons.shield_outlined,
+          title: 'Privacy & Security',
+          subtitle: 'Password, data settings',
+        ),
+        _SettingItem(
+          icon: Icons.headset_mic_outlined,
+          title: 'Support',
+          subtitle: 'Help center, contact us',
+        ),
+      ];
 
   Widget _buildSettingRow(
     _SettingItem item,
