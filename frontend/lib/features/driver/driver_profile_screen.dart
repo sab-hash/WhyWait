@@ -133,6 +133,11 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                       .toList(),
                 ),
               ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                child: _buildSignOutButton(),
+              ),
             ],
           ),
         ),
@@ -455,6 +460,46 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
             Icon(
               Icons.chevron_right_rounded,
               color: Colors.grey[400],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignOutButton() {
+    return InkWell(
+      onTap: () {},
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.logout_rounded,
+              color: Colors.redAccent,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Sign Out',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
           ],
         ),
