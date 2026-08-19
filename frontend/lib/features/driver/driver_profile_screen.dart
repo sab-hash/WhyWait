@@ -31,6 +31,8 @@ class DriverProfileScreen extends StatefulWidget {
 class _DriverProfileScreenState extends State<DriverProfileScreen> {
   static const Color primaryBlue = Color(0xFF0B3D78);
 
+  bool _isOnline = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,6 +102,8 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
               fontSize: 14,
             ),
           ),
+          const SizedBox(height: 16),
+          _buildOnlineToggle(),
         ],
       ),
     );
@@ -112,6 +116,58 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         Icons.person,
         size: 44,
         color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildOnlineToggle() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isOnline = !_isOnline;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: _isOnline
+              ? Colors.white
+              : Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: _isOnline
+              ? null
+              : Border.all(color: Colors.white54),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _isOnline
+                    ? const Color(0xFF2E9E4F)
+                    : Colors.grey.shade300,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _isOnline
+                  ? 'Online — accepting rides'
+                  : 'Offline',
+              style: TextStyle(
+                color: _isOnline ? primaryBlue : Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
