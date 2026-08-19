@@ -44,9 +44,21 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   static const LatLng driverPosition = LatLng(9.0110, 38.7472);
 
   final List<RouteStop> stops = const [
-    RouteStop(number: 1, latitude: 9.0140, longitude: 38.7490),
-    RouteStop(number: 2, latitude: 9.0175, longitude: 38.7520),
-    RouteStop(number: 3, latitude: 9.0205, longitude: 38.7555),
+    RouteStop(
+      number: 1,
+      latitude: 9.0140,
+      longitude: 38.7490,
+    ),
+    RouteStop(
+      number: 2,
+      latitude: 9.0175,
+      longitude: 38.7520,
+    ),
+    RouteStop(
+      number: 3,
+      latitude: 9.0205,
+      longitude: 38.7555,
+    ),
   ];
 
   @override
@@ -160,6 +172,17 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                 height: 46,
                 child: _buildDriverMarker(),
               ),
+              ...stops.map(
+                (stop) => Marker(
+                  point: LatLng(
+                    stop.latitude,
+                    stop.longitude,
+                  ),
+                  width: 42,
+                  height: 42,
+                  child: _buildStopMarker(stop),
+                ),
+              ),
             ],
           ),
         ],
@@ -227,6 +250,36 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
         Icons.directions_bus_filled_rounded,
         color: Colors.white,
         size: 20,
+      ),
+    );
+  }
+
+  Widget _buildStopMarker(RouteStop stop) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: primaryBlue,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '${stop.number}',
+        style: const TextStyle(
+          color: primaryBlue,
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+        ),
       ),
     );
   }
