@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+// =============================================================================
+// Route stop model
+// =============================================================================
+
 class RouteStop {
   final int number;
   final double latitude;
@@ -13,6 +17,10 @@ class RouteStop {
     required this.longitude,
   });
 }
+
+// =============================================================================
+// Driver Map Screen
+// =============================================================================
 
 class DriverMapScreen extends StatefulWidget {
   final String fromLabel;
@@ -35,31 +43,65 @@ class DriverMapScreen extends StatefulWidget {
 }
 
 class _DriverMapScreenState extends State<DriverMapScreen> {
+  // ===========================================================================
+  // Constants
+  // ===========================================================================
+
   static const Color primaryBlue = Color(0xFF0B3D78);
   static const Color startGreen = Color(0xFF2E9E4F);
+  static const Color backgroundColor = Color(0xFFF7F8FA);
+
+  // ===========================================================================
+  // Map state
+  // ===========================================================================
 
   final MapController _mapController = MapController();
 
   int _currentNavIndex = 1;
 
-  static const LatLng startPoint = LatLng(9.0092, 38.7469);
-  static const LatLng driverPosition = LatLng(9.0110, 38.7472);
+  static const LatLng startPoint = LatLng(
+    9.0092,
+    38.7469,
+  );
+
+  static const LatLng driverPosition = LatLng(
+    9.0110,
+    38.7472,
+  );
 
   final List<RouteStop> stops = const [
-    RouteStop(number: 1, latitude: 9.0140, longitude: 38.7490),
-    RouteStop(number: 2, latitude: 9.0175, longitude: 38.7520),
-    RouteStop(number: 3, latitude: 9.0205, longitude: 38.7555),
+    RouteStop(
+      number: 1,
+      latitude: 9.0140,
+      longitude: 38.7490,
+    ),
+    RouteStop(
+      number: 2,
+      latitude: 9.0175,
+      longitude: 38.7520,
+    ),
+    RouteStop(
+      number: 3,
+      latitude: 9.0205,
+      longitude: 38.7555,
+    ),
   ];
+
+  // ===========================================================================
+  // Main layout
+  // ===========================================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
-            Expanded(child: _buildMap()),
+            Expanded(
+              child: _buildMap(),
+            ),
             _buildActionRow(),
           ],
         ),
@@ -75,7 +117,12 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        16,
+      ),
       decoration: const BoxDecoration(
         color: primaryBlue,
       ),
@@ -107,7 +154,19 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   ),
                 ),
               ),
-              _buildHeaderPhoneButton(),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.phone,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -128,29 +187,18 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     );
   }
 
-  Widget _buildHeaderPhoneButton() {
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.phone,
-        color: Colors.white,
-        size: 18,
-      ),
-    );
-  }
-
   // ===========================================================================
   // Map
   // ===========================================================================
 
   Widget _buildMap() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      margin: const EdgeInsets.fromLTRB(
+        12,
+        12,
+        12,
+        12,
+      ),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -173,14 +221,19 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
               TileLayer(
                 urlTemplate:
                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.taxitrack',
+                userAgentPackageName:
+                    'com.example.taxitrack',
               ),
               MarkerLayer(
                 markers: _buildMarkers(),
               ),
             ],
           ),
+
+          // Zoom controls
           _buildZoomControls(),
+
+          // Current location button
           _buildLocationButton(),
         ],
       ),
@@ -223,6 +276,10 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       ),
     ];
   }
+
+  // ===========================================================================
+  // Map markers
+  // ===========================================================================
 
   Widget _buildStartMarker() {
     return Column(
@@ -369,7 +426,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   }
 
   // ===========================================================================
-  // Map Controls
+  // Map controls
   // ===========================================================================
 
   Widget _buildZoomControls() {
@@ -443,26 +500,35 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
         child: Icon(
           icon,
           size: 18,
-          color: filled ? Colors.white : Colors.black87,
+          color: filled
+              ? Colors.white
+              : Colors.black87,
         ),
       ),
     );
   }
 
   // ===========================================================================
-  // Passenger Actions
+  // Passenger actions
   // ===========================================================================
 
   Widget _buildActionRow() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        12,
+      ),
       child: Row(
         children: [
           Expanded(
             child: SizedBox(
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  // TODO: trigger call to passenger
+                },
                 icon: const Icon(
                   Icons.phone,
                   size: 18,
@@ -479,7 +545,8 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   backgroundColor: primaryBlue,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius:
+                        BorderRadius.circular(14),
                   ),
                 ),
               ),
@@ -490,7 +557,9 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
             child: SizedBox(
               height: 50,
               child: OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  // TODO: open messaging with passenger
+                },
                 icon: const Icon(
                   Icons.chat_bubble_outline_rounded,
                   size: 18,
@@ -508,7 +577,8 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                     color: Colors.grey[300]!,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius:
+                        BorderRadius.circular(14),
                   ),
                 ),
               ),
@@ -520,7 +590,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   }
 
   // ===========================================================================
-  // Bottom Navigation
+  // Bottom navigation
   // ===========================================================================
 
   Widget _buildBottomNav() {
@@ -545,13 +615,17 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+          ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment:
+                MainAxisAlignment.spaceAround,
             children: List.generate(
               items.length,
               (index) {
-                final selected = index == _currentNavIndex;
+                final selected =
+                    index == _currentNavIndex;
 
                 return InkWell(
                   onTap: () {
