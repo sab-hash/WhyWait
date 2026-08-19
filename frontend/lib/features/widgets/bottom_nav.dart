@@ -322,9 +322,11 @@ class _DriverProfileScreenState
     ),
   );
 }
-
-  Widget _buildStatsCard() {
-    return Container(
+Widget _buildStatsCard() {
+  return InkWell(
+    onTap: () {},
+    borderRadius: BorderRadius.circular(18),
+    child: Container(
       padding: const EdgeInsets.symmetric(
         vertical: 18,
       ),
@@ -347,18 +349,14 @@ class _DriverProfileScreenState
               'Rating',
             ),
           ),
-
           _statDivider(),
-
           Expanded(
             child: _statColumn(
               '${widget.totalTrips}',
               'Trips',
             ),
           ),
-
           _statDivider(),
-
           Expanded(
             child: _statColumn(
               '${widget.earningsToday.toStringAsFixed(0)} ETB',
@@ -367,9 +365,10 @@ class _DriverProfileScreenState
           ),
         ],
       ),
-    );
-  }
-
+    ),
+  );
+}
+  
   Widget _statColumn(
     String value,
     String label,
