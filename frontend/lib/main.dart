@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'features/auth/login_screen.dart';
-import 'features/passenger/home_screen.dart';
+
+import 'features/driver/driver_home_screen.dart';
 
 void main() {
   runApp(const TaxiApp());
@@ -13,7 +13,7 @@ class TaxiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      home: const DriverHomeScreen(),
     );
   }
 }
