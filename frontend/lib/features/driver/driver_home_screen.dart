@@ -84,9 +84,7 @@ class DriverHomeScreen extends StatelessWidget {
 
               SizedBox(height: 12),
 
-              _SectionPlaceholder(
-                title: "Today's Summary",
-              ),
+              _TodaysSummary(),
             ],
           ),
         ),
@@ -594,6 +592,131 @@ class _QuickActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TodaysSummary extends StatelessWidget {
+  const _TodaysSummary();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: const [
+          Expanded(
+            child: _SummaryStatistic(
+              icon: Icons.directions_bus_rounded,
+              value: '8',
+              label: 'Trips',
+            ),
+          ),
+
+          _SummaryDivider(),
+
+          Expanded(
+            child: _SummaryStatistic(
+              icon: Icons.route_rounded,
+              value: '47 km',
+              label: 'Distance',
+            ),
+          ),
+
+          _SummaryDivider(),
+
+          Expanded(
+            child: _SummaryStatistic(
+              icon: Icons.payments_rounded,
+              value: '320 ETB',
+              label: 'Earnings',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryStatistic extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+
+  const _SummaryStatistic({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: DriverHomeScreen.primaryBlue.withValues(
+              alpha: 0.10,
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: DriverHomeScreen.primaryBlue,
+            size: 21,
+          ),
+        ),
+
+        const SizedBox(height: 9),
+
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 3),
+
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryDivider extends StatelessWidget {
+  const _SummaryDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 65,
+      color: const Color(0xFFE8E8E8),
     );
   }
 }
