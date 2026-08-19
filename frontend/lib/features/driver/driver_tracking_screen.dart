@@ -68,12 +68,19 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     );
   }
 
+  // ===========================================================================
+  // Header
+  // ===========================================================================
+
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      color: primaryBlue,
+      decoration: const BoxDecoration(
+        color: primaryBlue,
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -100,34 +107,19 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   ),
                 ),
               ),
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.phone,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
+              _buildHeaderPhoneButton(),
             ],
           ),
           const SizedBox(height: 6),
           Padding(
             padding: const EdgeInsets.only(left: 32),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${widget.passengersOnBoard} / '
-                '${widget.passengersTotal} passengers • '
-                '~${widget.etaMinutes} min',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
-                  fontSize: 13,
-                ),
+            child: Text(
+              '${widget.passengersOnBoard} / '
+              '${widget.passengersTotal} passengers • '
+              '~${widget.etaMinutes} min',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: 13,
               ),
             ),
           ),
@@ -135,6 +127,26 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       ),
     );
   }
+
+  Widget _buildHeaderPhoneButton() {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.phone,
+        color: Colors.white,
+        size: 18,
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // Map
+  // ===========================================================================
 
   Widget _buildMap() {
     return Container(
@@ -164,87 +176,52 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                 userAgentPackageName: 'com.example.taxitrack',
               ),
               MarkerLayer(
-                markers: [
-                  Marker(
-                    point: startPoint,
-                    width: 60,
-                    height: 56,
-                    child: _buildStartMarker(),
-                  ),
-                  Marker(
-                    point: driverPosition,
-                    width: 46,
-                    height: 46,
-                    child: _buildDriverMarker(),
-                  ),
-                  ...stops.map(
-                    (stop) => Marker(
-                      point: LatLng(
-                        stop.latitude,
-                        stop.longitude,
-                      ),
-                      width: 42,
-                      height: 42,
-                      child: _buildStopMarker(stop),
-                    ),
-                  ),
-                  Marker(
-                    point: LatLng(
-                      stops.last.latitude,
-                      stops.last.longitude,
-                    ),
-                    width: 70,
-                    height: 60,
-                    child: _buildDestinationFlag(),
-                  ),
-                ],
+                markers: _buildMarkers(),
               ),
             ],
           ),
-          Positioned(
-            left: 12,
-            bottom: 12,
-            child: Column(
-              children: [
-                _buildMapButton(
-                  Icons.add,
-                  onTap: () {
-                    _mapController.move(
-                      _mapController.camera.center,
-                      _mapController.camera.zoom + 1,
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                _buildMapButton(
-                  Icons.remove,
-                  onTap: () {
-                    _mapController.move(
-                      _mapController.camera.center,
-                      _mapController.camera.zoom - 1,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: _buildMapButton(
-              Icons.my_location,
-              filled: true,
-              onTap: () {
-                _mapController.move(
-                  driverPosition,
-                  14.5,
-                );
-              },
-            ),
-          ),
+          _buildZoomControls(),
+          _buildLocationButton(),
         ],
       ),
     );
+  }
+
+  List<Marker> _buildMarkers() {
+    return [
+      Marker(
+        point: startPoint,
+        width: 60,
+        height: 56,
+        child: _buildStartMarker(),
+      ),
+      Marker(
+        point: driverPosition,
+        width: 46,
+        height: 46,
+        child: _buildDriverMarker(),
+      ),
+      ...stops.map(
+        (stop) => Marker(
+          point: LatLng(
+            stop.latitude,
+            stop.longitude,
+          ),
+          width: 42,
+          height: 42,
+          child: _buildStopMarker(stop),
+        ),
+      ),
+      Marker(
+        point: LatLng(
+          stops.last.latitude,
+          stops.last.longitude,
+        ),
+        width: 70,
+        height: 60,
+        child: _buildDestinationFlag(),
+      ),
+    ];
   }
 
   Widget _buildStartMarker() {
@@ -391,6 +368,57 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     );
   }
 
+  // ===========================================================================
+  // Map Controls
+  // ===========================================================================
+
+  Widget _buildZoomControls() {
+    return Positioned(
+      left: 12,
+      bottom: 12,
+      child: Column(
+        children: [
+          _buildMapButton(
+            Icons.add,
+            onTap: () {
+              _mapController.move(
+                _mapController.camera.center,
+                _mapController.camera.zoom + 1,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _buildMapButton(
+            Icons.remove,
+            onTap: () {
+              _mapController.move(
+                _mapController.camera.center,
+                _mapController.camera.zoom - 1,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationButton() {
+    return Positioned(
+      right: 12,
+      bottom: 12,
+      child: _buildMapButton(
+        Icons.my_location,
+        filled: true,
+        onTap: () {
+          _mapController.move(
+            driverPosition,
+            14.5,
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildMapButton(
     IconData icon, {
     bool filled = false,
@@ -420,6 +448,10 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       ),
     );
   }
+
+  // ===========================================================================
+  // Passenger Actions
+  // ===========================================================================
 
   Widget _buildActionRow() {
     return Padding(
@@ -486,6 +518,10 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       ),
     );
   }
+
+  // ===========================================================================
+  // Bottom Navigation
+  // ===========================================================================
 
   Widget _buildBottomNav() {
     final items = [
