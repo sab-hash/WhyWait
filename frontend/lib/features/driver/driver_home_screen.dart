@@ -69,9 +69,7 @@ class DriverHomeScreen extends StatelessWidget {
 
               SizedBox(height: 12),
 
-              _SectionPlaceholder(
-                title: 'Quick Actions',
-              ),
+              _QuickActions(),
 
               SizedBox(height: 20),
 
@@ -475,6 +473,127 @@ class _StatisticDivider extends StatelessWidget {
       width: 1,
       height: 55,
       color: const Color(0xFFE8E8E8),
+    );
+  }
+}
+
+class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _QuickActionButton(
+            icon: Icons.people_alt_rounded,
+            label: 'Passengers',
+            onTap: () {},
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: _QuickActionButton(
+            icon: Icons.map_rounded,
+            label: 'Change Route',
+            onTap: () {},
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: _QuickActionButton(
+            icon: Icons.stop_circle_rounded,
+            label: 'End Trip',
+            isDestructive: true,
+            onTap: () {},
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _QuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color iconColor = isDestructive
+        ? Colors.red
+        : DriverHomeScreen.primaryBlue;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          constraints: const BoxConstraints(
+            minHeight: 105,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 14,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDestructive
+                  ? Colors.red.withValues(alpha: 0.15)
+                  : DriverHomeScreen.primaryBlue.withValues(
+                      alpha: 0.12,
+                    ),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 23,
+                ),
+              ),
+
+              const SizedBox(height: 9),
+
+              Text(
+                label,
+                style: TextStyle(
+                  color: isDestructive
+                      ? Colors.red
+                      : Colors.black87,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
