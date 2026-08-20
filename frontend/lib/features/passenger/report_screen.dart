@@ -67,18 +67,18 @@ class _ReportScreenState extends State<ReportScreen> {
   bool showValidation = false;
   bool isSubmitting = false;
 
+  bool get isFormValid {
+    return selectedTrip != null &&
+        selectedIssue != null &&
+        descriptionController.text.trim().isNotEmpty;
+  }
+
   @override
   void dispose() {
     descriptionController.dispose();
     vehicleController.dispose();
     feedbackController.dispose();
     super.dispose();
-  }
-
-  bool get isFormValid {
-    return selectedTrip != null &&
-        selectedIssue != null &&
-        descriptionController.text.trim().isNotEmpty;
   }
 
   @override
@@ -331,7 +331,6 @@ class _ReportScreenState extends State<ReportScreen> {
           onTap: () {
             setState(() {
               selectedIssue = issue;
-              showValidation = false;
             });
           },
           child: AnimatedContainer(
@@ -727,71 +726,73 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-Widget _buildSubmitButton() {
-  final bool canSubmit = isFormValid;
+  Widget _buildSubmitButton() {
+    final bool canSubmit = isFormValid;
 
-  return Column(
-    children: [
-      SizedBox(
-        width: double.infinity,
-        height: 54,
-        child: ElevatedButton(
-          onPressed: isSubmitting
-              ? null
-              : canSubmit
-                  ? _handleSubmit
-                  : () {
-                      setState(() {
-                        showValidation = true;
-                      });
-                    },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryBlue,
-            disabledBackgroundColor: Colors.grey.shade300,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: ElevatedButton(
+            onPressed: isSubmitting
+                ? null
+                : canSubmit
+                    ? _handleSubmit
+                    : () {
+                        FocusScope.of(context).unfocus();
+
+                        setState(() {
+                          showValidation = true;
+                        });
+                      },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              disabledBackgroundColor: Colors.grey.shade300,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: isSubmitting
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    canSubmit
+                        ? 'Submit Report'
+                        : 'Complete the Form',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: canSubmit
+                          ? Colors.white
+                          : Colors.grey.shade600,
+                    ),
+                  ),
+          ),
+        ),
+        if (showValidation && !canSubmit) ...[
+          const SizedBox(height: 10),
+          Text(
+            'Please complete the required fields before submitting.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.red.shade600,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          child: isSubmitting
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(
-                  canSubmit
-                      ? 'Submit Report'
-                      : 'Complete the Form',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: canSubmit
-                        ? Colors.white
-                        : Colors.grey.shade600,
-                  ),
-                ),
-        ),
-      ),
-      if (showValidation && !canSubmit) ...[
-        const SizedBox(height: 10),
-        Text(
-          'Please complete the required fields before submitting.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.red.shade600,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        ],
       ],
-    ],
-  );
-}
+    );
+  }
 
   Widget _buildReportsSection() {
     return Column(
@@ -1174,6 +1175,8 @@ Widget _buildSubmitButton() {
   }
 
   void _handleSubmit() {
+    FocusScope.of(context).unfocus();
+
     setState(() {
       showValidation = true;
     });
@@ -1243,6 +1246,15 @@ Widget _buildSubmitButton() {
                 _confirmationRow(
                   'Rating',
                   '$selectedRating/5 - ${_getRatingText()}',
+                ),
+              ],
+              if (feedbackController.text
+                  .trim()
+                  .isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _confirmationRow(
+                  'Feedback',
+                  feedbackController.text.trim(),
                 ),
               ],
             ],
