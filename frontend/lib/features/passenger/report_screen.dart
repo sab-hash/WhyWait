@@ -15,8 +15,12 @@ class _ReportScreenState extends State<ReportScreen> {
 
   String? selectedIssue;
   String? selectedTrip;
+  String selectedReportFilter = 'All';
 
   int selectedRating = 0;
+
+  bool showValidation = false;
+  bool isSubmitting = false;
 
   final TextEditingController descriptionController =
       TextEditingController();
@@ -43,6 +47,13 @@ class _ReportScreenState extends State<ReportScreen> {
     'Mexico → Bole',
   ];
 
+  final List<String> reportFilters = [
+    'All',
+    'Pending',
+    'Reviewed',
+    'Resolved',
+  ];
+
   final List<Map<String, String>> reports = [
     {
       'issue': 'Driver behavior',
@@ -63,9 +74,6 @@ class _ReportScreenState extends State<ReportScreen> {
       'status': 'Resolved',
     },
   ];
-
-  bool showValidation = false;
-  bool isSubmitting = false;
 
   bool get isFormValid {
     return selectedTrip != null &&
@@ -795,6 +803,14 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildReportsSection() {
+    final List<Map<String, String>> filteredReports =
+        selectedReportFilter == 'All'
+            ? reports
+            : reports.where((report) {
+                return report['status'] ==
+                    selectedReportFilter;
+              }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -812,7 +828,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
             Text(
-              '${reports.length} reports',
+              '${filteredReports.length} reports',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey.shade500,
@@ -822,18 +838,152 @@ class _ReportScreenState extends State<ReportScreen> {
           ],
         ),
         const SizedBox(height: 14),
-        if (reports.isEmpty)
-          _buildEmptyReports()
+        _buildReportFilters(),
+        const SizedBox(height: 16),
+        if (filteredReports.isEmpty)
+          _buildFilteredEmptyState()
         else
           Column(
-            children: reports.map((report) {
+            children: filteredReports.map((report) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(
+                  bottom: 12,
+                ),
                 child: _buildReportCard(report),
               );
             }).toList(),
           ),
       ],
+    );
+  }
+
+  Widget _buildReportFilters() {
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: reportFilters.length,
+        separatorBuilder: (context, index) {
+          return const SizedBox(width: 8);
+        },
+        itemBuilder: (context, index) {
+          final String filter = reportFilters[index];
+          final bool isSelected =
+              selectedReportFilter == filter;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedReportFilter = filter;
+              });
+            },
+            child: AnimatedContainer(
+              duration:
+                  const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+              ),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? primaryBlue
+                    : Colors.white,
+                borderRadius:
+                    BorderRadius.circular(22),
+                border: Border.all(
+                  color: isSelected
+                      ? primaryBlue
+                      : Colors.grey.shade200,
+                ),
+              ),
+              child: Text(
+                filter,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? Colors.white
+                      : Colors.grey.shade600,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilteredEmptyState() {
+    String title;
+    String message;
+    IconData icon;
+
+    switch (selectedReportFilter) {
+      case 'Pending':
+        title = 'No pending reports';
+        message =
+            'You do not have any reports waiting for review.';
+        icon = Icons.access_time_rounded;
+        break;
+
+      case 'Reviewed':
+        title = 'No reviewed reports';
+        message =
+            'Reports reviewed by the team will appear here.';
+        icon = Icons.visibility_outlined;
+        break;
+
+      case 'Resolved':
+        title = 'No resolved reports';
+        message =
+            'Resolved reports will appear here.';
+        icon = Icons.check_circle_outline_rounded;
+        break;
+
+      default:
+        title = 'No reports yet';
+        message =
+            'Your submitted reports will appear here.';
+        icon = Icons.description_outlined;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 42,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -873,7 +1023,8 @@ class _ReportScreenState extends State<ReportScreen> {
               height: 44,
               decoration: BoxDecoration(
                 color: lightBlue,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius:
+                    BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.report_problem_outlined,
@@ -931,15 +1082,18 @@ class _ReportScreenState extends State<ReportScreen> {
 
     switch (status) {
       case 'Resolved':
-        icon = Icons.check_circle_outline_rounded;
+        icon =
+            Icons.check_circle_outline_rounded;
         color = Colors.green.shade700;
         background = Colors.green.shade50;
         break;
+
       case 'Reviewed':
         icon = Icons.visibility_outlined;
         color = primaryBlue;
         background = lightBlue;
         break;
+
       default:
         icon = Icons.access_time_rounded;
         color = Colors.orange.shade700;
@@ -970,47 +1124,6 @@ class _ReportScreenState extends State<ReportScreen> {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyReports() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(30),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.grey.shade200,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.description_outlined,
-            size: 42,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'No reports yet',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            'Your submitted reports will appear here.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade500,
             ),
           ),
         ],
