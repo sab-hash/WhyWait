@@ -16,10 +16,15 @@ class _ReportScreenState extends State<ReportScreen> {
   String? selectedIssue;
   String? selectedTrip;
 
+  int selectedRating = 0;
+
   final TextEditingController descriptionController =
       TextEditingController();
 
   final TextEditingController vehicleController =
+      TextEditingController();
+
+  final TextEditingController feedbackController =
       TextEditingController();
 
   final List<String> issueTypes = [
@@ -66,6 +71,7 @@ class _ReportScreenState extends State<ReportScreen> {
   void dispose() {
     descriptionController.dispose();
     vehicleController.dispose();
+    feedbackController.dispose();
     super.dispose();
   }
 
@@ -105,6 +111,8 @@ class _ReportScreenState extends State<ReportScreen> {
             _buildVehicleSection(),
             const SizedBox(height: 28),
             _buildDescriptionSection(),
+            const SizedBox(height: 28),
+            _buildRatingSection(),
             const SizedBox(height: 28),
             _buildSubmitButton(),
             const SizedBox(height: 36),
@@ -471,7 +479,8 @@ class _ReportScreenState extends State<ReportScreen> {
     final bool hasText =
         descriptionController.text.trim().isNotEmpty;
 
-    final int characterCount = descriptionController.text.length;
+    final int characterCount =
+        descriptionController.text.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,7 +512,8 @@ class _ReportScreenState extends State<ReportScreen> {
                   : hasText
                       ? primaryBlue
                       : Colors.grey.shade200,
-              width: showValidation && !hasText || hasText ? 1.5 : 1,
+              width:
+                  showValidation && !hasText || hasText ? 1.5 : 1,
             ),
           ),
           child: TextField(
@@ -555,6 +565,168 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  Widget _buildRatingSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Rate your trip',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: primaryBlue,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'How was your overall experience?',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            vertical: 20,
+            horizontal: 16,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.grey.shade200,
+            ),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (index) {
+                    final int rating = index + 1;
+                    final bool isSelected =
+                        rating <= selectedRating;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedRating = rating;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                        ),
+                        child: AnimatedScale(
+                          scale: isSelected ? 1.15 : 1.0,
+                          duration:
+                              const Duration(milliseconds: 150),
+                          child: Icon(
+                            isSelected
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            size: 38,
+                            color: Colors.amber.shade600,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                selectedRating == 0
+                    ? 'Tap a star to rate your trip'
+                    : _getRatingText(),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selectedRating == 0
+                      ? FontWeight.normal
+                      : FontWeight.bold,
+                  color: selectedRating == 0
+                      ? Colors.grey.shade500
+                      : primaryBlue,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.grey.shade200,
+            ),
+          ),
+          child: TextField(
+            controller: feedbackController,
+            maxLines: 3,
+            maxLength: 300,
+            onChanged: (_) {
+              setState(() {});
+            },
+            decoration: InputDecoration(
+              hintText: 'Additional feedback (optional)',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 13,
+              ),
+              prefixIcon: const Padding(
+                padding: EdgeInsets.only(
+                  left: 12,
+                  right: 8,
+                  bottom: 55,
+                ),
+                child: Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: primaryBlue,
+                  size: 20,
+                ),
+              ),
+              border: InputBorder.none,
+              counterText: '',
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '${feedbackController.text.length}/300',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getRatingText() {
+    switch (selectedRating) {
+      case 1:
+        return 'Very poor';
+      case 2:
+        return 'Poor';
+      case 3:
+        return 'Average';
+      case 4:
+        return 'Good';
+      case 5:
+        return 'Excellent';
+      default:
+        return '';
+    }
+  }
+
   Widget _buildSubmitButton() {
     final bool canSubmit = isFormValid;
 
@@ -582,7 +754,9 @@ class _ReportScreenState extends State<ReportScreen> {
                 ),
               )
             : Text(
-                canSubmit ? 'Submit Report' : 'Complete the Form',
+                canSubmit
+                    ? 'Submit Report'
+                    : 'Complete the Form',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -600,7 +774,8 @@ class _ReportScreenState extends State<ReportScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'MY REPORTS',
@@ -640,7 +815,8 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget _buildReportCard(
     Map<String, String> report,
   ) {
-    final String status = report['status'] ?? 'Pending';
+    final String status =
+        report['status'] ?? 'Pending';
 
     return GestureDetector(
       onTap: () {
@@ -664,7 +840,8 @@ class _ReportScreenState extends State<ReportScreen> {
           ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             Container(
               width: 44,
@@ -682,10 +859,12 @@ class _ReportScreenState extends State<ReportScreen> {
             const SizedBox(width: 13),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
-                    report['issue'] ?? 'Unknown issue',
+                    report['issue'] ??
+                        'Unknown issue',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -694,7 +873,8 @@ class _ReportScreenState extends State<ReportScreen> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    report['trip'] ?? 'Unknown trip',
+                    report['trip'] ??
+                        'Unknown trip',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -834,7 +1014,8 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               Center(
                 child: Container(
@@ -842,7 +1023,8 @@ class _ReportScreenState extends State<ReportScreen> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius:
+                        BorderRadius.circular(10),
                   ),
                 ),
               ),
@@ -854,7 +1036,8 @@ class _ReportScreenState extends State<ReportScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: lightBlue,
-                      borderRadius: BorderRadius.circular(13),
+                      borderRadius:
+                          BorderRadius.circular(13),
                     ),
                     child: const Icon(
                       Icons.report_problem_outlined,
@@ -898,7 +1081,8 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                   ),
                   _buildStatusBadge(
-                    report['status'] ?? 'Pending',
+                    report['status'] ??
+                        'Pending',
                   ),
                 ],
               ),
@@ -915,7 +1099,8 @@ class _ReportScreenState extends State<ReportScreen> {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius:
+                          BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -938,7 +1123,8 @@ class _ReportScreenState extends State<ReportScreen> {
     String value,
   ) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment:
+          MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
@@ -1002,7 +1188,8 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               _confirmationRow(
                 'Trip',
@@ -1018,16 +1205,26 @@ class _ReportScreenState extends State<ReportScreen> {
                 'Description',
                 descriptionController.text.trim(),
               ),
-              if (vehicleController.text.trim().isNotEmpty) ...[
+              if (vehicleController.text
+                  .trim()
+                  .isNotEmpty) ...[
                 const SizedBox(height: 10),
                 _confirmationRow(
                   'Details',
                   vehicleController.text.trim(),
                 ),
               ],
+              if (selectedRating > 0) ...[
+                const SizedBox(height: 10),
+                _confirmationRow(
+                  'Rating',
+                  '$selectedRating/5 - ${_getRatingText()}',
+                ),
+              ],
             ],
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(
+          actionsPadding:
+              const EdgeInsets.fromLTRB(
             20,
             0,
             20,
@@ -1056,7 +1253,8 @@ class _ReportScreenState extends State<ReportScreen> {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius:
+                      BorderRadius.circular(10),
                 ),
               ),
               child: const Text(
@@ -1077,7 +1275,8 @@ class _ReportScreenState extends State<ReportScreen> {
     String value,
   ) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
         Text(
           title,
@@ -1113,7 +1312,7 @@ class _ReportScreenState extends State<ReportScreen> {
       return;
     }
 
-    final newReport = {
+    final Map<String, String> newReport = {
       'issue': selectedIssue!,
       'trip': selectedTrip!,
       'date': '20 Aug 2026',
@@ -1136,6 +1335,8 @@ class _ReportScreenState extends State<ReportScreen> {
       selectedTrip = null;
       descriptionController.clear();
       vehicleController.clear();
+      feedbackController.clear();
+      selectedRating = 0;
       showValidation = false;
     });
   }
@@ -1198,7 +1399,8 @@ class _ReportScreenState extends State<ReportScreen> {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius:
+                          BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
