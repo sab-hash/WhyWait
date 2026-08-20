@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-
+import 'report_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
@@ -89,6 +89,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+
+      // ==================== REPORT BUTTON ====================
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ReportScreen(),
+            ),
+          );
+        },
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(
+          Icons.report_problem_outlined,
+        ),
+        label: const Text(
+          'Report',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.endFloat,
+
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }
@@ -749,7 +776,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       setState(() {
                         selectedStation = stationName;
-                        stationDistance = '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
+                        stationDistance =
+                            '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
                       });
                       Navigator.pop(context);
                     },
