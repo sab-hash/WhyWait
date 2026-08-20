@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
   final String email;
 
-  const HomeScreen({
-    super.key,
-    required this.fullName,
-    required this.email,
-  });
+  const HomeScreen({super.key, required this.fullName, required this.email});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -128,10 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: primaryBlue,
-                width: 1.5,
-              ),
+              border: Border.all(color: primaryBlue, width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -158,9 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.grey.shade200,
-        ),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -172,10 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Where are you going?',
-          hintStyle: TextStyle(
-            color: Colors.grey.shade500,
-            fontSize: 14,
-          ),
+          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
           prefixIcon: const Icon(
             Icons.search_rounded,
             color: primaryBlue,
@@ -187,16 +176,10 @@ class _HomeScreenState extends State<HomeScreen> {
               color: lightBlue,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.tune_rounded,
-              color: primaryBlue,
-              size: 20,
-            ),
+            child: const Icon(Icons.tune_rounded, color: primaryBlue, size: 20),
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 17,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 17),
         ),
       ),
     );
@@ -259,10 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 3),
                 Text(
                   stationDistance,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
                 ),
               ],
             ),
@@ -271,23 +251,15 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: _changeStation,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              side: const BorderSide(
-                color: Colors.white,
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 9,
-              ),
+              side: const BorderSide(color: Colors.white),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
             child: const Text(
               'Change',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -337,9 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.grey.shade200,
-        ),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.025),
@@ -358,11 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
               color: lightBlue,
               borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(
-              icon,
-              color: primaryBlue,
-              size: 21,
-            ),
+            child: Icon(icon, color: primaryBlue, size: 21),
           ),
           const Spacer(),
           Text(
@@ -453,23 +419,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return GestureDetector(
       onTap: () {
-        _showRouteDetails(
-          from: from,
-          to: to,
-          waitTime: waitTime,
-        );
+        _showRouteDetails(from: from, to: to, waitTime: waitTime);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 15,
-          vertical: 13,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: Colors.grey.shade200,
-          ),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.025),
@@ -564,10 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -616,12 +570,23 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedIndex = index;
         });
 
+        if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProfileScreen(
+                fullName: widget.fullName,
+                phoneNumber: widget.email,
+              ),
+            ),
+          );
+          return;
+        }
+
         if (index != 0) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                '$label screen will be connected later',
-              ),
+              content: Text('$label screen will be connected later'),
               backgroundColor: primaryBlue,
               duration: const Duration(seconds: 1),
             ),
@@ -636,10 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 5,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: isSelected ? lightBlue : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
@@ -681,9 +643,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(25),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) {
         return Padding(
@@ -712,49 +672,48 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              ..._terminals.map(
-                (terminal) {
-                  final stationName = terminal['name'] ?? 'Unknown';
-                  final isSelected = stationName == selectedStation;
+              ..._terminals.map((terminal) {
+                final stationName = terminal['name'] ?? 'Unknown';
+                final isSelected = stationName == selectedStation;
 
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: lightBlue,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.location_on_rounded,
-                        color: primaryBlue,
-                        size: 21,
-                      ),
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: lightBlue,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    title: Text(
-                      stationName,
-                      style: const TextStyle(
-                        color: darkText,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: const Icon(
+                      Icons.location_on_rounded,
+                      color: primaryBlue,
+                      size: 21,
                     ),
-                    trailing: isSelected
-                        ? const Icon(
-                            Icons.check_circle_rounded,
-                            color: primaryBlue,
-                          )
-                        : null,
-                    onTap: () {
-                      setState(() {
-                        selectedStation = stationName;
-                        stationDistance = '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
-                      });
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
+                  ),
+                  title: Text(
+                    stationName,
+                    style: const TextStyle(
+                      color: darkText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: primaryBlue,
+                        )
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      selectedStation = stationName;
+                      stationDistance =
+                          '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
+                    });
+                    Navigator.pop(context);
+                  },
+                );
+              }),
             ],
           ),
         );
@@ -772,9 +731,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(25),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) {
         return Padding(
@@ -832,9 +789,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                          'You joined the $from → $to queue',
-                        ),
+                        content: Text('You joined the $from → $to queue'),
                         backgroundColor: primaryBlue,
                       ),
                     );
@@ -849,10 +804,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: const Text(
                     'Join Queue',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../core/storage/local_storage.dart';
 
 class ApiService {
   // ==================== TERMINALS ====================
@@ -52,5 +53,31 @@ class ApiService {
     final data = jsonDecode(response.body);
 
     return List<Map<String, dynamic>>.from(data['routes']);
+  }
+
+  // ==================== USER PROFILE ====================
+
+  static Future<Map<String, dynamic>> getProfile() async {
+    final token = await LocalStorage.getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/users/profile'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load profile');
+    }
+
+    final data = jsonDecode(response.body);
+
+    return Map<String, dynamic>.from(data['user']);
   }
 }
