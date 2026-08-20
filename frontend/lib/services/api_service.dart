@@ -21,9 +21,21 @@ class ApiService {
   // ==================== TAXI STATUS ====================
 
   static Future<Map<String, dynamic>> getTaxiStatus() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/taxis/status'),
+    );
 
-    return {'available': 12, 'nearby_stations': 4, 'average_wait': 8};
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load taxi status');
+    }
+
+    final data = jsonDecode(response.body);
+
+    return {
+      'available': data['available'] ?? 0,
+      'nearby_stations': data['nearby_stations'] ?? 0,
+      'average_wait': data['average_wait'] ?? 0,
+    };
   }
 
   // ==================== POPULAR ROUTES ====================
