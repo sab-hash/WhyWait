@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../core/storage/local_storage.dart';
+import '../auth/login_screen.dart';
 
 class _SettingItem {
   final IconData icon;
@@ -341,7 +343,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSignOutButton() {
     return InkWell(
-      onTap: () {},
+      onTap: () async {
+        await LocalStorage.removeToken();
+
+        if (!mounted) return;
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
