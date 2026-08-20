@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
 import 'report_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,44 +26,46 @@ class _HomeScreenState extends State<HomeScreen> {
   String selectedStation = 'Bole Taxi Station';
   String stationDistance = '1.2 km away';
 
-  List<dynamic> _terminals = [];
-  int _taxiCount = 0;
-  int _nearbyCount = 0;
-  int _avgWait = 0;
-  List<dynamic> _popularRoutes = [];
-  bool _isLoading = true;
-
-  final List<String> stations = [
-    'Bole Taxi Station',
-    'Piazza Taxi Station',
-    'Megenagna Taxi Station',
-    'Mexico Taxi Station',
+  final List<Map<String, dynamic>> terminals = [
+    {
+      'name': 'Bole Taxi Station',
+      'distance': 1.2,
+    },
+    {
+      'name': 'Piazza Taxi Station',
+      'distance': 3.4,
+    },
+    {
+      'name': 'Megenagna Taxi Station',
+      'distance': 5.1,
+    },
+    {
+      'name': 'Mexico Taxi Station',
+      'distance': 4.2,
+    },
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+  final int taxiCount = 12;
+  final int nearbyCount = 4;
+  final int avgWait = 5;
 
-  void _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final terminals = await ApiService.getTerminals();
-    final status = await ApiService.getTaxiStatus();
-    final routes = await ApiService.getPopularRoutes();
-
-    setState(() {
-      _terminals = terminals;
-      _taxiCount = status['available'] ?? 0;
-      _nearbyCount = status['nearby_stations'] ?? 0;
-      _avgWait = status['average_wait'] ?? 0;
-      _popularRoutes = routes;
-      _isLoading = false;
-    });
-  }
+  final List<Map<String, dynamic>> popularRoutes = [
+    {
+      'from': 'Bole',
+      'to': 'Mexico',
+      'waitTime': 5,
+    },
+    {
+      'from': 'Piazza',
+      'to': 'Bole',
+      'waitTime': 7,
+    },
+    {
+      'from': 'Megenagna',
+      'to': 'Piazza',
+      'waitTime': 4,
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // ==================== REPORT BUTTON ====================
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
@@ -113,6 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+
       floatingActionButtonLocation:
           FloatingActionButtonLocation.endFloat,
 
@@ -147,7 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        // Profile Icon
         GestureDetector(
           onTap: () {},
           child: Container(
@@ -330,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: _summaryCard(
             icon: Icons.local_taxi_rounded,
-            value: _isLoading ? '...' : '$_taxiCount',
+            value: '$taxiCount',
             label: 'Taxis\navailable',
           ),
         ),
@@ -338,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: _summaryCard(
             icon: Icons.location_city_rounded,
-            value: _isLoading ? '...' : '$_nearbyCount',
+            value: '$nearbyCount',
             label: 'Nearby\nstations',
           ),
         ),
@@ -346,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: _summaryCard(
             icon: Icons.access_time_rounded,
-            value: _isLoading ? '...' : '~$_avgWait min',
+            value: '~$avgWait min',
             label: 'Average\nwaiting',
           ),
         ),
@@ -418,14 +418,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ==================== POPULAR ROUTES ====================
   Widget _buildPopularRoutes() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_popularRoutes.isEmpty) {
-      return const Center(child: Text('No popular routes available'));
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -446,7 +438,8 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                tapTargetSize:
+                    MaterialTapTargetSize.shrinkWrap,
               ),
               child: const Text(
                 'View all',
@@ -460,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        ..._popularRoutes.map((route) {
+        ...popularRoutes.map((route) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: _routeCard(
@@ -469,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
               waitTime: '~${route['waitTime'] ?? 5} min',
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -597,7 +590,8 @@ class _HomeScreenState extends State<HomeScreen> {
             vertical: 8,
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment:
+                MainAxisAlignment.spaceAround,
             children: [
               _navItem(
                 icon: Icons.home_outlined,
@@ -669,12 +663,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 vertical: 5,
               ),
               decoration: BoxDecoration(
-                color: isSelected ? lightBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
+                color: isSelected
+                    ? lightBlue
+                    : Colors.transparent,
+                borderRadius:
+                    BorderRadius.circular(12),
               ),
               child: Icon(
                 isSelected ? activeIcon : icon,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
+                color: isSelected
+                    ? primaryBlue
+                    : Colors.grey.shade500,
                 size: 23,
               ),
             ),
@@ -683,8 +682,12 @@ class _HomeScreenState extends State<HomeScreen> {
               label,
               style: TextStyle(
                 fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
+                fontWeight: isSelected
+                    ? FontWeight.bold
+                    : FontWeight.w500,
+                color: isSelected
+                    ? primaryBlue
+                    : Colors.grey.shade500,
               ),
             ),
           ],
@@ -695,16 +698,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ==================== CHANGE STATION ====================
   void _changeStation() {
-    if (_terminals.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No terminals available'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -715,10 +708,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+          padding: const EdgeInsets.fromLTRB(
+            24,
+            20,
+            24,
+            30,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               Center(
                 child: Container(
@@ -726,7 +725,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius:
+                        BorderRadius.circular(10),
                   ),
                 ),
               ),
@@ -740,10 +740,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              ..._terminals.map(
+              ...terminals.map(
                 (terminal) {
-                  final stationName = terminal['name'] ?? 'Unknown';
-                  final isSelected = stationName == selectedStation;
+                  final stationName =
+                      terminal['name'] ?? 'Unknown';
+                  final isSelected =
+                      stationName == selectedStation;
 
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -752,7 +754,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 42,
                       decoration: BoxDecoration(
                         color: lightBlue,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius:
+                            BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.location_on_rounded,
@@ -764,7 +767,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       stationName,
                       style: const TextStyle(
                         color: darkText,
-                        fontWeight: FontWeight.w600,
+                        fontWeight:
+                            FontWeight.w600,
                       ),
                     ),
                     trailing: isSelected
@@ -775,9 +779,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         : null,
                     onTap: () {
                       setState(() {
-                        selectedStation = stationName;
+                        selectedStation =
+                            stationName;
                         stationDistance =
-                            '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
+                            '${terminal['distance'].toStringAsFixed(1)} km away';
                       });
                       Navigator.pop(context);
                     },
@@ -807,7 +812,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+          padding: const EdgeInsets.fromLTRB(
+            24,
+            20,
+            24,
+            30,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -816,7 +826,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius:
+                      BorderRadius.circular(10),
                 ),
               ),
               const SizedBox(height: 24),
@@ -825,7 +836,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 68,
                 decoration: BoxDecoration(
                   color: lightBlue,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius:
+                      BorderRadius.circular(20),
                 ),
                 child: const Icon(
                   Icons.local_taxi_rounded,
@@ -859,28 +871,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     Navigator.pop(context);
 
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(
                       SnackBar(
                         content: Text(
                           'You joined the $from → $to queue',
                         ),
-                        backgroundColor: primaryBlue,
+                        backgroundColor:
+                            primaryBlue,
                       ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
-                    foregroundColor: Colors.white,
+                  style:
+                      ElevatedButton.styleFrom(
+                    backgroundColor:
+                        primaryBlue,
+                    foregroundColor:
+                        Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(14),
                     ),
                   ),
                   child: const Text(
                     'Join Queue',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
                 ),
