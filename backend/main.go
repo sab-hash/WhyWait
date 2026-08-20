@@ -2,12 +2,12 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -34,7 +34,6 @@ func main() {
 	// Connect to PostgreSQL
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
-		// Fallback to individual env variables
 		host := os.Getenv("DB_HOST")
 		if host == "" {
 			host = "localhost"
@@ -64,47 +63,67 @@ func main() {
 	}
 	defer db.Close()
 
-	// Test connection
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("❌ Database not reachable:", err)
 	}
 	log.Println("✅ Connected to PostgreSQL")
 
-	// Set up routes
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/health", healthHandler)
-	mux.HandleFunc("/api/data", dataHandler)
-	mux.HandleFunc("/register", registerHandler)
-	mux.HandleFunc("/login", loginHandler)
+	// ==================== SETUP ROUTES ====================
+	router := gin.Default()
 
-	// Wrap with CORS
-	handler := corsMiddleware(mux)
+	// CORS middleware
+	router.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
+
+	// Health & Data
+	router.GET("/api/health", healthHandler)
+	router.GET("/api/data", dataHandler)
+
+	// Auth (No auth middleware needed for these)
+	router.POST("/register", registerHandler)
+	router.POST("/login", loginHandler)
+
+	// ========== TAXI TRACKING ENDPOINTS ==========
+	// These need to be defined in your taxis package
+	// For now, we'll define them inline
+
+	// Get terminals
+	router.GET("/terminals", getTerminalsHandler)
+	router.GET("/routes/popular", getPopularRoutesHandler)
+	router.GET("/taxis/status", getTaxiStatusHandler)
+	router.GET("/taxis/approaching", getApproachingTaxisHandler)
+	router.PUT("/driver/status", taxisHandler.UpdateDriverStatusHandler)
+	// Driver endpoints
+	router.POST("/taxis/location", updateTaxiLocationHandler)
+	router.PUT("/driver/status", updateDriverStatusHandler)
 
 	log.Println("✅ Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	log.Fatal(router.Run(":8080"))
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+// ==================== HEALTH ====================
+func healthHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"status": "ok"})
 }
 
-func dataHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+func dataHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
 		"message": "Hello from Go backend!",
 		"items":   []string{"item1", "item2", "item3"},
 	})
 }
 
-// ==================== REGISTER ====================
-func registerHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+// ==================== AUTH ====================
+func registerHandler(c *gin.Context) {
 	var user struct {
 		FullName string `json:"fullName"`
 		Phone    string `json:"phone"`
@@ -112,116 +131,101 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	// Validate
 	if user.FullName == "" || user.Phone == "" || user.Email == "" || user.Password == "" {
-		http.Error(w, "All fields are required", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "All fields are required"})
 		return
 	}
 
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
 
-	// Insert into database
-	query := `INSERT INTO users (full_name, phone, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id`
+	query := `INSERT INTO users (full_name, phone, email, password_hash, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id`
 	var id string
 	err = db.QueryRow(query, user.FullName, user.Phone, user.Email, string(hashedPassword)).Scan(&id)
 	if err != nil {
 		log.Println("Registration error:", err)
-		http.Error(w, "Failed to register. Email or phone may already exist.", http.StatusConflict)
+		c.JSON(http.StatusConflict, gin.H{"error": "Failed to register. Email or phone may already exist."})
 		return
 	}
 
-	// Generate token
 	token, err := generateToken(id, user.Email)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"token":   token,
-		"user": map[string]string{
+		"user": gin.H{
 			"id":       id,
 			"fullName": user.FullName,
 			"email":    user.Email,
 			"phone":    user.Phone,
+			"role":     "user",
 		},
 	})
 }
 
-// ==================== LOGIN ====================
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func loginHandler(c *gin.Context) {
 	var creds struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&creds)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&creds); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	if creds.Email == "" || creds.Password == "" {
-		http.Error(w, "Email and password required", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password required"})
 		return
 	}
 
-	// Query user from database by email OR phone
-	var id, fullName, email, phone, passwordHash string
-	query := `SELECT id, full_name, email, phone, password_hash FROM users WHERE email = $1 OR phone = $1`
-	err = db.QueryRow(query, creds.Email).Scan(&id, &fullName, &email, &phone, &passwordHash)
+	var id, fullName, email, phone, passwordHash, role string
+	query := `SELECT id, full_name, email, phone, password_hash, COALESCE(role, 'user') FROM users WHERE email = $1 OR phone = $1`
+	err := db.QueryRow(query, creds.Email).Scan(&id, &fullName, &email, &phone, &passwordHash, &role)
 
 	if err == sql.ErrNoRows {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 	if err != nil {
 		log.Println("Login database error:", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	// Check password
 	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(creds.Password))
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	// Generate token
 	token, err := generateToken(id, email)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"token":   token,
-		"user": map[string]string{
+		"user": gin.H{
 			"id":       id,
 			"fullName": fullName,
 			"email":    email,
 			"phone":    phone,
+			"role":     role,
 		},
 	})
 }
@@ -237,17 +241,230 @@ func generateToken(userID, email string) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-// ==================== CORS MIDDLEWARE ====================
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+// ==================== TERMINALS ====================
+func getTerminalsHandler(c *gin.Context) {
+	rows, err := db.Query("SELECT id, name, latitude, longitude, address, city FROM terminals ORDER BY name")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch terminals"})
+		return
+	}
+	defer rows.Close()
 
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
+	var terminals []gin.H
+	for rows.Next() {
+		var id, name, address, city string
+		var lat, lng float64
+		if err := rows.Scan(&id, &name, &lat, &lng, &address, &city); err != nil {
+			continue
 		}
-		next.ServeHTTP(w, r)
+		terminals = append(terminals, gin.H{
+			"id":        id,
+			"name":      name,
+			"latitude":  lat,
+			"longitude": lng,
+			"address":   address,
+			"city":      city,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"terminals": terminals,
+	})
+}
+
+// ==================== POPULAR ROUTES ====================
+func getPopularRoutesHandler(c *gin.Context) {
+	query := `
+		SELECT t1.name as from_name, t2.name as to_name, pr.average_wait_time
+		FROM popular_routes pr
+		JOIN terminals t1 ON pr.from_terminal_id = t1.id
+		JOIN terminals t2 ON pr.to_terminal_id = t2.id
+		ORDER BY pr.popularity_score DESC LIMIT 5
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch popular routes"})
+		return
+	}
+	defer rows.Close()
+
+	var routes []gin.H
+	for rows.Next() {
+		var fromName, toName string
+		var waitTime int
+		if err := rows.Scan(&fromName, &toName, &waitTime); err != nil {
+			continue
+		}
+		routes = append(routes, gin.H{
+			"from":     fromName,
+			"to":       toName,
+			"waitTime": waitTime,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"routes":  routes,
+	})
+}
+
+// ==================== TAXI STATUS ====================
+func getTaxiStatusHandler(c *gin.Context) {
+	var availableCount, totalCount int
+	db.QueryRow("SELECT COUNT(*) FROM taxis WHERE status = 'available'").Scan(&availableCount)
+	db.QueryRow("SELECT COUNT(*) FROM taxis").Scan(&totalCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":         true,
+		"available":       availableCount,
+		"total":           totalCount,
+		"average_wait":    8,
+		"nearby_stations": 4,
+	})
+}
+
+// ==================== APPROACHING TAXIS ====================
+func getApproachingTaxisHandler(c *gin.Context) {
+	stationName := c.Query("station")
+	if stationName == "" {
+		stationName = "Bole Taxi Station"
+	}
+
+	var stationLat, stationLng float64
+	err := db.QueryRow("SELECT latitude, longitude FROM terminals WHERE name = $1", stationName).Scan(&stationLat, &stationLng)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Station not found"})
+		return
+	}
+
+	query := `
+		SELECT 
+			t.id, t.driver_name, t.vehicle_plate, t.status,
+			tl.latitude, tl.longitude,
+			(6371 * acos(cos(radians($1)) * cos(radians(tl.latitude)) *
+			cos(radians(tl.longitude) - radians($2)) +
+			sin(radians($1)) * sin(radians(tl.latitude)))) AS distance_km
+		FROM taxis t
+		JOIN taxi_locations tl ON t.id = tl.taxi_id
+		WHERE t.status IN ('available', 'filling')
+		ORDER BY distance_km ASC LIMIT 10
+	`
+
+	rows, err := db.Query(query, stationLat, stationLng)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch taxis"})
+		return
+	}
+	defer rows.Close()
+
+	var taxis []gin.H
+	for rows.Next() {
+		var id, driverName, plate, status string
+		var lat, lng, distanceKm float64
+		if err := rows.Scan(&id, &driverName, &plate, &status, &lat, &lng, &distanceKm); err != nil {
+			continue
+		}
+		etaMinutes := int(distanceKm * 5)
+		if etaMinutes < 1 {
+			etaMinutes = 1
+		}
+		taxis = append(taxis, gin.H{
+			"id":          id,
+			"driverName":  driverName,
+			"plate":       plate,
+			"status":      status,
+			"latitude":    lat,
+			"longitude":   lng,
+			"distance_km": distanceKm,
+			"eta_minutes": etaMinutes,
+			"station":     stationName,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"taxis":   taxis,
+		"station": stationName,
+	})
+}
+
+// ==================== UPDATE TAXI LOCATION ====================
+func updateTaxiLocationHandler(c *gin.Context) {
+	var req struct {
+		TaxiID    string  `json:"taxi_id" binding:"required"`
+		Latitude  float64 `json:"latitude" binding:"required"`
+		Longitude float64 `json:"longitude" binding:"required"`
+		Speed     float64 `json:"speed"`
+		Heading   float64 `json:"heading"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Verify taxi exists
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM taxis WHERE id = $1", req.TaxiID).Scan(&count)
+	if err != nil || count == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Taxi not found"})
+		return
+	}
+
+	query := `
+		INSERT INTO taxi_locations (taxi_id, latitude, longitude, speed, heading, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+		ON CONFLICT (taxi_id) DO UPDATE SET
+			latitude = EXCLUDED.latitude,
+			longitude = EXCLUDED.longitude,
+			speed = EXCLUDED.speed,
+			heading = EXCLUDED.heading,
+			updated_at = NOW()
+	`
+	_, err = db.Exec(query, req.TaxiID, req.Latitude, req.Longitude, req.Speed, req.Heading)
+	if err != nil {
+		log.Printf("❌ Failed to update location: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update location"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Location updated"})
+}
+
+// ==================== UPDATE DRIVER STATUS ====================
+func updateDriverStatusHandler(c *gin.Context) {
+	var req struct {
+		TaxiID   string `json:"taxi_id" binding:"required"`
+		IsOnline bool   `json:"is_online"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM taxis WHERE id = $1", req.TaxiID).Scan(&count)
+	if err != nil || count == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Taxi not found"})
+		return
+	}
+
+	status := "offline"
+	if req.IsOnline {
+		status = "available"
+	}
+
+	_, err = db.Exec("UPDATE taxis SET status = $1 WHERE id = $2", status, req.TaxiID)
+	if err != nil {
+		log.Printf("❌ Failed to update driver status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Status updated",
 	})
 }

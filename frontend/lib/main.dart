@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'features/auth/login_screen.dart';
-import 'features/passenger/home_screen.dart';
 
 void main() {
-  runApp(const TaxiApp());
+  runApp(const MyApp());
 }
 
-class TaxiApp extends StatelessWidget {
-  const TaxiApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'WhyWait',
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      theme: ThemeData(
+        fontFamily: 'Roboto',
+        useMaterial3: true,
+      ),
+      home: const LoginScreen(), // Always start with login
     );
   }
 }

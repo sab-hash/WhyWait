@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../track/track_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
@@ -616,17 +617,29 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedIndex = index;
         });
 
-        if (index != 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '$label screen will be connected later',
-              ),
-              backgroundColor: primaryBlue,
-              duration: const Duration(seconds: 1),
-            ),
-          );
-        }
+        if (index == 1) {
+  // Navigate to Track Screen
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => TrackScreen(
+        fromStation: selectedStation, // Current station
+        toStation: 'Piazza Taxi Station', // Default or selected destination
+      ),
+    ),
+  );
+} else if (index != 0) {
+  // Other tabs (History, Profile)
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        '$label screen will be connected later',
+      ),
+      backgroundColor: primaryBlue,
+      duration: const Duration(seconds: 1),
+    ),
+  );
+}
       },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(

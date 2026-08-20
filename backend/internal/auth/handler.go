@@ -35,7 +35,6 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// Validate
 	if user.FullName == "" || user.Phone == "" || user.Email == "" || user.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "All fields are required",
@@ -43,7 +42,6 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(user.Password),
 		bcrypt.DefaultCost,
@@ -55,8 +53,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// Insert into database
-	query := `INSERT INTO users (full_name, phone, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id`
+	query := `INSERT INTO users (full_name, phone, email, password_hash, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id`
 
 	var id string
 	err = h.DB.QueryRow(
@@ -75,7 +72,6 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// Generate token
 	token, err := h.Token.generateToken(id, user.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -92,6 +88,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 			"fullName": user.FullName,
 			"email":    user.Email,
 			"phone":    user.Phone,
+			"role":     "user", // ✅ Default role for new users
 		},
 	})
 }
@@ -118,10 +115,9 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// Query user from database by email OR phone
-	var id, fullName, email, phone, passwordHash string
-
-	query := `SELECT id, full_name, email, phone, password_hash FROM users WHERE email = $1 OR phone = $1`
+	// ✅ Add role to query
+	var id, fullName, email, phone, passwordHash, role string
+	query := `SELECT id, full_name, email, phone, password_hash, COALESCE(role, 'user') FROM users WHERE email = $1 OR phone = $1`
 
 	err = h.DB.QueryRow(query, creds.Email).Scan(
 		&id,
@@ -129,6 +125,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		&email,
 		&phone,
 		&passwordHash,
+		&role, // 👈 Now scanning role
 	)
 
 	if err == sql.ErrNoRows {
@@ -146,7 +143,6 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// Check password
 	err = bcrypt.CompareHashAndPassword(
 		[]byte(passwordHash),
 		[]byte(creds.Password),
@@ -159,7 +155,6 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// Generate token
 	token, err := h.Token.generateToken(id, email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -176,6 +171,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 			"fullName": fullName,
 			"email":    email,
 			"phone":    phone,
+			"role":     role, // ✅ Now returning role
 		},
 	})
 }

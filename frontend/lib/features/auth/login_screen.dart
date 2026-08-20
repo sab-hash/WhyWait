@@ -3,7 +3,9 @@ import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register_screen.dart';
-import '../passenger/home_screen.dart'; // 👈 Import HomeScreen
+import '../passenger/home_screen.dart';
+import '../driver/driver_home_screen.dart';
+import '../../services/driver_api_service.dart';
 
 void main() {
   runApp(const TaxiTrackApp());
@@ -37,6 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   static const Color primaryBlue = Color(0xFF0B3D78);
 
@@ -47,18 +50,17 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // ==================== HANDLE SIGN IN ====================
   Future<void> _handleSignIn() async {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Validate input
     if (phone.isEmpty || password.isEmpty) {
       _showMessage('Please fill in all fields');
       return;
     }
 
-    // Show loading indicator
+    setState(() => _isLoading = true);
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Logging in...'),
@@ -77,28 +79,74 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
+      print('🔍 Response status: ${response.statusCode}');
+      print('🔍 Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final user = data['user'];
+  final data = jsonDecode(response.body);
+  final user = data['user'];
+  final token = data['token'];  // 👈 Get the token
+  final role = user['role'] ?? 'user';
 
-        _showMessage('✅ Welcome back, ${user['fullName'] ?? 'User'}!');
+  print('✅ Login Response: role = $role');
+  print('✅ Token: $token');
 
-        // 👇 NAVIGATE TO HOME SCREEN
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(
-              fullName: user['fullName'] ?? 'User',
-              email: user['email'] ?? '',
+  // 👇 SAVE THE TOKEN (FOR BOTH PASSENGER AND DRIVER)
+  await DriverApiService.saveToken(token);
+
+  // 👇 Verify it was saved
+  final savedToken = await DriverApiService.getToken();
+  print('✅ Saved Token: $savedToken');
+
+  _showMessage('✅ Welcome back, ${user['fullName'] ?? 'User'}!');
+        if (role.toLowerCase() == 'driver') {
+          print('🚗 Navigating to DriverHomeScreen');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DriverHomeScreen(
+                taxiId: user['id'],
+                driverName: user['fullName'] ?? 'Driver',
+              ),
             ),
-          ),
-        );
+          );
+        } else if (role.toLowerCase() == 'admin') {
+          print('🛡️ Navigating to Admin Dashboard');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Scaffold(
+                appBar: AppBar(
+                  title: const Text('Admin Dashboard'),
+                  backgroundColor: primaryBlue,
+                  foregroundColor: Colors.white,
+                ),
+                body: Center(
+                  child: Text('Welcome Admin: ${user['fullName'] ?? 'Admin'}'),
+                ),
+              ),
+            ),
+          );
+        } else {
+          print('👤 Navigating to HomeScreen (Passenger)');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomeScreen(
+                fullName: user['fullName'] ?? 'User',
+                email: user['email'] ?? '',
+              ),
+            ),
+          );
+        }
       } else {
         _showMessage('❌ Invalid phone number or password');
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       _showMessage('❌ Could not connect to server. Is the backend running?');
       print('Error: $e');
+      setState(() => _isLoading = false);
     }
   }
 
@@ -112,6 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ==================== BUILD METHOD ====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -190,6 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ==================== UI HELPERS ====================
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
@@ -325,7 +375,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return SizedBox(
       height: 52,
       child: ElevatedButton(
-        onPressed: _handleSignIn,
+        onPressed: _isLoading ? null : _handleSignIn,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
           shape: RoundedRectangleBorder(
@@ -333,14 +383,23 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           elevation: 0,
         ),
-        child: const Text(
-          'Sign In',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                'Sign In',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
@@ -362,9 +421,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return SizedBox(
       height: 52,
       child: OutlinedButton(
-        onPressed: () {
-          // TODO: handle Google sign in
-        },
+        onPressed: () {},
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: Colors.grey[300]!),
           shape: RoundedRectangleBorder(

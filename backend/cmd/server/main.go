@@ -29,17 +29,26 @@ func main() {
 	// Set up routes
 	router := gin.Default()
 	router.Use(middleware.CORS())
-
 	router.Use(middleware.SecurityHeaders())
+
+	// Health & Data
 	router.GET("/api/health", healthHandler)
 	router.GET("/api/data", dataHandler)
 
+	// Auth
 	router.POST("/register", authHandler.RegisterHandler)
 	router.POST("/login", authHandler.LoginHandler)
 
+	// Taxi Tracking
 	router.GET("/terminals", terminalsHandler.GetTerminalsHandler)
 	router.GET("/routes/popular", routesHandler.GetPopularRoutesHandler)
 	router.GET("/taxis/status", taxisHandler.GetTaxiStatusHandler)
+
+	// 👇 NEW ENDPOINTS
+	router.GET("/taxis/approaching", taxisHandler.GetApproachingTaxisHandler)
+	router.POST("/taxis/location", taxisHandler.UpdateTaxiLocationHandler)
+	router.PUT("/driver/status", taxisHandler.UpdateDriverStatusHandler)
+
 	log.Println("✅ Server running on http://localhost:8080")
 	log.Fatal(router.Run(":8080"))
 }
