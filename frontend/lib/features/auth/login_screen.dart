@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register_screen.dart';
 import '../passenger/home_screen.dart'; // 👈 Import HomeScreen
+import '../../core/storage/local_storage.dart';
 
 void main() {
   runApp(const TaxiTrackApp());
@@ -17,10 +18,7 @@ class TaxiTrackApp extends StatelessWidget {
     return MaterialApp(
       title: 'TaxiTrack',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'Roboto',
-        useMaterial3: true,
-      ),
+      theme: ThemeData(fontFamily: 'Roboto', useMaterial3: true),
       home: const LoginScreen(),
     );
   }
@@ -71,15 +69,20 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': phone,
-          'password': password,
-        }),
+        body: jsonEncode({'email': phone, 'password': password}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final user = data['user'];
+        final token = data['token'];
+
+        if (token == null || token.toString().isEmpty) {
+          _showMessage('Login succeeded but no token was received');
+          return;
+        }
+
+        await LocalStorage.saveToken(token.toString());
 
         _showMessage('✅ Welcome back, ${user['fullName'] ?? 'User'}!');
 
@@ -105,10 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 3),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
     );
   }
 
@@ -139,10 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Welcome back to your account',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 24),
                     _buildLabel('PHONE NUMBER'),
@@ -287,7 +284,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: '9X XXX XXXX',
                 hintStyle: TextStyle(color: Colors.grey),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
               ),
             ),
           ),
@@ -307,7 +307,9 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: _fieldDecoration().copyWith(
         suffixIcon: IconButton(
           icon: Icon(
-            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            _obscurePassword
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
             color: Colors.grey,
             size: 20,
           ),
@@ -351,7 +353,10 @@ class _LoginScreenState extends State<LoginScreen> {
         Expanded(child: Divider(color: Colors.grey[300])),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('or', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+          child: Text(
+            'or',
+            style: TextStyle(color: Colors.grey[500], fontSize: 13),
+          ),
         ),
         Expanded(child: Divider(color: Colors.grey[300])),
       ],
@@ -399,15 +404,14 @@ class _LoginScreenState extends State<LoginScreen> {
             const TextSpan(text: "Don't have an account? "),
             TextSpan(
               text: 'Sign up',
-              style: TextStyle(
-                color: primaryBlue,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w600),
               recognizer: TapGestureRecognizer()
                 ..onTap = () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                    ),
                   );
                 },
             ),
