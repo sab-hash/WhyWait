@@ -54,24 +54,41 @@ class _ReportScreenState extends State<ReportScreen> {
     'Resolved',
   ];
 
-  final List<Map<String, String>> reports = [
+  final List<Map<String, dynamic>> reports = [
     {
       'issue': 'Driver behavior',
       'trip': 'Bole → Mexico',
       'date': '18 Aug 2026',
       'status': 'Reviewed',
+      'description':
+          'The driver was driving too fast during the trip.',
+      'vehicle': 'Toyota Hiace',
+      'rating': 2,
+      'response':
+          'Thank you for your report. The issue has been reviewed by our team.',
     },
     {
       'issue': 'Fare issue',
       'trip': 'Piazza → Bole',
       'date': '16 Aug 2026',
       'status': 'Pending',
+      'description':
+          'The amount charged was different from the expected fare.',
+      'vehicle': 'Minibus',
+      'rating': 3,
+      'response': '',
     },
     {
       'issue': 'Vehicle problem',
       'trip': 'Mexico → Bole',
       'date': '12 Aug 2026',
       'status': 'Resolved',
+      'description':
+          'The vehicle had a problem with one of the doors.',
+      'vehicle': 'Toyota Hiace',
+      'rating': 2,
+      'response':
+          'The issue has been resolved and the vehicle was checked.',
     },
   ];
 
@@ -458,7 +475,6 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
           child: TextField(
             controller: vehicleController,
-            textInputAction: TextInputAction.next,
             decoration: InputDecoration(
               hintText:
                   'Driver name, plate number, or vehicle details',
@@ -485,9 +501,6 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget _buildDescriptionSection() {
     final bool hasText =
         descriptionController.text.trim().isNotEmpty;
-
-    final int characterCount =
-        descriptionController.text.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,22 +529,15 @@ class _ReportScreenState extends State<ReportScreen> {
             border: Border.all(
               color: showValidation && !hasText
                   ? Colors.red.shade300
-                  : hasText
-                      ? primaryBlue
-                      : Colors.grey.shade200,
-              width:
-                  showValidation && !hasText || hasText ? 1.5 : 1,
+                  : Colors.grey.shade200,
             ),
           ),
           child: TextField(
             controller: descriptionController,
             maxLines: 6,
             maxLength: 500,
-            textInputAction: TextInputAction.newline,
             onChanged: (_) {
-              setState(() {
-                showValidation = false;
-              });
+              setState(() {});
             },
             decoration: InputDecoration(
               hintText: 'Describe the problem...',
@@ -547,7 +553,8 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         const SizedBox(height: 6),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
           children: [
             if (showValidation && !hasText)
               Text(
@@ -560,7 +567,7 @@ class _ReportScreenState extends State<ReportScreen> {
             else
               const SizedBox.shrink(),
             Text(
-              '$characterCount/500',
+              '${descriptionController.text.length}/500',
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.grey.shade500,
@@ -606,110 +613,33 @@ class _ReportScreenState extends State<ReportScreen> {
               color: Colors.grey.shade200,
             ),
           ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  5,
-                  (index) {
-                    final int rating = index + 1;
-                    final bool isSelected =
-                        rating <= selectedRating;
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              5,
+              (index) {
+                final int rating = index + 1;
 
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedRating = rating;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                        ),
-                        child: AnimatedScale(
-                          scale: isSelected ? 1.15 : 1.0,
-                          duration:
-                              const Duration(milliseconds: 150),
-                          child: Icon(
-                            isSelected
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
-                            size: 38,
-                            color: Colors.amber.shade600,
-                          ),
-                        ),
-                      ),
-                    );
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedRating = rating;
+                    });
                   },
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                selectedRating == 0
-                    ? 'Tap a star to rate your trip'
-                    : _getRatingText(),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: selectedRating == 0
-                      ? FontWeight.normal
-                      : FontWeight.bold,
-                  color: selectedRating == 0
-                      ? Colors.grey.shade500
-                      : primaryBlue,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.grey.shade200,
-            ),
-          ),
-          child: TextField(
-            controller: feedbackController,
-            maxLines: 3,
-            maxLength: 300,
-            onChanged: (_) {
-              setState(() {});
-            },
-            decoration: InputDecoration(
-              hintText: 'Additional feedback (optional)',
-              hintStyle: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 13,
-              ),
-              prefixIcon: const Padding(
-                padding: EdgeInsets.only(
-                  left: 12,
-                  right: 8,
-                  bottom: 55,
-                ),
-                child: Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: primaryBlue,
-                  size: 20,
-                ),
-              ),
-              border: InputBorder.none,
-              counterText: '',
-              contentPadding: const EdgeInsets.all(16),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            '${feedbackController.text.length}/300',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade500,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                    ),
+                    child: Icon(
+                      rating <= selectedRating
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      size: 38,
+                      color: Colors.amber.shade600,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -717,93 +647,47 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  String _getRatingText() {
-    switch (selectedRating) {
-      case 1:
-        return 'Very poor';
-      case 2:
-        return 'Poor';
-      case 3:
-        return 'Average';
-      case 4:
-        return 'Good';
-      case 5:
-        return 'Excellent';
-      default:
-        return '';
-    }
-  }
-
   Widget _buildSubmitButton() {
-    final bool canSubmit = isFormValid;
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: isSubmitting
+            ? null
+            : () {
+                setState(() {
+                  showValidation = true;
+                });
 
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: ElevatedButton(
-            onPressed: isSubmitting
-                ? null
-                : canSubmit
-                    ? _handleSubmit
-                    : () {
-                        FocusScope.of(context).unfocus();
-
-                        setState(() {
-                          showValidation = true;
-                        });
-                      },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryBlue,
-              disabledBackgroundColor: Colors.grey.shade300,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: isSubmitting
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    canSubmit
-                        ? 'Submit Report'
-                        : 'Complete the Form',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: canSubmit
-                          ? Colors.white
-                          : Colors.grey.shade600,
-                    ),
-                  ),
+                if (isFormValid) {
+                  _showConfirmationDialog();
+                }
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
-        if (showValidation && !canSubmit) ...[
-          const SizedBox(height: 10),
-          Text(
-            'Please complete the required fields before submitting.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.red.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ],
+        child: isSubmitting
+            ? const CircularProgressIndicator(
+                color: Colors.white,
+              )
+            : const Text(
+                'Submit Report',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ),
     );
   }
 
   Widget _buildReportsSection() {
-    final List<Map<String, String>> filteredReports =
+    final List<Map<String, dynamic>> filteredReports =
         selectedReportFilter == 'All'
             ? reports
             : reports.where((report) {
@@ -832,7 +716,6 @@ class _ReportScreenState extends State<ReportScreen> {
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey.shade500,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -846,9 +729,8 @@ class _ReportScreenState extends State<ReportScreen> {
           Column(
             children: filteredReports.map((report) {
               return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: 12,
-                ),
+                padding:
+                    const EdgeInsets.only(bottom: 12),
                 child: _buildReportCard(report),
               );
             }).toList(),
@@ -863,11 +745,12 @@ class _ReportScreenState extends State<ReportScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: reportFilters.length,
-        separatorBuilder: (context, index) {
-          return const SizedBox(width: 8);
-        },
+        separatorBuilder: (_, __) =>
+            const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final String filter = reportFilters[index];
+          final String filter =
+              reportFilters[index];
+
           final bool isSelected =
               selectedReportFilter == filter;
 
@@ -880,7 +763,8 @@ class _ReportScreenState extends State<ReportScreen> {
             child: AnimatedContainer(
               duration:
                   const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
+              padding:
+                  const EdgeInsets.symmetric(
                 horizontal: 16,
               ),
               alignment: Alignment.center,
@@ -925,21 +809,18 @@ class _ReportScreenState extends State<ReportScreen> {
             'You do not have any reports waiting for review.';
         icon = Icons.access_time_rounded;
         break;
-
       case 'Reviewed':
         title = 'No reviewed reports';
         message =
-            'Reports reviewed by the team will appear here.';
+            'Reviewed reports will appear here.';
         icon = Icons.visibility_outlined;
         break;
-
       case 'Resolved':
         title = 'No resolved reports';
         message =
             'Resolved reports will appear here.';
         icon = Icons.check_circle_outline_rounded;
         break;
-
       default:
         title = 'No reports yet';
         message =
@@ -988,7 +869,7 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildReportCard(
-    Map<String, String> report,
+    Map<String, dynamic> report,
   ) {
     final String status =
         report['status'] ?? 'Pending';
@@ -1006,13 +887,6 @@ class _ReportScreenState extends State<ReportScreen> {
           border: Border.all(
             color: Colors.grey.shade200,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.025),
-              blurRadius: 7,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Row(
           crossAxisAlignment:
@@ -1029,7 +903,6 @@ class _ReportScreenState extends State<ReportScreen> {
               child: const Icon(
                 Icons.report_problem_outlined,
                 color: primaryBlue,
-                size: 22,
               ),
             ),
             const SizedBox(width: 13),
@@ -1039,8 +912,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     CrossAxisAlignment.start,
                 children: [
                   Text(
-                    report['issue'] ??
-                        'Unknown issue',
+                    report['issue'] ?? '',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -1049,8 +921,7 @@ class _ReportScreenState extends State<ReportScreen> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    report['trip'] ??
-                        'Unknown trip',
+                    report['trip'] ?? '',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -1076,28 +947,25 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
-    IconData icon;
     Color color;
     Color background;
+    IconData icon;
 
     switch (status) {
       case 'Resolved':
-        icon =
-            Icons.check_circle_outline_rounded;
         color = Colors.green.shade700;
         background = Colors.green.shade50;
+        icon = Icons.check_circle_outline_rounded;
         break;
-
       case 'Reviewed':
-        icon = Icons.visibility_outlined;
         color = primaryBlue;
         background = lightBlue;
+        icon = Icons.visibility_outlined;
         break;
-
       default:
-        icon = Icons.access_time_rounded;
         color = Colors.orange.shade700;
         background = Colors.orange.shade50;
+        icon = Icons.access_time_rounded;
     }
 
     return Container(
@@ -1132,173 +1000,334 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void _showReportDetails(
-    Map<String, String> report,
+    Map<String, dynamic> report,
   ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(24),
         ),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(
-            24,
-            20,
-            24,
-            30,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius:
-                        BorderRadius.circular(10),
-                  ),
-                ),
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.65,
+          minChildSize: 0.45,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(
+                24,
+                20,
+                24,
+                30,
               ),
-              const SizedBox(height: 22),
-              Row(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: lightBlue,
-                      borderRadius:
-                          BorderRadius.circular(13),
-                    ),
-                    child: const Icon(
-                      Icons.report_problem_outlined,
-                      color: primaryBlue,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius:
+                            BorderRadius.circular(10),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 13),
-                  Expanded(
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: lightBlue,
+                          borderRadius:
+                              BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.report_problem_outlined,
+                          color: primaryBlue,
+                          size: 25,
+                        ),
+                      ),
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: Text(
+                          report['issue'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.bold,
+                            color: primaryBlue,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildDetailItem(
+                    'Trip',
+                    report['trip'] ?? '',
+                    Icons.route_outlined,
+                  ),
+                  _buildDetailItem(
+                    'Date',
+                    report['date'] ?? '',
+                    Icons.calendar_today_outlined,
+                  ),
+                  _buildDetailItem(
+                    'Vehicle',
+                    report['vehicle'] ?? '',
+                    Icons.directions_car_outlined,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'STATUS',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: primaryBlue,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildStatusTimeline(
+                    report['status'] ?? 'Pending',
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'DESCRIPTION',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: primaryBlue,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: backgroundColor,
+                      borderRadius:
+                          BorderRadius.circular(14),
+                    ),
                     child: Text(
-                      report['issue'] ?? '',
-                      style: const TextStyle(
-                        fontSize: 19,
+                      report['description'] ?? '',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                  if ((report['response'] ?? '')
+                      .toString()
+                      .isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    const Text(
+                      'TEAM RESPONSE',
+                      style: TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: primaryBlue,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding:
+                          const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: lightBlue,
+                        borderRadius:
+                            BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.support_agent_rounded,
+                            color: primaryBlue,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              report['response'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                height: 1.5,
+                                color: darkText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 26),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape:
+                            RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 22),
-              _detailRow(
-                'Trip',
-                report['trip'] ?? '',
-              ),
-              const SizedBox(height: 13),
-              _detailRow(
-                'Date',
-                report['date'] ?? '',
-              ),
-              const SizedBox(height: 13),
-              Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Status',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  _buildStatusBadge(
-                    report['status'] ??
-                        'Pending',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Close',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _detailRow(
+  Widget _buildDetailItem(
     String title,
     String value,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 19,
+            color: primaryBlue,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '$title:',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade500,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusTimeline(String status) {
+    final bool reviewed =
+        status == 'Reviewed' || status == 'Resolved';
+
+    final bool resolved = status == 'Resolved';
+
+    return Column(
+      children: [
+        _timelineItem(
+          'Report submitted',
+          true,
+          Icons.send_rounded,
+        ),
+        _timelineLine(reviewed || resolved),
+        _timelineItem(
+          'Report reviewed',
+          reviewed || resolved,
+          Icons.visibility_outlined,
+        ),
+        _timelineLine(resolved),
+        _timelineItem(
+          'Issue resolved',
+          resolved,
+          Icons.check_circle_outline_rounded,
+        ),
+      ],
+    );
+  }
+
+  Widget _timelineItem(
+    String title,
+    bool completed,
+    IconData icon,
   ) {
     return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.spaceBetween,
       children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: completed
+                ? primaryBlue
+                : Colors.grey.shade200,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 19,
+            color: completed
+                ? Colors.white
+                : Colors.grey.shade400,
+          ),
+        ),
+        const SizedBox(width: 12),
         Text(
           title,
           style: TextStyle(
             fontSize: 13,
-            color: Colors.grey.shade500,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 13,
-              color: darkText,
-              fontWeight: FontWeight.bold,
-            ),
+            fontWeight: completed
+                ? FontWeight.bold
+                : FontWeight.w500,
+            color: completed
+                ? darkText
+                : Colors.grey.shade500,
           ),
         ),
       ],
     );
   }
 
-  void _handleSubmit() {
-    FocusScope.of(context).unfocus();
-
-    setState(() {
-      showValidation = true;
-    });
-
-    if (!isFormValid) {
-      return;
-    }
-
-    _showConfirmationDialog();
+  Widget _timelineLine(bool completed) {
+    return Container(
+      width: 2,
+      height: 22,
+      margin: const EdgeInsets.only(left: 18),
+      color: completed
+          ? primaryBlue
+          : Colors.grey.shade200,
+    );
   }
 
   void _showConfirmationDialog() {
@@ -1310,74 +1339,19 @@ class _ReportScreenState extends State<ReportScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Row(
-            children: [
-              Icon(
-                Icons.help_outline_rounded,
-                color: primaryBlue,
-              ),
-              SizedBox(width: 10),
-              Text(
-                'Submit report?',
-                style: TextStyle(
-                  color: primaryBlue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          title: const Text(
+            'Submit report?',
+            style: TextStyle(
+              color: primaryBlue,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              _confirmationRow(
-                'Trip',
-                selectedTrip!,
-              ),
-              const SizedBox(height: 10),
-              _confirmationRow(
-                'Issue',
-                selectedIssue!,
-              ),
-              const SizedBox(height: 10),
-              _confirmationRow(
-                'Description',
-                descriptionController.text.trim(),
-              ),
-              if (vehicleController.text
-                  .trim()
-                  .isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _confirmationRow(
-                  'Details',
-                  vehicleController.text.trim(),
-                ),
-              ],
-              if (selectedRating > 0) ...[
-                const SizedBox(height: 10),
-                _confirmationRow(
-                  'Rating',
-                  '$selectedRating/5 - ${_getRatingText()}',
-                ),
-              ],
-              if (feedbackController.text
-                  .trim()
-                  .isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _confirmationRow(
-                  'Feedback',
-                  feedbackController.text.trim(),
-                ),
-              ],
-            ],
-          ),
-          actionsPadding:
-              const EdgeInsets.fromLTRB(
-            20,
-            0,
-            20,
-            18,
+          content: const Text(
+            'Are you sure you want to submit this report?',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+            ),
           ),
           actions: [
             TextButton(
@@ -1388,7 +1362,6 @@ class _ReportScreenState extends State<ReportScreen> {
                 'Cancel',
                 style: TextStyle(
                   color: Colors.grey,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -1400,51 +1373,12 @@ class _ReportScreenState extends State<ReportScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryBlue,
                 foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(10),
-                ),
               ),
-              child: const Text(
-                'Confirm',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: const Text('Confirm'),
             ),
           ],
         );
       },
-    );
-  }
-
-  Widget _confirmationRow(
-    String title,
-    String value,
-  ) {
-    return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade500,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 13,
-            color: darkText,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 
@@ -1461,15 +1395,25 @@ class _ReportScreenState extends State<ReportScreen> {
       return;
     }
 
-    final Map<String, String> newReport = {
-      'issue': selectedIssue!,
-      'trip': selectedTrip!,
-      'date': '20 Aug 2026',
-      'status': 'Pending',
-    };
+    reports.insert(
+      0,
+      {
+        'issue': selectedIssue!,
+        'trip': selectedTrip!,
+        'date': '20 Aug 2026',
+        'status': 'Pending',
+        'description':
+            descriptionController.text.trim(),
+        'vehicle':
+            vehicleController.text.trim().isEmpty
+                ? 'Not provided'
+                : vehicleController.text.trim(),
+        'rating': selectedRating,
+        'response': '',
+      },
+    );
 
     setState(() {
-      reports.insert(0, newReport);
       isSubmitting = false;
     });
 
@@ -1482,12 +1426,13 @@ class _ReportScreenState extends State<ReportScreen> {
     setState(() {
       selectedIssue = null;
       selectedTrip = null;
-      descriptionController.clear();
-      vehicleController.clear();
-      feedbackController.clear();
       selectedRating = 0;
       showValidation = false;
     });
+
+    descriptionController.clear();
+    vehicleController.clear();
+    feedbackController.clear();
   }
 
   void _showSuccessDialog() {
@@ -1527,7 +1472,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Thank you for helping us improve the WhyWait experience.',
+                'Your report has been submitted and is now pending review.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
