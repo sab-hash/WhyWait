@@ -14,8 +14,12 @@ class _ReportScreenState extends State<ReportScreen> {
   static const Color darkText = Color(0xFF333333);
 
   String? selectedIssue;
+  String? selectedTrip;
 
   final TextEditingController descriptionController =
+      TextEditingController();
+
+  final TextEditingController vehicleController =
       TextEditingController();
 
   final List<String> issueTypes = [
@@ -27,10 +31,25 @@ class _ReportScreenState extends State<ReportScreen> {
     'Other',
   ];
 
+  final List<String> recentTrips = [
+    'Bole → Mexico',
+    'Piazza → Bole',
+    'Megenagna → Piazza',
+    'Mexico → Bole',
+  ];
+
+  bool showValidation = false;
+
   @override
   void dispose() {
     descriptionController.dispose();
+    vehicleController.dispose();
     super.dispose();
+  }
+
+  bool get isFormValid {
+    return selectedIssue != null &&
+        descriptionController.text.trim().isNotEmpty;
   }
 
   @override
@@ -57,7 +76,11 @@ class _ReportScreenState extends State<ReportScreen> {
           children: [
             _buildIntroCard(),
             const SizedBox(height: 28),
+            _buildTripSection(),
+            const SizedBox(height: 28),
             _buildIssueSection(),
+            const SizedBox(height: 28),
+            _buildVehicleSection(),
             const SizedBox(height: 28),
             _buildDescriptionSection(),
             const SizedBox(height: 28),
@@ -114,6 +137,96 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  Widget _buildTripSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Which trip?',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: primaryBlue,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Select the trip you want to report.',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: showValidation && selectedTrip == null
+                  ? Colors.red.shade300
+                  : Colors.grey.shade200,
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: selectedTrip,
+              isExpanded: true,
+              hint: const Text(
+                'Select a recent trip',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                ),
+              ),
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: primaryBlue,
+              ),
+              items: recentTrips.map((trip) {
+                return DropdownMenuItem<String>(
+                  value: trip,
+                  child: Text(
+                    trip,
+                    style: const TextStyle(
+                      color: darkText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedTrip = value;
+                });
+              },
+            ),
+          ),
+        ),
+        if (showValidation && selectedTrip == null)
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 6,
+              left: 4,
+            ),
+            child: Text(
+              'Please select a trip',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade600,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildIssueSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +254,9 @@ class _ReportScreenState extends State<ReportScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.grey.shade200,
+              color: showValidation && selectedIssue == null
+                  ? Colors.red.shade300
+                  : Colors.grey.shade200,
             ),
           ),
           child: Column(
@@ -154,11 +269,28 @@ class _ReportScreenState extends State<ReportScreen> {
             ],
           ),
         ),
+        if (showValidation && selectedIssue == null)
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 6,
+              left: 4,
+            ),
+            child: Text(
+              'Please select an issue',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade600,
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildIssueOption(String issue, bool isLast) {
+  Widget _buildIssueOption(
+    String issue,
+    bool isLast,
+  ) {
     final bool isSelected = selectedIssue == issue;
 
     return Column(
@@ -167,6 +299,7 @@ class _ReportScreenState extends State<ReportScreen> {
           onTap: () {
             setState(() {
               selectedIssue = issue;
+              showValidation = false;
             });
           },
           child: AnimatedContainer(
@@ -198,7 +331,8 @@ class _ReportScreenState extends State<ReportScreen> {
                     color: isSelected
                         ? primaryBlue
                         : lightBlue,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                   ),
                   child: Icon(
                     _getIssueIcon(issue),
@@ -268,9 +402,68 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
+  Widget _buildVehicleSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Driver or vehicle details',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: primaryBlue,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Optional information that can help us identify the trip.',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.grey.shade200,
+            ),
+          ),
+          child: TextField(
+            controller: vehicleController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              hintText:
+                  'Driver name, plate number, or vehicle details',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 13,
+              ),
+              prefixIcon: const Icon(
+                Icons.local_taxi_outlined,
+                color: primaryBlue,
+              ),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(
+                vertical: 17,
+                horizontal: 12,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDescriptionSection() {
     final bool hasText =
         descriptionController.text.trim().isNotEmpty;
+
+    final int characterCount =
+        descriptionController.text.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,18 +490,29 @@ class _ReportScreenState extends State<ReportScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: hasText
-                  ? primaryBlue
-                  : Colors.grey.shade200,
-              width: hasText ? 1.5 : 1,
+              color: showValidation &&
+                      !hasText
+                  ? Colors.red.shade300
+                  : hasText
+                      ? primaryBlue
+                      : Colors.grey.shade200,
+              width: showValidation &&
+                          !hasText ||
+                      hasText
+                  ? 1.5
+                  : 1,
             ),
           ),
           child: TextField(
             controller: descriptionController,
             maxLines: 6,
-            textInputAction: TextInputAction.newline,
+            maxLength: 500,
+            textInputAction:
+                TextInputAction.newline,
             onChanged: (_) {
-              setState(() {});
+              setState(() {
+                showValidation = false;
+              });
             },
             decoration: InputDecoration(
               hintText: 'Describe the problem...',
@@ -317,59 +521,81 @@ class _ReportScreenState extends State<ReportScreen> {
                 fontSize: 13,
               ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
+              counterText: '',
+              contentPadding:
+                  const EdgeInsets.all(16),
             ),
           ),
         ),
-        if (hasText)
-          Padding(
-            padding: const EdgeInsets.only(
-              top: 6,
-              left: 4,
-            ),
-            child: Text(
-              '${descriptionController.text.length} characters',
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
+          children: [
+            if (showValidation && !hasText)
+              Text(
+                'Please describe the issue',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.shade600,
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+            Text(
+              '$characterCount/500',
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.grey.shade500,
               ),
             ),
-          ),
+          ],
+        ),
       ],
     );
   }
 
   Widget _buildSubmitButton() {
-    final bool canSubmit =
-        selectedIssue != null &&
-        descriptionController.text.trim().isNotEmpty;
+    final bool canSubmit = isFormValid;
 
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: canSubmit ? () {} : null,
+        onPressed: _handleSubmit,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
-          disabledBackgroundColor: Colors.grey.shade300,
           foregroundColor: Colors.white,
-          disabledForegroundColor: Colors.grey.shade500,
+          disabledBackgroundColor:
+              Colors.grey.shade300,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
         child: Text(
-          'Submit Report',
+          canSubmit
+              ? 'Submit Report'
+              : 'Complete the Form',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: canSubmit
                 ? Colors.white
-                : Colors.grey.shade500,
+                : Colors.grey.shade600,
           ),
         ),
       ),
     );
+  }
+
+  void _handleSubmit() {
+    setState(() {
+      showValidation = true;
+    });
+
+    if (!isFormValid) {
+      return;
+    }
   }
 }
