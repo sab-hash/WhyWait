@@ -128,7 +128,7 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Select the issue that best describes your experience.',
+          'Select one issue that best describes your experience.',
           style: TextStyle(
             fontSize: 13,
             color: Colors.grey.shade600,
@@ -145,72 +145,109 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
           ),
           child: Column(
-            children: issueTypes.map((issue) {
-              return _buildIssueOption(issue);
-            }).toList(),
+            children: [
+              for (int i = 0; i < issueTypes.length; i++)
+                _buildIssueOption(
+                  issueTypes[i],
+                  i == issueTypes.length - 1,
+                ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildIssueOption(String issue) {
+  Widget _buildIssueOption(String issue, bool isLast) {
     final bool isSelected = selectedIssue == issue;
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedIssue = issue;
-        });
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 13,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? primaryBlue
-                    : lightBlue,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _getIssueIcon(issue),
-                color: isSelected
-                    ? Colors.white
-                    : primaryBlue,
-                size: 21,
-              ),
+    return Column(
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              selectedIssue = issue;
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 13,
             ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Text(
-                issue,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: darkText,
-                ),
-              ),
-            ),
-            Icon(
-              isSelected
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked,
+            decoration: BoxDecoration(
               color: isSelected
-                  ? primaryBlue
-                  : Colors.grey.shade400,
-              size: 22,
+                  ? lightBlue
+                  : Colors.white,
+              borderRadius: BorderRadius.vertical(
+                top: issue == issueTypes.first
+                    ? const Radius.circular(16)
+                    : Radius.zero,
+                bottom: isLast
+                    ? const Radius.circular(16)
+                    : Radius.zero,
+              ),
             ),
-          ],
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? primaryBlue
+                        : lightBlue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getIssueIcon(issue),
+                    color: isSelected
+                        ? Colors.white
+                        : primaryBlue,
+                    size: 21,
+                  ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Text(
+                    issue,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
+                      color: darkText,
+                    ),
+                  ),
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(
+                    milliseconds: 200,
+                  ),
+                  child: Icon(
+                    isSelected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked,
+                    key: ValueKey(isSelected),
+                    color: isSelected
+                        ? primaryBlue
+                        : Colors.grey.shade400,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        if (!isLast)
+          Divider(
+            height: 1,
+            indent: 71,
+            endIndent: 16,
+            color: Colors.grey.shade200,
+          ),
+      ],
     );
   }
 
@@ -232,6 +269,9 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildDescriptionSection() {
+    final bool hasText =
+        descriptionController.text.trim().isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -257,13 +297,19 @@ class _ReportScreenState extends State<ReportScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.grey.shade200,
+              color: hasText
+                  ? primaryBlue
+                  : Colors.grey.shade200,
+              width: hasText ? 1.5 : 1,
             ),
           ),
           child: TextField(
             controller: descriptionController,
             maxLines: 6,
             textInputAction: TextInputAction.newline,
+            onChanged: (_) {
+              setState(() {});
+            },
             decoration: InputDecoration(
               hintText: 'Describe the problem...',
               hintStyle: TextStyle(
@@ -275,29 +321,52 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
           ),
         ),
+        if (hasText)
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 6,
+              left: 4,
+            ),
+            child: Text(
+              '${descriptionController.text.length} characters',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade500,
+              ),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildSubmitButton() {
+    final bool canSubmit =
+        selectedIssue != null &&
+        descriptionController.text.trim().isNotEmpty;
+
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: canSubmit ? () {} : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
+          disabledBackgroundColor: Colors.grey.shade300,
           foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.grey.shade500,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: const Text(
+        child: Text(
           'Submit Report',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
+            color: canSubmit
+                ? Colors.white
+                : Colors.grey.shade500,
           ),
         ),
       ),
