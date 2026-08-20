@@ -39,6 +39,7 @@ class _ReportScreenState extends State<ReportScreen> {
   ];
 
   bool showValidation = false;
+  bool isSubmitting = false;
 
   @override
   void dispose() {
@@ -48,7 +49,8 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   bool get isFormValid {
-    return selectedIssue != null &&
+    return selectedTrip != null &&
+        selectedIssue != null &&
         descriptionController.text.trim().isNotEmpty;
   }
 
@@ -60,7 +62,6 @@ class _ReportScreenState extends State<ReportScreen> {
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
-        centerTitle: false,
         title: const Text(
           'Report an Issue',
           style: TextStyle(
@@ -309,9 +310,7 @@ class _ReportScreenState extends State<ReportScreen> {
               vertical: 13,
             ),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? lightBlue
-                  : Colors.white,
+              color: isSelected ? lightBlue : Colors.white,
               borderRadius: BorderRadius.vertical(
                 top: issue == issueTypes.first
                     ? const Radius.circular(16)
@@ -328,17 +327,12 @@ class _ReportScreenState extends State<ReportScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? primaryBlue
-                        : lightBlue,
-                    borderRadius:
-                        BorderRadius.circular(12),
+                    color: isSelected ? primaryBlue : lightBlue,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     _getIssueIcon(issue),
-                    color: isSelected
-                        ? Colors.white
-                        : primaryBlue,
+                    color: isSelected ? Colors.white : primaryBlue,
                     size: 21,
                   ),
                 ),
@@ -348,27 +342,20 @@ class _ReportScreenState extends State<ReportScreen> {
                     issue,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.w600,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w600,
                       color: darkText,
                     ),
                   ),
                 ),
-                AnimatedSwitcher(
-                  duration: const Duration(
-                    milliseconds: 200,
-                  ),
-                  child: Icon(
-                    isSelected
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked,
-                    key: ValueKey(isSelected),
-                    color: isSelected
-                        ? primaryBlue
-                        : Colors.grey.shade400,
-                    size: 22,
-                  ),
+                Icon(
+                  isSelected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked,
+                  color: isSelected
+                      ? primaryBlue
+                      : Colors.grey.shade400,
+                  size: 22,
                 ),
               ],
             ),
@@ -446,8 +433,7 @@ class _ReportScreenState extends State<ReportScreen> {
                 color: primaryBlue,
               ),
               border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(
+              contentPadding: const EdgeInsets.symmetric(
                 vertical: 17,
                 horizontal: 12,
               ),
@@ -462,8 +448,7 @@ class _ReportScreenState extends State<ReportScreen> {
     final bool hasText =
         descriptionController.text.trim().isNotEmpty;
 
-    final int characterCount =
-        descriptionController.text.length;
+    final int characterCount = descriptionController.text.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,25 +475,19 @@ class _ReportScreenState extends State<ReportScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: showValidation &&
-                      !hasText
+              color: showValidation && !hasText
                   ? Colors.red.shade300
                   : hasText
                       ? primaryBlue
                       : Colors.grey.shade200,
-              width: showValidation &&
-                          !hasText ||
-                      hasText
-                  ? 1.5
-                  : 1,
+              width: showValidation && !hasText || hasText ? 1.5 : 1,
             ),
           ),
           child: TextField(
             controller: descriptionController,
             maxLines: 6,
             maxLength: 500,
-            textInputAction:
-                TextInputAction.newline,
+            textInputAction: TextInputAction.newline,
             onChanged: (_) {
               setState(() {
                 showValidation = false;
@@ -522,15 +501,13 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
               border: InputBorder.none,
               counterText: '',
-              contentPadding:
-                  const EdgeInsets.all(16),
+              contentPadding: const EdgeInsets.all(16),
             ),
           ),
         ),
         const SizedBox(height: 6),
         Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             if (showValidation && !hasText)
               Text(
@@ -562,29 +539,35 @@ class _ReportScreenState extends State<ReportScreen> {
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: _handleSubmit,
+        onPressed: isSubmitting ? null : _handleSubmit,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
+          disabledBackgroundColor: Colors.grey.shade300,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              Colors.grey.shade300,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: Text(
-          canSubmit
-              ? 'Submit Report'
-              : 'Complete the Form',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: canSubmit
-                ? Colors.white
-                : Colors.grey.shade600,
-          ),
-        ),
+        child: isSubmitting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                canSubmit ? 'Submit Report' : 'Complete the Form',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: canSubmit
+                      ? Colors.white
+                      : Colors.grey.shade600,
+                ),
+              ),
       ),
     );
   }
@@ -597,5 +580,229 @@ class _ReportScreenState extends State<ReportScreen> {
     if (!isFormValid) {
       return;
     }
+
+    _showConfirmationDialog();
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.help_outline_rounded,
+                color: primaryBlue,
+              ),
+              SizedBox(width: 10),
+              Text(
+                'Submit report?',
+                style: TextStyle(
+                  color: primaryBlue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _confirmationRow(
+                'Trip',
+                selectedTrip!,
+              ),
+              const SizedBox(height: 10),
+              _confirmationRow(
+                'Issue',
+                selectedIssue!,
+              ),
+              const SizedBox(height: 10),
+              _confirmationRow(
+                'Description',
+                descriptionController.text.trim(),
+              ),
+              if (vehicleController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _confirmationRow(
+                  'Details',
+                  vehicleController.text.trim(),
+                ),
+              ],
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            18,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _submitReport();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Confirm',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _confirmationRow(
+    String title,
+    String value,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            color: darkText,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submitReport() async {
+    setState(() {
+      isSubmitting = true;
+    });
+
+    await Future.delayed(
+      const Duration(seconds: 1),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      isSubmitting = false;
+    });
+
+    _showSuccessDialog();
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: const BoxDecoration(
+                  color: lightBlue,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: primaryBlue,
+                  size: 42,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Report Submitted',
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.bold,
+                  color: primaryBlue,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Thank you for helping us improve the WhyWait experience.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
