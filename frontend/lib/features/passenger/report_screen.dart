@@ -38,6 +38,27 @@ class _ReportScreenState extends State<ReportScreen> {
     'Mexico → Bole',
   ];
 
+  final List<Map<String, String>> reports = [
+    {
+      'issue': 'Driver behavior',
+      'trip': 'Bole → Mexico',
+      'date': '18 Aug 2026',
+      'status': 'Reviewed',
+    },
+    {
+      'issue': 'Fare issue',
+      'trip': 'Piazza → Bole',
+      'date': '16 Aug 2026',
+      'status': 'Pending',
+    },
+    {
+      'issue': 'Vehicle problem',
+      'trip': 'Mexico → Bole',
+      'date': '12 Aug 2026',
+      'status': 'Resolved',
+    },
+  ];
+
   bool showValidation = false;
   bool isSubmitting = false;
 
@@ -86,6 +107,8 @@ class _ReportScreenState extends State<ReportScreen> {
             _buildDescriptionSection(),
             const SizedBox(height: 28),
             _buildSubmitButton(),
+            const SizedBox(height: 36),
+            _buildReportsSection(),
           ],
         ),
       ),
@@ -572,6 +595,374 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  Widget _buildReportsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'MY REPORTS',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: primaryBlue,
+                letterSpacing: 0.8,
+              ),
+            ),
+            Text(
+              '${reports.length} reports',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        if (reports.isEmpty)
+          _buildEmptyReports()
+        else
+          Column(
+            children: reports.map((report) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildReportCard(report),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildReportCard(
+    Map<String, String> report,
+  ) {
+    final String status = report['status'] ?? 'Pending';
+
+    return GestureDetector(
+      onTap: () {
+        _showReportDetails(report);
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.shade200,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.025),
+              blurRadius: 7,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: lightBlue,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.report_problem_outlined,
+                color: primaryBlue,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    report['issue'] ?? 'Unknown issue',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    report['trip'] ?? 'Unknown trip',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    report['date'] ?? '',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildStatusBadge(status),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    IconData icon;
+    Color color;
+    Color background;
+
+    switch (status) {
+      case 'Resolved':
+        icon = Icons.check_circle_outline_rounded;
+        color = Colors.green.shade700;
+        background = Colors.green.shade50;
+        break;
+      case 'Reviewed':
+        icon = Icons.visibility_outlined;
+        color = primaryBlue;
+        background = lightBlue;
+        break;
+      default:
+        icon = Icons.access_time_rounded;
+        color = Colors.orange.shade700;
+        background = Colors.orange.shade50;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            status,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyReports() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.description_outlined,
+            size: 42,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No reports yet',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Your submitted reports will appear here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDetails(
+    Map<String, String> report,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            24,
+            20,
+            24,
+            30,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: lightBlue,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.report_problem_outlined,
+                      color: primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Text(
+                      report['issue'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        color: primaryBlue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _detailRow(
+                'Trip',
+                report['trip'] ?? '',
+              ),
+              const SizedBox(height: 13),
+              _detailRow(
+                'Date',
+                report['date'] ?? '',
+              ),
+              const SizedBox(height: 13),
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Status',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  _buildStatusBadge(
+                    report['status'] ?? 'Pending',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(
+    String title,
+    String value,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 13,
+              color: darkText,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _handleSubmit() {
     setState(() {
       showValidation = true;
@@ -722,11 +1113,31 @@ class _ReportScreenState extends State<ReportScreen> {
       return;
     }
 
+    final newReport = {
+      'issue': selectedIssue!,
+      'trip': selectedTrip!,
+      'date': '20 Aug 2026',
+      'status': 'Pending',
+    };
+
     setState(() {
+      reports.insert(0, newReport);
       isSubmitting = false;
     });
 
+    _clearForm();
+
     _showSuccessDialog();
+  }
+
+  void _clearForm() {
+    setState(() {
+      selectedIssue = null;
+      selectedTrip = null;
+      descriptionController.clear();
+      vehicleController.clear();
+      showValidation = false;
+    });
   }
 
   void _showSuccessDialog() {
@@ -781,7 +1192,6 @@ class _ReportScreenState extends State<ReportScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
-                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryBlue,
