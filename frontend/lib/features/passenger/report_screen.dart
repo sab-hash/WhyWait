@@ -54,6 +54,13 @@ class _ReportScreenState extends State<ReportScreen> {
     'Resolved',
   ];
 
+  final Map<String, String> filterDescriptions = {
+    'All': 'All submitted reports',
+    'Pending': 'Waiting for review',
+    'Reviewed': 'Reports reviewed by the team',
+    'Resolved': 'Issues that have been resolved',
+  };
+
   final List<Map<String, dynamic>> reports = [
     {
       'issue': 'Driver behavior',
@@ -740,60 +747,76 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildReportFilters() {
-    return SizedBox(
-      height: 42,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: reportFilters.length,
-        separatorBuilder: (_, __) =>
-            const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final String filter =
-              reportFilters[index];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 42,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: reportFilters.length,
+            separatorBuilder: (_, __) =>
+                const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final String filter =
+                  reportFilters[index];
 
-          final bool isSelected =
-              selectedReportFilter == filter;
+              final bool isSelected =
+                  selectedReportFilter == filter;
 
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                selectedReportFilter = filter;
-              });
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedReportFilter = filter;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration:
+                      const Duration(milliseconds: 200),
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 16,
+                  ),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? primaryBlue
+                        : Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(22),
+                    border: Border.all(
+                      color: isSelected
+                          ? primaryBlue
+                          : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: Text(
+                    filter,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              );
             },
-            child: AnimatedContainer(
-              duration:
-                  const Duration(milliseconds: 200),
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 16,
-              ),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? primaryBlue
-                    : Colors.white,
-                borderRadius:
-                    BorderRadius.circular(22),
-                border: Border.all(
-                  color: isSelected
-                      ? primaryBlue
-                      : Colors.grey.shade200,
-                ),
-              ),
-              child: Text(
-                filter,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? Colors.white
-                      : Colors.grey.shade600,
-                ),
-              ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            filterDescriptions[selectedReportFilter] ?? '',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade500,
             ),
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 
