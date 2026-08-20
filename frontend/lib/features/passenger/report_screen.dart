@@ -727,47 +727,71 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  Widget _buildSubmitButton() {
-    final bool canSubmit = isFormValid;
+Widget _buildSubmitButton() {
+  final bool canSubmit = isFormValid;
 
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: isSubmitting ? null : _handleSubmit,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
-          disabledBackgroundColor: Colors.grey.shade300,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+  return Column(
+    children: [
+      SizedBox(
+        width: double.infinity,
+        height: 54,
+        child: ElevatedButton(
+          onPressed: isSubmitting
+              ? null
+              : canSubmit
+                  ? _handleSubmit
+                  : () {
+                      setState(() {
+                        showValidation = true;
+                      });
+                    },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryBlue,
+            disabledBackgroundColor: Colors.grey.shade300,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: isSubmitting
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  canSubmit
+                      ? 'Submit Report'
+                      : 'Complete the Form',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: canSubmit
+                        ? Colors.white
+                        : Colors.grey.shade600,
+                  ),
+                ),
+        ),
+      ),
+      if (showValidation && !canSubmit) ...[
+        const SizedBox(height: 10),
+        Text(
+          'Please complete the required fields before submitting.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.red.shade600,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        child: isSubmitting
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.white,
-                ),
-              )
-            : Text(
-                canSubmit
-                    ? 'Submit Report'
-                    : 'Complete the Form',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: canSubmit
-                      ? Colors.white
-                      : Colors.grey.shade600,
-                ),
-              ),
-      ),
-    );
-  }
+      ],
+    ],
+  );
+}
 
   Widget _buildReportsSection() {
     return Column(
