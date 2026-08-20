@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math'; // 👈 Import for sqrt() and asin()
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -21,35 +22,64 @@ class TrackScreen extends StatefulWidget {
 }
 
 class _TrackScreenState extends State<TrackScreen> {
+  // ==================== CONSTANTS ====================
   static const Color primaryBlue = Color(0xFF1565C0);
   static const Color lightBlue = Color(0xFFE3F2FD);
 
+  // ==================== MAP CONTROLLER ====================
   final MapController _mapController = MapController();
-  final List<Marker> _markers = [];
-  List<LatLng> _routePoints = [];
-  List<dynamic> _approachingTaxis = [];
-  bool _isLoading = true;
-  Timer? _refreshTimer;
   double _currentZoom = 13;
-
   final LatLng _defaultCenter = const LatLng(9.0103, 38.7598);
 
+  // ==================== ROUTE ====================
+  List<LatLng> _routePoints = [];
+
+  // ==================== ANIMATED TAXIS ====================
+  final Map<String, _AnimatedTaxi> _animatedTaxis = {};
+  Timer? _refreshTimer;
+  Timer? _animationTimer;
+  bool _isLoading = true;
+  DateTime _lastUpdate = DateTime.now();
+
+  // ==================== LIFECYCLE ====================
   @override
   void initState() {
     super.initState();
     _loadTaxis();
     _fetchRoute();
+
+    // Refresh every 5 seconds (polling)
     _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _loadTaxis();
+    });
+
+    // Animation loop (60 FPS)
+    _animationTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      _updateAnimation();
     });
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _animationTimer?.cancel();
     super.dispose();
   }
 
+  // ==================== ANIMATION ENGINE ====================
+  void _updateAnimation() {
+    bool needsUpdate = false;
+    for (var taxi in _animatedTaxis.values) {
+      if (taxi.update()) {
+        needsUpdate = true;
+      }
+    }
+    if (needsUpdate) {
+      setState(() {});
+    }
+  }
+
+  // ==================== LOAD TAXIS FROM BACKEND ====================
   Future<void> _loadTaxis() async {
     try {
       final url = Uri.parse(
@@ -59,25 +89,60 @@ class _TrackScreenState extends State<TrackScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final newTaxis = data['taxis'] ?? [];
+
         setState(() {
-          _approachingTaxis = data['taxis'] ?? [];
           _isLoading = false;
-          _updateMarkers();
+          _lastUpdate = DateTime.now();
+          _syncAnimatedTaxis(newTaxis);
         });
       }
     } catch (e) {
-      print('Error loading taxis: $e');
+      print('❌ Error loading taxis: $e');
       setState(() {
         _isLoading = false;
       });
     }
   }
 
-  void _updateMarkers() {
-    _markers.clear();
+  // ==================== SYNC TAXI DATA WITH ANIMATION ====================
+  void _syncAnimatedTaxis(List<dynamic> newTaxis) {
+    final newIds = <String>{};
+
+    for (var taxiData in newTaxis) {
+      final id = taxiData['id'] ?? taxiData['plate'];
+      newIds.add(id);
+
+      final lat = taxiData['latitude'] ?? 0.0;
+      final lng = taxiData['longitude'] ?? 0.0;
+      final target = LatLng(lat, lng);
+
+      if (_animatedTaxis.containsKey(id)) {
+        _animatedTaxis[id]!.setTarget(
+          target,
+          status: taxiData['status'] ?? 'available',
+          eta: taxiData['eta_minutes'] ?? 0,
+        );
+      } else {
+        _animatedTaxis[id] = _AnimatedTaxi(
+          startPosition: target,
+          targetPosition: target,
+          plate: taxiData['plate'] ?? 'Unknown',
+          status: taxiData['status'] ?? 'available',
+          eta: taxiData['eta_minutes'] ?? 0,
+        );
+      }
+    }
+
+    _animatedTaxis.removeWhere((key, value) => !newIds.contains(key));
+  }
+
+  // ==================== BUILD ANIMATED MARKERS ====================
+  List<Marker> _buildAnimatedMarkers() {
+    final List<Marker> markers = [];
 
     // Station Marker
-    _markers.add(
+    markers.add(
       Marker(
         point: _defaultCenter,
         width: 40,
@@ -86,37 +151,33 @@ class _TrackScreenState extends State<TrackScreen> {
       ),
     );
 
-    // Taxi Markers
-    for (var taxi in _approachingTaxis) {
-      final lat = taxi['latitude'] ?? 0.0;
-      final lng = taxi['longitude'] ?? 0.0;
-      final plate = taxi['plate'] ?? 'Unknown';
-      final eta = taxi['eta_minutes'] ?? 0;
-
-      if (lat != 0.0 && lng != 0.0) {
-        _markers.add(
-          Marker(
-            point: LatLng(lat, lng),
-            width: 30,
-            height: 30,
-            child: GestureDetector(
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Taxi $plate - ETA: ${eta}min'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
-              child: const Icon(Icons.local_taxi, color: Colors.green, size: 30),
-            ),
+    // Taxi Markers (Animated)
+    for (var entry in _animatedTaxis.entries) {
+      final taxi = entry.value;
+      markers.add(
+        Marker(
+          point: taxi.currentPosition,
+          width: 30,
+          height: 30,
+          child: GestureDetector(
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('🚕 Taxi ${taxi.plate} - ETA: ${taxi.eta}min'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Icon(Icons.local_taxi, color: Colors.green, size: 30),
           ),
-        );
-      }
+        ),
+      );
     }
+
+    return markers;
   }
 
-  // ==================== ROUTE FETCHING (OSRM - NO API KEY) ====================
+  // ==================== ROUTE FETCHING ====================
   Future<void> _fetchRoute() async {
     try {
       final url = Uri.parse(
@@ -139,7 +200,7 @@ class _TrackScreenState extends State<TrackScreen> {
     }
   }
 
-  // ==================== MANUAL POLYLINE DECODER (No API Key) ====================
+  // ==================== POLYLINE DECODER ====================
   List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> points = [];
     int index = 0, len = encoded.length;
@@ -170,6 +231,7 @@ class _TrackScreenState extends State<TrackScreen> {
     return points;
   }
 
+  // ==================== BUILD ====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -236,7 +298,7 @@ class _TrackScreenState extends State<TrackScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${_approachingTaxis.length} taxis approaching',
+                          '${_animatedTaxis.length} taxis approaching',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -275,7 +337,7 @@ class _TrackScreenState extends State<TrackScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.whywait',
               ),
-              MarkerLayer(markers: _markers),
+              MarkerLayer(markers: _buildAnimatedMarkers()),
               if (_routePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
@@ -349,7 +411,7 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
-  // ==================== APPROACHING TAXIS SECTION ====================
+  // ==================== TAXI LIST SECTION ====================
   Widget _buildApproachingTaxisSection() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -373,7 +435,7 @@ class _TrackScreenState extends State<TrackScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${_approachingTaxis.length} taxis',
+                  '${_animatedTaxis.length} taxis',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -386,31 +448,33 @@ class _TrackScreenState extends State<TrackScreen> {
           const SizedBox(height: 12),
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
-          else if (_approachingTaxis.isEmpty)
+          else if (_animatedTaxis.isEmpty)
             const Center(child: Text('No taxis approaching'))
           else
-            ..._approachingTaxis.map((taxi) => _buildTaxiCard(taxi)),
+            ..._animatedTaxis.values.map((taxi) => _buildTaxiCard(taxi)),
         ],
       ),
     );
   }
 
-  Widget _buildTaxiCard(dynamic taxi) {
-    final plate = taxi['plate'] ?? 'Unknown';
-    final distanceKm = (taxi['distance_km'] ?? 0.0).toStringAsFixed(1);
-    final etaMinutes = taxi['eta_minutes'] ?? 0;
-    final status = taxi['status'] ?? 'available';
+  Widget _buildTaxiCard(_AnimatedTaxi taxi) {
+    final distanceKm = (taxi.currentDistance ?? 0.0).toStringAsFixed(1);
+    final status = taxi.status;
 
     Color statusColor;
     String statusText;
     switch (status) {
       case 'available':
         statusColor = Colors.green;
-        statusText = 'available';
+        statusText = 'Available';
         break;
       case 'filling':
         statusColor = Colors.orange;
-        statusText = 'filling';
+        statusText = 'Filling';
+        break;
+      case 'on_trip':
+        statusColor = Colors.red;
+        statusText = 'On Trip';
         break;
       default:
         statusColor = Colors.grey;
@@ -443,7 +507,7 @@ class _TrackScreenState extends State<TrackScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Taxi ${_approachingTaxis.indexOf(taxi) + 1}  $plate',
+                    'Taxi ${taxi.plate}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -455,7 +519,7 @@ class _TrackScreenState extends State<TrackScreen> {
                       const Icon(Icons.location_on, size: 14, color: Colors.grey),
                       Text(' $distanceKm km   ', style: const TextStyle(fontSize: 12)),
                       const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                      Text(' ~${etaMinutes}min', style: const TextStyle(fontSize: 12)),
+                      Text(' ~${taxi.eta}min', style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                 ],
@@ -465,7 +529,7 @@ class _TrackScreenState extends State<TrackScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${etaMinutes}min',
+                  '${taxi.eta}min',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -552,5 +616,69 @@ class _TrackScreenState extends State<TrackScreen> {
         ),
       ),
     );
+  }
+}
+
+// ==================== ANIMATED TAXI CLASS ====================
+class _AnimatedTaxi {
+  LatLng currentPosition;
+  LatLng startPosition;
+  LatLng targetPosition;
+  String plate;
+  String status;
+  int eta;
+  double progress = 1.0;
+  double? currentDistance;
+  final double animationSpeed = 0.025;
+
+  _AnimatedTaxi({
+    required this.startPosition,
+    required this.targetPosition,
+    required this.plate,
+    required this.status,
+    required this.eta,
+  }) : currentPosition = startPosition;
+
+  void setTarget(LatLng newTarget, {String? status, int? eta}) {
+    if (newTarget != targetPosition) {
+      startPosition = currentPosition;
+      targetPosition = newTarget;
+      progress = 0.0;
+      currentDistance = _calculateDistance(currentPosition, targetPosition);
+    }
+    if (status != null) this.status = status;
+    if (eta != null) this.eta = eta;
+  }
+
+  bool update() {
+    if (progress >= 1.0) return false;
+
+    progress += animationSpeed;
+    if (progress > 1.0) progress = 1.0;
+
+    final lat = startPosition.latitude +
+        (targetPosition.latitude - startPosition.latitude) * progress;
+    final lng = startPosition.longitude +
+        (targetPosition.longitude - startPosition.longitude) * progress;
+    currentPosition = LatLng(lat, lng);
+
+    if (progress < 1.0) {
+      currentDistance = _calculateDistance(currentPosition, targetPosition);
+    }
+
+    return true;
+  }
+
+  double _calculateDistance(LatLng from, LatLng to) {
+    const R = 6371; // Earth radius in km
+    final dLat = (to.latitude - from.latitude) * pi / 180;
+    final dLng = (to.longitude - from.longitude) * pi / 180;
+    final a = (dLat / 2) * (dLat / 2) +
+        (from.latitude * pi / 180) *
+            (to.latitude * pi / 180) *
+            (dLng / 2) *
+            (dLng / 2);
+    final c = 2 * asin(sqrt(a));
+    return R * c;
   }
 }
