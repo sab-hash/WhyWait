@@ -17,7 +17,7 @@ func NewHandler(repo *Repository) *Handler {
 }
 
 type CreateReportRequest struct {
-	TripID         string  `json:"trip_id" binding:"required"`
+	TripID         *string `json:"trip_id"`
 	IssueType      string  `json:"issue_type" binding:"required"`
 	Description    string  `json:"description" binding:"required"`
 	VehicleDetails *string `json:"vehicle_details"`

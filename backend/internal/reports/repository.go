@@ -29,7 +29,7 @@ func NewRepository(db *sql.DB) *Repository {
 
 func (repo *Repository) Create(
 	passengerID string,
-	tripID string,
+	tripID *string,
 	issueType string,
 	description string,
 	vehicleDetails *string,

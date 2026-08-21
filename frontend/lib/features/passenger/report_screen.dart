@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/services/api_service.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -21,15 +22,13 @@ class _ReportScreenState extends State<ReportScreen> {
 
   bool showValidation = false;
   bool isSubmitting = false;
+  bool isLoadingReports = true;
 
-  final TextEditingController descriptionController =
-      TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
-  final TextEditingController vehicleController =
-      TextEditingController();
+  final TextEditingController vehicleController = TextEditingController();
 
-  final TextEditingController feedbackController =
-      TextEditingController();
+  final TextEditingController feedbackController = TextEditingController();
 
   final List<String> issueTypes = [
     'Driver behavior',
@@ -47,12 +46,7 @@ class _ReportScreenState extends State<ReportScreen> {
     'Mexico → Bole',
   ];
 
-  final List<String> reportFilters = [
-    'All',
-    'Pending',
-    'Reviewed',
-    'Resolved',
-  ];
+  final List<String> reportFilters = ['All', 'Pending', 'Reviewed', 'Resolved'];
 
   final Map<String, String> filterDescriptions = {
     'All': 'All submitted reports',
@@ -61,43 +55,97 @@ class _ReportScreenState extends State<ReportScreen> {
     'Resolved': 'Issues that have been resolved',
   };
 
-  final List<Map<String, dynamic>> reports = [
-    {
-      'issue': 'Driver behavior',
-      'trip': 'Bole → Mexico',
-      'date': '18 Aug 2026',
-      'status': 'Reviewed',
-      'description':
-          'The driver was driving too fast during the trip.',
-      'vehicle': 'Toyota Hiace',
-      'rating': 2,
-      'response':
-          'Thank you for your report. The issue has been reviewed by our team.',
-    },
-    {
-      'issue': 'Fare issue',
-      'trip': 'Piazza → Bole',
-      'date': '16 Aug 2026',
-      'status': 'Pending',
-      'description':
-          'The amount charged was different from the expected fare.',
-      'vehicle': 'Minibus',
-      'rating': 3,
-      'response': '',
-    },
-    {
-      'issue': 'Vehicle problem',
-      'trip': 'Mexico → Bole',
-      'date': '12 Aug 2026',
-      'status': 'Resolved',
-      'description':
-          'The vehicle had a problem with one of the doors.',
-      'vehicle': 'Toyota Hiace',
-      'rating': 2,
-      'response':
-          'The issue has been resolved and the vehicle was checked.',
-    },
-  ];
+  List<Map<String, dynamic>> reports = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+  }
+
+  Future<void> _loadReports() async {
+    try {
+      final backendReports = await ApiService.getMyReports();
+
+      if (!mounted) return;
+
+      setState(() {
+        reports = backendReports.map((report) {
+          return {
+            'id': report['id'],
+            'issue': report['issue_type'] ?? '',
+            'trip': report['trip_id'] ?? '',
+            'date': _formatDate(report['created_at']),
+            'status': _formatStatus(report['status']),
+            'description': report['description'] ?? '',
+            'vehicle': report['vehicle_details'] ?? 'Not provided',
+            'rating': report['rating'] ?? 0,
+            'response': report['response'] ?? '',
+          };
+        }).toList();
+
+        isLoadingReports = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingReports = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load reports: $e')));
+    }
+  }
+
+  String _formatStatus(dynamic status) {
+    if (status == null) return 'Pending';
+
+    switch (status.toString().toLowerCase()) {
+      case 'pending':
+        return 'Pending';
+      case 'reviewed':
+        return 'Reviewed';
+      case 'resolved':
+        return 'Resolved';
+      default:
+        return status.toString();
+    }
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return '';
+
+    try {
+      final parsedDate = DateTime.parse(date.toString());
+
+      return '${parsedDate.day} '
+          '${_monthName(parsedDate.month)} '
+          '${parsedDate.year}';
+    } catch (_) {
+      return date.toString();
+    }
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return months[month - 1];
+  }
 
   bool get isFormValid {
     return selectedTrip != null &&
@@ -123,10 +171,7 @@ class _ReportScreenState extends State<ReportScreen> {
         elevation: 0,
         title: const Text(
           'Report an Issue',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -166,11 +211,7 @@ class _ReportScreenState extends State<ReportScreen> {
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.report_problem_outlined,
-            color: primaryBlue,
-            size: 34,
-          ),
+          Icon(Icons.report_problem_outlined, color: primaryBlue, size: 34),
           SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -187,11 +228,7 @@ class _ReportScreenState extends State<ReportScreen> {
                 SizedBox(height: 6),
                 Text(
                   'Tell us about any problem you experienced during your trip.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: darkText,
-                  ),
+                  style: TextStyle(fontSize: 13, height: 1.4, color: darkText),
                 ),
               ],
             ),
@@ -216,18 +253,12 @@ class _ReportScreenState extends State<ReportScreen> {
         const SizedBox(height: 6),
         Text(
           'Select the trip you want to report.',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 14),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 4,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
@@ -243,10 +274,7 @@ class _ReportScreenState extends State<ReportScreen> {
               isExpanded: true,
               hint: const Text(
                 'Select a recent trip',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
               icon: const Icon(
                 Icons.keyboard_arrow_down_rounded,
@@ -275,16 +303,10 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         if (showValidation && selectedTrip == null)
           Padding(
-            padding: const EdgeInsets.only(
-              top: 6,
-              left: 4,
-            ),
+            padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
               'Please select a trip',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.red.shade600,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.red.shade600),
             ),
           ),
       ],
@@ -306,10 +328,7 @@ class _ReportScreenState extends State<ReportScreen> {
         const SizedBox(height: 6),
         Text(
           'Select one issue that best describes your experience.',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 14),
         Container(
@@ -326,35 +345,23 @@ class _ReportScreenState extends State<ReportScreen> {
           child: Column(
             children: [
               for (int i = 0; i < issueTypes.length; i++)
-                _buildIssueOption(
-                  issueTypes[i],
-                  i == issueTypes.length - 1,
-                ),
+                _buildIssueOption(issueTypes[i], i == issueTypes.length - 1),
             ],
           ),
         ),
         if (showValidation && selectedIssue == null)
           Padding(
-            padding: const EdgeInsets.only(
-              top: 6,
-              left: 4,
-            ),
+            padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
               'Please select an issue',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.red.shade600,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.red.shade600),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildIssueOption(
-    String issue,
-    bool isLast,
-  ) {
+  Widget _buildIssueOption(String issue, bool isLast) {
     final bool isSelected = selectedIssue == issue;
 
     return Column(
@@ -367,19 +374,14 @@ class _ReportScreenState extends State<ReportScreen> {
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 13,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
             decoration: BoxDecoration(
               color: isSelected ? lightBlue : Colors.white,
               borderRadius: BorderRadius.vertical(
                 top: issue == issueTypes.first
                     ? const Radius.circular(16)
                     : Radius.zero,
-                bottom: isLast
-                    ? const Radius.circular(16)
-                    : Radius.zero,
+                bottom: isLast ? const Radius.circular(16) : Radius.zero,
               ),
             ),
             child: Row(
@@ -404,8 +406,9 @@ class _ReportScreenState extends State<ReportScreen> {
                     issue,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       color: darkText,
                     ),
                   ),
@@ -414,9 +417,7 @@ class _ReportScreenState extends State<ReportScreen> {
                   isSelected
                       ? Icons.check_circle_rounded
                       : Icons.radio_button_unchecked,
-                  color: isSelected
-                      ? primaryBlue
-                      : Colors.grey.shade400,
+                  color: isSelected ? primaryBlue : Colors.grey.shade400,
                   size: 22,
                 ),
               ],
@@ -466,29 +467,20 @@ class _ReportScreenState extends State<ReportScreen> {
         const SizedBox(height: 6),
         Text(
           'Optional information that can help us identify the trip.',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 14),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.grey.shade200,
-            ),
+            border: Border.all(color: Colors.grey.shade200),
           ),
           child: TextField(
             controller: vehicleController,
             decoration: InputDecoration(
-              hintText:
-                  'Driver name, plate number, or vehicle details',
-              hintStyle: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 13,
-              ),
+              hintText: 'Driver name, plate number, or vehicle details',
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
               prefixIcon: const Icon(
                 Icons.local_taxi_outlined,
                 color: primaryBlue,
@@ -506,8 +498,7 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildDescriptionSection() {
-    final bool hasText =
-        descriptionController.text.trim().isNotEmpty;
+    final bool hasText = descriptionController.text.trim().isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -523,10 +514,7 @@ class _ReportScreenState extends State<ReportScreen> {
         const SizedBox(height: 6),
         Text(
           'Give us more details about what happened.',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 14),
         Container(
@@ -548,10 +536,7 @@ class _ReportScreenState extends State<ReportScreen> {
             },
             decoration: InputDecoration(
               hintText: 'Describe the problem...',
-              hintStyle: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 13,
-              ),
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
               border: InputBorder.none,
               counterText: '',
               contentPadding: const EdgeInsets.all(16),
@@ -560,25 +545,18 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         const SizedBox(height: 6),
         Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             if (showValidation && !hasText)
               Text(
                 'Please describe the issue',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.red.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.red.shade600),
               )
             else
               const SizedBox.shrink(),
             Text(
               '${descriptionController.text.length}/500',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
             ),
           ],
         ),
@@ -601,53 +579,40 @@ class _ReportScreenState extends State<ReportScreen> {
         const SizedBox(height: 6),
         Text(
           'How was your overall experience?',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            vertical: 20,
-            horizontal: 16,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.grey.shade200,
-            ),
+            border: Border.all(color: Colors.grey.shade200),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              5,
-              (index) {
-                final int rating = index + 1;
+            children: List.generate(5, (index) {
+              final int rating = index + 1;
 
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedRating = rating;
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 5,
-                    ),
-                    child: Icon(
-                      rating <= selectedRating
-                          ? Icons.star_rounded
-                          : Icons.star_border_rounded,
-                      size: 38,
-                      color: Colors.amber.shade600,
-                    ),
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedRating = rating;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Icon(
+                    rating <= selectedRating
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                    size: 38,
+                    color: Colors.amber.shade600,
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            }),
           ),
         ),
       ],
@@ -679,15 +644,10 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
         ),
         child: isSubmitting
-            ? const CircularProgressIndicator(
-                color: Colors.white,
-              )
+            ? const CircularProgressIndicator(color: Colors.white)
             : const Text(
                 'Submit Report',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
       ),
     );
@@ -696,18 +656,16 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget _buildReportsSection() {
     final List<Map<String, dynamic>> filteredReports =
         selectedReportFilter == 'All'
-            ? reports
-            : reports.where((report) {
-                return report['status'] ==
-                    selectedReportFilter;
-              }).toList();
+        ? reports
+        : reports.where((report) {
+            return report['status'] == selectedReportFilter;
+          }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'MY REPORTS',
@@ -720,24 +678,27 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
             Text(
               '${filteredReports.length} reports',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
           ],
         ),
         const SizedBox(height: 14),
         _buildReportFilters(),
         const SizedBox(height: 16),
-        if (filteredReports.isEmpty)
+        if (isLoadingReports)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(30),
+              child: CircularProgressIndicator(color: primaryBlue),
+            ),
+          )
+        else if (filteredReports.isEmpty)
           _buildFilteredEmptyState()
         else
           Column(
             children: filteredReports.map((report) {
               return Padding(
-                padding:
-                    const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: _buildReportCard(report),
               );
             }).toList(),
@@ -755,14 +716,11 @@ class _ReportScreenState extends State<ReportScreen> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: reportFilters.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(width: 8),
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
-              final String filter =
-                  reportFilters[index];
+              final String filter = reportFilters[index];
 
-              final bool isSelected =
-                  selectedReportFilter == filter;
+              final bool isSelected = selectedReportFilter == filter;
 
               return GestureDetector(
                 onTap: () {
@@ -771,23 +729,14 @@ class _ReportScreenState extends State<ReportScreen> {
                   });
                 },
                 child: AnimatedContainer(
-                  duration:
-                      const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 16,
-                  ),
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? primaryBlue
-                        : Colors.white,
-                    borderRadius:
-                        BorderRadius.circular(22),
+                    color: isSelected ? primaryBlue : Colors.white,
+                    borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: isSelected
-                          ? primaryBlue
-                          : Colors.grey.shade200,
+                      color: isSelected ? primaryBlue : Colors.grey.shade200,
                     ),
                   ),
                   child: Text(
@@ -795,9 +744,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? Colors.white
-                          : Colors.grey.shade600,
+                      color: isSelected ? Colors.white : Colors.grey.shade600,
                     ),
                   ),
                 ),
@@ -810,10 +757,7 @@ class _ReportScreenState extends State<ReportScreen> {
           padding: const EdgeInsets.only(left: 4),
           child: Text(
             filterDescriptions[selectedReportFilter] ?? '',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
           ),
         ),
       ],
@@ -828,26 +772,22 @@ class _ReportScreenState extends State<ReportScreen> {
     switch (selectedReportFilter) {
       case 'Pending':
         title = 'No pending reports';
-        message =
-            'You do not have any reports waiting for review.';
+        message = 'You do not have any reports waiting for review.';
         icon = Icons.access_time_rounded;
         break;
       case 'Reviewed':
         title = 'No reviewed reports';
-        message =
-            'Reviewed reports will appear here.';
+        message = 'Reviewed reports will appear here.';
         icon = Icons.visibility_outlined;
         break;
       case 'Resolved':
         title = 'No resolved reports';
-        message =
-            'Resolved reports will appear here.';
+        message = 'Resolved reports will appear here.';
         icon = Icons.check_circle_outline_rounded;
         break;
       default:
         title = 'No reports yet';
-        message =
-            'Your submitted reports will appear here.';
+        message = 'Your submitted reports will appear here.';
         icon = Icons.description_outlined;
     }
 
@@ -857,17 +797,11 @@ class _ReportScreenState extends State<ReportScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.grey.shade200,
-        ),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            size: 42,
-            color: Colors.grey.shade400,
-          ),
+          Icon(icon, size: 42, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           Text(
             title,
@@ -881,21 +815,15 @@ class _ReportScreenState extends State<ReportScreen> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReportCard(
-    Map<String, dynamic> report,
-  ) {
-    final String status =
-        report['status'] ?? 'Pending';
+  Widget _buildReportCard(Map<String, dynamic> report) {
+    final String status = report['status'] ?? 'Pending';
 
     return GestureDetector(
       onTap: () {
@@ -907,21 +835,17 @@ class _ReportScreenState extends State<ReportScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.shade200,
-          ),
+          border: Border.all(color: Colors.grey.shade200),
         ),
         child: Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
                 color: lightBlue,
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.report_problem_outlined,
@@ -931,8 +855,7 @@ class _ReportScreenState extends State<ReportScreen> {
             const SizedBox(width: 13),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     report['issue'] ?? '',
@@ -945,18 +868,12 @@ class _ReportScreenState extends State<ReportScreen> {
                   const SizedBox(height: 5),
                   Text(
                     report['trip'] ?? '',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     report['date'] ?? '',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -992,10 +909,7 @@ class _ReportScreenState extends State<ReportScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(9),
@@ -1003,11 +917,7 @@ class _ReportScreenState extends State<ReportScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 13,
-            color: color,
-          ),
+          Icon(icon, size: 13, color: color),
           const SizedBox(width: 4),
           Text(
             status,
@@ -1022,17 +932,13 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  void _showReportDetails(
-    Map<String, dynamic> report,
-  ) {
+  void _showReportDetails(Map<String, dynamic> report) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return DraggableScrollableSheet(
@@ -1043,15 +949,9 @@ class _ReportScreenState extends State<ReportScreen> {
           builder: (context, scrollController) {
             return SingleChildScrollView(
               controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(
-                24,
-                20,
-                24,
-                30,
-              ),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
                     child: Container(
@@ -1059,8 +959,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       height: 4,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
-                        borderRadius:
-                            BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
@@ -1072,8 +971,7 @@ class _ReportScreenState extends State<ReportScreen> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: lightBlue,
-                          borderRadius:
-                              BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: const Icon(
                           Icons.report_problem_outlined,
@@ -1121,9 +1019,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _buildStatusTimeline(
-                    report['status'] ?? 'Pending',
-                  ),
+                  _buildStatusTimeline(report['status'] ?? 'Pending'),
                   const SizedBox(height: 24),
                   const Text(
                     'DESCRIPTION',
@@ -1140,8 +1036,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: backgroundColor,
-                      borderRadius:
-                          BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
                       report['description'] ?? '',
@@ -1152,9 +1047,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       ),
                     ),
                   ),
-                  if ((report['response'] ?? '')
-                      .toString()
-                      .isNotEmpty) ...[
+                  if ((report['response'] ?? '').toString().isNotEmpty) ...[
                     const SizedBox(height: 24),
                     const Text(
                       'TEAM RESPONSE',
@@ -1168,16 +1061,13 @@ class _ReportScreenState extends State<ReportScreen> {
                     const SizedBox(height: 10),
                     Container(
                       width: double.infinity,
-                      padding:
-                          const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: lightBlue,
-                        borderRadius:
-                            BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Icon(
                             Icons.support_agent_rounded,
@@ -1211,17 +1101,13 @@ class _ReportScreenState extends State<ReportScreen> {
                         backgroundColor: primaryBlue,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape:
-                            RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
                         'Close',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -1234,27 +1120,16 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  Widget _buildDetailItem(
-    String title,
-    String value,
-    IconData icon,
-  ) {
+  Widget _buildDetailItem(String title, String value, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 19,
-            color: primaryBlue,
-          ),
+          Icon(icon, size: 19, color: primaryBlue),
           const SizedBox(width: 12),
           Text(
             '$title:',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
           ),
           const SizedBox(width: 7),
           Expanded(
@@ -1273,18 +1148,13 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildStatusTimeline(String status) {
-    final bool reviewed =
-        status == 'Reviewed' || status == 'Resolved';
+    final bool reviewed = status == 'Reviewed' || status == 'Resolved';
 
     final bool resolved = status == 'Resolved';
 
     return Column(
       children: [
-        _timelineItem(
-          'Report submitted',
-          true,
-          Icons.send_rounded,
-        ),
+        _timelineItem('Report submitted', true, Icons.send_rounded),
         _timelineLine(reviewed || resolved),
         _timelineItem(
           'Report reviewed',
@@ -1301,28 +1171,20 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  Widget _timelineItem(
-    String title,
-    bool completed,
-    IconData icon,
-  ) {
+  Widget _timelineItem(String title, bool completed, IconData icon) {
     return Row(
       children: [
         Container(
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: completed
-                ? primaryBlue
-                : Colors.grey.shade200,
+            color: completed ? primaryBlue : Colors.grey.shade200,
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
             size: 19,
-            color: completed
-                ? Colors.white
-                : Colors.grey.shade400,
+            color: completed ? Colors.white : Colors.grey.shade400,
           ),
         ),
         const SizedBox(width: 12),
@@ -1330,12 +1192,8 @@ class _ReportScreenState extends State<ReportScreen> {
           title,
           style: TextStyle(
             fontSize: 13,
-            fontWeight: completed
-                ? FontWeight.bold
-                : FontWeight.w500,
-            color: completed
-                ? darkText
-                : Colors.grey.shade500,
+            fontWeight: completed ? FontWeight.bold : FontWeight.w500,
+            color: completed ? darkText : Colors.grey.shade500,
           ),
         ),
       ],
@@ -1347,9 +1205,7 @@ class _ReportScreenState extends State<ReportScreen> {
       width: 2,
       height: 22,
       margin: const EdgeInsets.only(left: 18),
-      color: completed
-          ? primaryBlue
-          : Colors.grey.shade200,
+      color: completed ? primaryBlue : Colors.grey.shade200,
     );
   }
 
@@ -1364,29 +1220,18 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
           title: const Text(
             'Submit report?',
-            style: TextStyle(
-              color: primaryBlue,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
           ),
           content: const Text(
             'Are you sure you want to submit this report?',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 14, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
               },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Colors.grey,
-                ),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1410,39 +1255,49 @@ class _ReportScreenState extends State<ReportScreen> {
       isSubmitting = true;
     });
 
-    await Future.delayed(
-      const Duration(seconds: 1),
-    );
+    try {
+      final report = await ApiService.createReport(
+        tripId: '00000000-0000-0000-0000-000000000001',
+        issueType: selectedIssue!,
+        description: descriptionController.text.trim(),
+        vehicleDetails: vehicleController.text.trim().isEmpty
+            ? null
+            : vehicleController.text.trim(),
+        rating: selectedRating == 0 ? null : selectedRating,
+      );
 
-    if (!mounted) {
-      return;
+      if (!mounted) return;
+
+      reports.insert(0, {
+        'id': report['id'],
+        'issue': report['issue_type'] ?? '',
+        'trip': report['trip_id'] ?? '',
+        'date': _formatDate(report['created_at']),
+        'status': _formatStatus(report['status']),
+        'description': report['description'] ?? '',
+        'vehicle': report['vehicle_details'] ?? 'Not provided',
+        'rating': report['rating'] ?? 0,
+        'response': report['response'] ?? '',
+      });
+
+      setState(() {
+        isSubmitting = false;
+      });
+
+      _clearForm();
+
+      _showSuccessDialog();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isSubmitting = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to submit report: $e')));
     }
-
-    reports.insert(
-      0,
-      {
-        'issue': selectedIssue!,
-        'trip': selectedTrip!,
-        'date': '20 Aug 2026',
-        'status': 'Pending',
-        'description':
-            descriptionController.text.trim(),
-        'vehicle':
-            vehicleController.text.trim().isEmpty
-                ? 'Not provided'
-                : vehicleController.text.trim(),
-        'rating': selectedRating,
-        'response': '',
-      },
-    );
-
-    setState(() {
-      isSubmitting = false;
-    });
-
-    _clearForm();
-
-    _showSuccessDialog();
   }
 
   void _clearForm() {
@@ -1516,15 +1371,12 @@ class _ReportScreenState extends State<ReportScreen> {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
                     'Done',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

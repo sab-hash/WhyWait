@@ -80,4 +80,67 @@ class ApiService {
 
     return Map<String, dynamic>.from(data['user']);
   }
+
+  // ==================== REPORTS ====================
+
+  static Future<Map<String, dynamic>> createReport({
+    required String tripId,
+    required String issueType,
+    required String description,
+    String? vehicleDetails,
+    int? rating,
+  }) async {
+    final token = await LocalStorage.getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.post(
+      Uri.parse('http://localhost:8080/reports'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'trip_id': tripId,
+        'issue_type': issueType,
+        'description': description,
+        'vehicle_details': vehicleDetails,
+        'rating': rating,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode != 201) {
+      throw Exception(data['error'] ?? 'Failed to create report');
+    }
+
+    return Map<String, dynamic>.from(data['report']);
+  }
+
+  static Future<List<Map<String, dynamic>>> getMyReports() async {
+    final token = await LocalStorage.getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/reports/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Failed to fetch reports');
+    }
+
+    return List<Map<String, dynamic>>.from(data['reports'] ?? []);
+  }
 }
