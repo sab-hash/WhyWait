@@ -172,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(
             _isLoading
                 ? 'Loading...'
-                : (_profile?['phoneNumber'] ?? widget.phoneNumber),
+                : (_profile?['phone'] ?? widget.phoneNumber),
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 14,
