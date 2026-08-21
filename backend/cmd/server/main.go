@@ -9,6 +9,7 @@ import (
 	"whywait-backend/internal/config"
 	"whywait-backend/internal/db"
 	"whywait-backend/internal/middleware"
+	"whywait-backend/internal/reports"
 	"whywait-backend/internal/routes"
 	"whywait-backend/internal/taxis"
 	"whywait-backend/internal/terminals"
@@ -27,7 +28,8 @@ func main() {
 	routesHandler := routes.NewHandler(conn)
 	taxisHandler := taxis.NewHandler(conn)
 	usersHandler := users.NewHandler(conn)
-
+	reportsRepo := reports.NewRepository(conn)
+	reportsHandler := reports.NewHandler(reportsRepo)
 	// Set up routes
 	router := gin.Default()
 	router.Use(middleware.CORS())
@@ -46,6 +48,18 @@ func main() {
 		"/users/profile",
 		auth.AuthMiddleware(tokenManager),
 		usersHandler.GetProfileHandler,
+	)
+
+	router.POST(
+		"/reports",
+		auth.AuthMiddleware(tokenManager),
+		reportsHandler.CreateReport,
+	)
+
+	router.GET(
+		"/reports/me",
+		auth.AuthMiddleware(tokenManager),
+		reportsHandler.GetMyReports,
 	)
 	log.Println("✅ Server running on http://localhost:8080")
 	log.Fatal(router.Run(":8080"))
