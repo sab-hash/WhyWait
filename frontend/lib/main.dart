@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'features/driver/driver_home_screen.dart';
+import 'core/routing/app_router.dart';
 
 void main() {
   runApp(const TaxiApp());
@@ -11,9 +11,9 @@ class TaxiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      home: const DriverHomeScreen(),
+      routerConfig: appRouter,
     );
   }
 }

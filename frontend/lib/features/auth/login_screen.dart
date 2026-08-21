@@ -3,26 +3,9 @@ import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'register_screen.dart';
-import '../passenger/home_screen.dart'; // 👈 Import HomeScreen
+import '../passenger/home_screen.dart';
 import '../../core/storage/local_storage.dart';
-
-void main() {
-  runApp(const TaxiTrackApp());
-}
-
-class TaxiTrackApp extends StatelessWidget {
-  const TaxiTrackApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TaxiTrack',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(fontFamily: 'Roboto', useMaterial3: true),
-      home: const LoginScreen(),
-    );
-  }
-}
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -86,16 +69,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
         _showMessage('✅ Welcome back, ${user['fullName'] ?? 'User'}!');
 
-        // 👇 NAVIGATE TO HOME SCREEN
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(
-              fullName: user['fullName'] ?? 'User',
-              email: user['email'] ?? '',
-            ),
-          ),
-        );
+        final role = user['role'];
+
+        if (role == 'driver') {
+          context.go('/driver');
+        } else {
+          context.go(
+            '/passenger',
+            extra: {
+              'fullName': user['fullName'] ?? 'User',
+              'email': user['email'] ?? '',
+            },
+          );
+        }
       } else {
         _showMessage('❌ Invalid phone number or password');
       }
@@ -407,12 +393,7 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w600),
               recognizer: TapGestureRecognizer()
                 ..onTap = () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RegisterScreen(),
-                    ),
-                  );
+                  context.go('/register');
                 },
             ),
           ],
