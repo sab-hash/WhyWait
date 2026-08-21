@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
+import '../../core/storage/local_storage.dart';
+import '../auth/login_screen.dart';
 
 class _SettingItem {
   final IconData icon;
@@ -33,11 +36,41 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   static const Color primaryBlue = Color(0xFF0B3D78);
 
-  int _currentNavIndex = 3; 
+  int _currentNavIndex = 3;
 
   final int trips = 24;
   final int favorites = 3;
   final String avgWait = '~6m';
+
+  Map<String, dynamic>? _profile;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await ApiService.getProfile();
+
+      if (!mounted) return;
+
+      setState(() {
+        _profile = profile;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +105,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: _settingItems
-                      .map((item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildSettingRow(item),
-                          ))
+                      .map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildSettingRow(item),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -116,14 +151,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ? Image.network(
                       widget.avatarUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _avatarFallback(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _avatarFallback(),
                     )
                   : _avatarFallback(),
             ),
           ),
           const SizedBox(height: 14),
           Text(
-            widget.fullName,
+            _isLoading
+                ? 'Loading...'
+                : (_profile?['fullName'] ?? widget.fullName),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -132,7 +170,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            widget.phoneNumber,
+            _isLoading
+                ? 'Loading...'
+                : (_profile?['phoneNumber'] ?? widget.phoneNumber),
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 14,
@@ -140,9 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () {
-          
-            },
+            onPressed: () {},
             style: OutlinedButton.styleFrom(
               backgroundColor: Colors.white,
               side: BorderSide.none,
@@ -172,7 +210,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
   Widget _buildStatsCard() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18),
@@ -180,7 +217,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -200,13 +241,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(
           value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
       ],
     );
   }
@@ -214,33 +256,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _statDivider() {
     return Container(width: 1, height: 34, color: Colors.grey[200]);
   }
+
   List<_SettingItem> get _settingItems => [
-        _SettingItem(
-          icon: Icons.notifications_none_rounded,
-          title: 'Notifications',
-          subtitle: 'Alerts when taxi is 1 min away',
-        ),
-        _SettingItem(
-          icon: Icons.location_on_outlined,
-          title: 'Saved Stations',
-          subtitle: 'Mexico, Bole, CMC',
-        ),
-        _SettingItem(
-          icon: Icons.shield_outlined,
-          title: 'Privacy & Security',
-          subtitle: 'Password, data settings',
-        ),
-        _SettingItem(
-          icon: Icons.translate_rounded,
-          title: 'Language',
-          subtitle: 'English',
-        ),
-        _SettingItem(
-          icon: Icons.headset_mic_outlined,
-          title: 'Support',
-          subtitle: 'Help center, contact us',
-        ),
-      ];
+    _SettingItem(
+      icon: Icons.notifications_none_rounded,
+      title: 'Notifications',
+      subtitle: 'Alerts when taxi is 1 min away',
+    ),
+    _SettingItem(
+      icon: Icons.location_on_outlined,
+      title: 'Saved Stations',
+      subtitle: 'Mexico, Bole, CMC',
+    ),
+    _SettingItem(
+      icon: Icons.shield_outlined,
+      title: 'Privacy & Security',
+      subtitle: 'Password, data settings',
+    ),
+    _SettingItem(
+      icon: Icons.translate_rounded,
+      title: 'Language',
+      subtitle: 'English',
+    ),
+    _SettingItem(
+      icon: Icons.headset_mic_outlined,
+      title: 'Support',
+      subtitle: 'Help center, contact us',
+    ),
+  ];
 
   Widget _buildSettingRow(_SettingItem item) {
     return InkWell(
@@ -252,7 +295,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Row(
@@ -273,7 +320,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     item.title,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black87),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -290,11 +341,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
   Widget _buildSignOutButton() {
     return InkWell(
-      onTap: () {
-        
+      onTap: () async {
+        await LocalStorage.removeToken();
+
+        if (!mounted) return;
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -303,7 +361,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: const Row(
@@ -313,7 +375,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(width: 8),
             Text(
               'Sign Out',
-              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700, fontSize: 15),
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
           ],
         ),
@@ -333,7 +399,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, -2)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -360,7 +430,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         color: selected ? primaryBlue : Colors.grey[400],
                         fontSize: 11,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ],
