@@ -1,0 +1,25 @@
+[1mdiff --git a/frontend/lib/main.dart b/frontend/lib/main.dart[m
+[1mindex 80a165b..7d7613b 100644[m
+[1m--- a/frontend/lib/main.dart[m
+[1m+++ b/frontend/lib/main.dart[m
+[36m@@ -1,6 +1,6 @@[m
+ import 'package:flutter/material.dart';[m
+ [m
+[31m-import 'features/driver/driver_home_screen.dart';[m
+[32m+[m[32mimport 'features/passenger/home_screen.dart';[m
+ [m
+ void main() {[m
+   runApp(const TaxiApp());[m
+[36m@@ -13,7 +13,10 @@[m [mclass TaxiApp extends StatelessWidget {[m
+   Widget build(BuildContext context) {[m
+     return MaterialApp([m
+       debugShowCheckedModeBanner: false,[m
+[31m-      home: const DriverHomeScreen(),[m
+[32m+[m[32m      home: const HomeScreen([m
+[32m+[m[32m        fullName: 'Sabah Ali',[m
+[32m+[m[32m        email: 'sabah@example.com',[m
+[32m+[m[32m      ),[m
+     );[m
+   }[m
+ }[m
+\ No newline at end of file[m
