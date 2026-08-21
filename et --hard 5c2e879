@@ -1,0 +1,93 @@
+[33mce13cce[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfrontend[m[33m)[m HEAD@{0}: rebase (abort): returning to refs/heads/frontend
+[33m65b659f[m HEAD@{1}: rebase (continue): Create passenger report screen UI
+[33m5c2e879[m HEAD@{2}: commit (amend): Connect passenger home screen and report feature
+[33me59e7ef[m HEAD@{3}: commit: Connect passenger home screen and report feature
+[33m6a8854b[m[33m ([m[1;31morigin/frontend[m[33m)[m HEAD@{4}: pull --rebase origin frontend (start): checkout 6a8854b83e56673f374bd029ac3ca0d8910a5ab9
+[33mce13cce[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfrontend[m[33m)[m HEAD@{5}: reset: moving to HEAD
+[33mce13cce[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfrontend[m[33m)[m HEAD@{6}: commit: Update passenger home screen and navigation
+[33mc5ee095[m HEAD@{7}: commit: Polish report filters and empty states
+[33m64dc12d[m HEAD@{8}: commit: Add report details and status tracking
+[33m414cc02[m HEAD@{9}: commit: Add report history filters
+[33mf5faad2[m HEAD@{10}: commit: Improve report form validation
+[33mb0b2ea2[m HEAD@{11}: commit: Improve report form validation
+[33me3fbb68[m HEAD@{12}: commit: Add trip rating and passenger feedback
+[33mc1bf87c[m HEAD@{13}: commit: Add report history and status tracking
+[33mc53c2d5[m HEAD@{14}: commit: Add report submission confirmation flow
+[33m353b6ae[m HEAD@{15}: commit: Add report form details and validation
+[33mc8b2a71[m HEAD@{16}: commit: Issue selection UI more polished and clearly interactive
+[33mea27be5[m HEAD@{17}: commit: Create passenger report screen UI
+[33m3434ba0[m HEAD@{18}: commit: Add report button to passenger home screen
+[33m6cfeec8[m HEAD@{19}: pull origin main: Merge made by the 'ort' strategy.
+[33mb98effa[m HEAD@{20}: commit: Add driver dashboard route controls
+[33ma69ba28[m HEAD@{21}: commit: Add passenger count update action
+[33m2a09224[m HEAD@{22}: commit: Polish driver dashboard responsive layout
+[33m2a840ca[m HEAD@{23}: commit: Add driver dashboard bottom navigation
+[33ma3b65e1[m HEAD@{24}: commit: Add today's driver summary
+[33m1a49b56[m HEAD@{25}: commit: Add driver quick actions
+[33m3ffe061[m HEAD@{26}: commit (merge): Add active trip statistics
+[33m2353e8e[m HEAD@{27}: pull origin main: Merge made by the 'ort' strategy.
+[33m91d2adc[m HEAD@{28}: commit: Add active trip card to driver dashboard
+[33m2086aa5[m HEAD@{29}: commit: Add driver online status header
+[33mc6f3f67[m HEAD@{30}: commit: Create driver home dashboard structure
+[33m8b88611[m HEAD@{31}: pull origin main: Fast-forward
+[33m739de01[m HEAD@{32}: rebase (finish): returning to refs/heads/frontend
+[33m739de01[m HEAD@{33}: rebase (pick): Add driver history categories
+[33m94614d6[m HEAD@{34}: rebase (pick): Build driver history screen
+[33m15431a4[m HEAD@{35}: rebase (pick): Create driver trip history model
+[33mb2186d8[m HEAD@{36}: rebase (pick): Add driver history time filters
+[33m11f538b[m HEAD@{37}: rebase (pick): Add driver history performance summary
+[33mad01ce8[m HEAD@{38}: rebase (continue): Create driver trip history screen
+[33m4bf844b[m HEAD@{39}: pull origin main: Fast-forward
+[33mca1bf77[m HEAD@{40}: pull --rebase origin frontend (start): checkout ca1bf77c052e9b05ee68121c1dfd382847d376f9
+[33m860c960[m HEAD@{41}: reset: moving to HEAD
+[33m860c960[m HEAD@{42}: commit: Add driver history categories
+[33mca6124c[m HEAD@{43}: commit: Build driver history screen
+[33m5084b4f[m HEAD@{44}: commit: Create driver trip history model
+[33m55b3a76[m HEAD@{45}: commit: Add driver history time filters
+[33m6e03edc[m HEAD@{46}: commit: Add driver history performance summary
+[33mbdcf6ca[m HEAD@{47}: commit: Create driver trip history screen
+[33m7bdb634[m HEAD@{48}: reset: moving to HEAD
+[33m7bdb634[m HEAD@{49}: commit: Update public transportation trip history
+[33ma3a077a[m HEAD@{50}: commit: Redesigned the color combination
+[33m2a5523f[m HEAD@{51}: commit (merge): feat: implement trip details screen and enhance home screen with data loading
+[33mda2b8c2[m HEAD@{52}: reset: moving to HEAD
+[33mda2b8c2[m HEAD@{53}: pull origin main: updating HEAD
+[33mda2b8c2[m HEAD@{54}: pull origin main: updating HEAD
+[33mda2b8c2[m HEAD@{55}: commit: feat: add yesterday trips data and enhance HistoryScreen layout
+[33m4e2dda7[m HEAD@{56}: commit: feat: implement Today trips display in HistoryScreen with improved layout
+[33ma4b358a[m HEAD@{57}: commit: feat: update main entry point to use HistoryScreen and clean up widget tests
+[33m6003099[m HEAD@{58}: commit: feat: enhance HistoryScreen with improved layout, header, and filter tabs
+[33m09a544c[m HEAD@{59}: commit: feat: enhance HistoryScreen layout and add header with trip information
+[33mb86ffc2[m HEAD@{60}: commit: feat: add HistoryScreen with basic layout and styling
+[33md37058f[m HEAD@{61}: commit: feat: update HomeScreen styling and layout for improved user experience
+[33m5f8e2e6[m HEAD@{62}: commit: feat: implement bottom navigation and refactor summary cards in HomeScreen for improved navigation and layout
+[33m2e81c38[m HEAD@{63}: commit: feat: refactor HomeScreen to use StatefulWidget for dynamic station selection and improved layout
+[33mc70b12a[m HEAD@{64}: commit: feat: add summary and route cards to HomeScreen for improved user information display
+[33m4e9ef56[m HEAD@{65}: commit: feat: add station information card to HomeScreen with location details and change button
+[33ma050c5e[m HEAD@{66}: commit: feat: add search input field to HomeScreen with improved styling
+[33mc4d7f32[m HEAD@{67}: commit: feat: enhance HomeScreen layout with personalized greeting and improved styling
+[33m3459617[m HEAD@{68}: commit: feat: implement HomeScreen as the main application interface
+[33m70f18b5[m HEAD@{69}: checkout: moving from frontend to frontend
+[33m70f18b5[m HEAD@{70}: pull origin main: Fast-forward
+[33mc547e9a[m HEAD@{71}: pull --tags origin frontend: Merge made by the 'ort' strategy.
+[33m600e798[m[33m ([m[1;32mbackend[m[33m)[m HEAD@{72}: merge backend: Fast-forward
+[33mc943f33[m[33m ([m[1;31morigin/backend[m[33m, [m[1;32mmain[m[33m)[m HEAD@{73}: checkout: moving from backend to frontend
+[33m600e798[m[33m ([m[1;32mbackend[m[33m)[m HEAD@{74}: commit: Refactor main application structure and enhance home page layout with counter functionality
+[33mff620ef[m HEAD@{75}: commit: Enhance registration validation and improve user feedback with loading state
+[33m12b6c5a[m HEAD@{76}: commit: Add loading state to registration process and disable button during submission
+[33m79f955a[m HEAD@{77}: commit: Implement registration validation and add register button to registration screen
+[33mf3bab67[m HEAD@{78}: commit: Add terms and conditions checkbox to registration screen
+[33m60c8ec2[m HEAD@{79}: commit: Refactor registration screen to include input fields for password and confirm password, and add back button and taxi icon to header
+[33m6ef98bc[m HEAD@{80}: commit: Add input fields for full name, phone number, and email in registration screen
+[33m705b5f7[m HEAD@{81}: commit: Added registration screen header
+[33m5632587[m HEAD@{82}: commit: Create registration screen
+[33mc943f33[m[33m ([m[1;31morigin/backend[m[33m, [m[1;32mmain[m[33m)[m HEAD@{83}: merge origin/main: Fast-forward
+[33m10683df[m HEAD@{84}: checkout: moving from frontend to backend
+[33mc943f33[m[33m ([m[1;31morigin/backend[m[33m, [m[1;32mmain[m[33m)[m HEAD@{85}: merge origin/main: Fast-forward
+[33m10683df[m HEAD@{86}: checkout: moving from main to frontend
+[33mc943f33[m[33m ([m[1;31morigin/backend[m[33m, [m[1;32mmain[m[33m)[m HEAD@{87}: checkout: moving from main to main
+[33mc943f33[m[33m ([m[1;31morigin/backend[m[33m, [m[1;32mmain[m[33m)[m HEAD@{88}: commit: Finished setting up frontend structure
+[33m10683df[m HEAD@{89}: checkout: moving from frontend to main
+[33m10683df[m HEAD@{90}: checkout: moving from main to frontend
+[33m10683df[m HEAD@{91}: Branch: renamed refs/heads/main to refs/heads/main
+[33m10683df[m HEAD@{93}: commit (initial): Setting up the project struc
