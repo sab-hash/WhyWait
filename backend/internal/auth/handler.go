@@ -55,8 +55,16 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
+	// New registered users are passengers by default
+	role := "passenger"
+
 	// Insert into database
-	query := `INSERT INTO users (full_name, phone, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id`
+	query := `
+		INSERT INTO users
+		(full_name, phone, email, password_hash, role)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
 
 	var id string
 	err = h.DB.QueryRow(
@@ -65,6 +73,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		user.Phone,
 		user.Email,
 		string(hashedPassword),
+		role,
 	).Scan(&id)
 
 	if err != nil {
@@ -75,8 +84,8 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// Generate token
-	token, err := h.Token.generateToken(id, user.Email)
+	// Generate token with role
+	token, err := h.Token.generateToken(id, user.Email, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to generate token",
@@ -92,6 +101,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 			"fullName": user.FullName,
 			"email":    user.Email,
 			"phone":    user.Phone,
+			"role":     role,
 		},
 	})
 }
@@ -118,10 +128,14 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// Query user from database by email OR phone
-	var id, fullName, email, phone, passwordHash string
+	// Query user by email OR phone
+	var id, fullName, email, phone, passwordHash, role string
 
-	query := `SELECT id, full_name, email, phone, password_hash FROM users WHERE email = $1 OR phone = $1`
+	query := `
+		SELECT id, full_name, email, phone, password_hash, role
+		FROM users
+		WHERE email = $1 OR phone = $1
+	`
 
 	err = h.DB.QueryRow(query, creds.Email).Scan(
 		&id,
@@ -129,6 +143,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		&email,
 		&phone,
 		&passwordHash,
+		&role,
 	)
 
 	if err == sql.ErrNoRows {
@@ -159,8 +174,8 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// Generate token
-	token, err := h.Token.generateToken(id, email)
+	// Generate token with role
+	token, err := h.Token.generateToken(id, email, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to generate token",
@@ -176,6 +191,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 			"fullName": fullName,
 			"email":    email,
 			"phone":    phone,
+			"role":     role,
 		},
 	})
 }

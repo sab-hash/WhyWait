@@ -18,13 +18,16 @@ func NewTokenManager(jwtSecret []byte) *TokenManager {
 }
 
 // ==================== JWT HELPERS ====================
-func (tm *TokenManager) generateToken(userID, email string) (string, error) {
+func (tm *TokenManager) generateToken(userID, email, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"email":   email,
+		"role":    role,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
 	return token.SignedString(tm.jwtSecret)
 }
 
