@@ -33,3 +33,27 @@ IconData docStatusIcon(DocStatus status) {
       return Icons.upload_file_rounded;
   }
 }
+
+/// Blue app bar used by driver sub-screens.
+PreferredSizeWidget buildDriverAppBar(
+  String title, {
+  List<Widget>? actions,
+  bool showBack = true,
+}) {
+  return AppBar(
+    backgroundColor: DriverTheme.primaryBlue,
+    foregroundColor: Colors.white,
+    elevation: 0,
+    automaticallyImplyLeading: showBack,
+    title: Text(
+      title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 21,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    actions: actions,
+  );
+}
