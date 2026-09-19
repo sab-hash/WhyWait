@@ -57,3 +57,22 @@ PreferredSizeWidget buildDriverAppBar(
     actions: actions,
   );
 }
+/// Displays a floating message to the user.
+void showDriverSnack(
+  BuildContext context,
+  String message, {
+  bool isError = false,
+}) {
+  final messenger = ScaffoldMessenger.of(context);
+
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor:
+            isError ? DriverTheme.danger : DriverTheme.textDark,
+      ),
+    );
+}
