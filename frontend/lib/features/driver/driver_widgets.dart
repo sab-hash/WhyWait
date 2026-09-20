@@ -112,3 +112,53 @@ class DriverCard extends StatelessWidget {
     );
   }
 }
+/// Section heading with an optional trailing widget.
+class DriverSectionTitle extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+
+  const DriverSectionTitle({
+    super.key,
+    required this.title,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        if (trailing != null) trailing!,
+      ],
+    );
+  }
+}
+
+/// Small grey label above a group of cards.
+class DriverGroupLabel extends StatelessWidget {
+  final String text;
+
+  const DriverGroupLabel(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: Colors.grey[500],
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+}
