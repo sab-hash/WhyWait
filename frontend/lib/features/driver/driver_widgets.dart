@@ -211,3 +211,104 @@ class StatusChip extends StatelessWidget {
     );
   }
 }
+/// An icon, a value, and a label arranged vertically.
+class StatTile extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color? valueColor;
+
+  const StatTile({
+    super.key,
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: DriverTheme.primaryBlue,
+          size: 22,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Vertical divider for statistic groups.
+class StatDivider extends StatelessWidget {
+  final double height;
+
+  const StatDivider({
+    super.key,
+    this.height = 55,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: height,
+      color: DriverTheme.divider,
+    );
+  }
+}
+
+/// Round tinted icon used by quick actions and summaries.
+class RoundIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const RoundIcon({
+    super.key,
+    required this.icon,
+    this.color = DriverTheme.primaryBlue,
+    this.size = 44,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        icon,
+        color: color,
+        size: size * 0.5,
+      ),
+    );
+  }
+}
