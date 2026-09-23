@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+// ---------------------------------------------------------------------------
+// THEME
+// ---------------------------------------------------------------------------
+
+const Color kPrimaryBlue = Color(0xFF0B3D78);
+
+// ---------------------------------------------------------------------------
 // MODEL
+// ---------------------------------------------------------------------------
 
 enum TaxiStatus { available, filling }
 
@@ -27,14 +35,19 @@ class Taxi {
     required this.longitude,
   });
 
+  LatLng get location => LatLng(latitude, longitude);
+
+  bool get isAvailable => status == TaxiStatus.available;
+
   factory Taxi.fromJson(Map<String, dynamic> json) {
     return Taxi(
       id: json['id'].toString(),
       name: json['name'] as String,
       plate: json['plate'] as String,
       distanceKm: (json['distance_km'] as num).toDouble(),
-      etaMinutes: json['eta_minutes'] as int,
-      status: (json['status'] as String) == 'available'
+      // `as int` crashes when the backend sends 4.0 — go through num first.
+      etaMinutes: (json['eta_minutes'] as num).toInt(),
+      status: json['status'] == 'available'
           ? TaxiStatus.available
           : TaxiStatus.filling,
       latitude: (json['latitude'] as num).toDouble(),
@@ -42,31 +55,35 @@ class Taxi {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'plate': plate,
-      'distance_km': distanceKm,
-      'eta_minutes': etaMinutes,
-      'status': status == TaxiStatus.available ? 'available' : 'filling',
-      'latitude': latitude,
-      'longitude': longitude,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'plate': plate,
+        'distance_km': distanceKm,
+        'eta_minutes': etaMinutes,
+        'status': isAvailable ? 'available' : 'filling',
+        'latitude': latitude,
+        'longitude': longitude,
+      };
 }
+
+// ---------------------------------------------------------------------------
+// SERVICE + MOCK DATA
+// ---------------------------------------------------------------------------
+
 class TaxiService {
   Future<List<Taxi>> fetchNearbyTaxis() async {
-    await Future.delayed(const Duration(milliseconds: 400)); // simulate network
-    return _mockTaxis;
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    // Return an unmodifiable copy so callers can't mutate the master list.
+    return List<Taxi>.unmodifiable(_mockTaxis);
   }
 }
 
-// Pickup point: "Mexico" (Addis Ababa) 
-const LatLng pickupLocation = LatLng(9.0092, 38.7469);
+/// Pickup point: "Mexico" (Addis Ababa)
+const LatLng kPickupLocation = LatLng(9.0092, 38.7469);
 
-final List<Taxi> _mockTaxis = [
-  const Taxi(
+const List<Taxi> _mockTaxis = <Taxi>[
+  Taxi(
     id: '1',
     name: 'Taxi 1',
     plate: 'AA 32-81',
@@ -76,7 +93,7 @@ final List<Taxi> _mockTaxis = [
     latitude: 9.0125,
     longitude: 38.7510,
   ),
-  const Taxi(
+  Taxi(
     id: '2',
     name: 'Taxi 2',
     plate: 'AA 14-72',
@@ -86,7 +103,7 @@ final List<Taxi> _mockTaxis = [
     latitude: 9.0165,
     longitude: 38.7440,
   ),
-  const Taxi(
+  Taxi(
     id: '3',
     name: 'Taxi 3',
     plate: 'AA 55-03',
@@ -98,7 +115,10 @@ final List<Taxi> _mockTaxis = [
   ),
 ];
 
+// ---------------------------------------------------------------------------
 // SCREEN
+// ---------------------------------------------------------------------------
+
 class TrackScreen extends StatefulWidget {
   const TrackScreen({super.key});
 
@@ -107,12 +127,14 @@ class TrackScreen extends StatefulWidget {
 }
 
 class _TrackScreenState extends State<TrackScreen> {
-  static const Color primaryBlue = Color(0xFF0B3D78);
+  static const double _minZoom = 10;
+  static const double _maxZoom = 18;
+  static const double _defaultZoom = 14;
 
   final MapController _mapController = MapController();
   final TaxiService _taxiService = TaxiService();
 
-  List<Taxi> _taxis = [];
+  List<Taxi> _taxis = const <Taxi>[];
   bool _isLoading = true;
   int _currentNavIndex = 1;
 
@@ -122,14 +144,31 @@ class _TrackScreenState extends State<TrackScreen> {
     _loadTaxis();
   }
 
+  @override
+  void dispose() {
+    // flutter_map's controller holds a reference to the map state — release it.
+    _mapController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadTaxis() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
+
     final taxis = await _taxiService.fetchNearbyTaxis();
-    if (!mounted) return;
+    if (!mounted) return; // widget was popped while awaiting
+
     setState(() {
-      _taxis = taxis;
+      // Copy before sorting — never sort the shared mock list in place.
+      _taxis = List<Taxi>.of(taxis)
+        ..sort((a, b) => a.etaMinutes.compareTo(b.etaMinutes));
       _isLoading = false;
     });
+  }
+
+  void _zoomBy(double delta) {
+    final camera = _mapController.camera;
+    final target = (camera.zoom + delta).clamp(_minZoom, _maxZoom);
+    _mapController.move(camera.center, target);
   }
 
   @override
@@ -152,19 +191,7 @@ class _TrackScreenState extends State<TrackScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _isLoading
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          : Column(
-                              children: _taxis
-                                  .map((taxi) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
-                                        child: _buildTaxiCard(taxi),
-                                      ))
-                                  .toList(),
-                            ),
+                      child: _buildListBody(),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -178,14 +205,20 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
+  // -------------------------------------------------------------------------
   // Header
+  // -------------------------------------------------------------------------
 
   Widget _buildHeader() {
+    final String subtitle = _isLoading
+        ? 'Finding taxis near you…'
+        : '${_taxis.length} ${_taxis.length == 1 ? 'taxi' : 'taxis'} approaching';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       decoration: const BoxDecoration(
-        color: primaryBlue,
+        color: kPrimaryBlue,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
@@ -219,10 +252,14 @@ class _TrackScreenState extends State<TrackScreen> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.notifications_none,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -241,9 +278,9 @@ class _TrackScreenState extends State<TrackScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '${_taxis.length} taxis approaching',
+                  subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 13,
                   ),
                 ),
@@ -255,8 +292,9 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
-
+  // -------------------------------------------------------------------------
   // Real interactive OpenStreetMap via flutter_map
+  // -------------------------------------------------------------------------
 
   Widget _buildMap() {
     return Container(
@@ -266,7 +304,10 @@ class _TrackScreenState extends State<TrackScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+          ),
         ],
       ),
       child: Stack(
@@ -274,30 +315,31 @@ class _TrackScreenState extends State<TrackScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: pickupLocation,
-              initialZoom: 14,
-              minZoom: 10,
-              maxZoom: 18,
+              initialCenter: kPickupLocation,
+              initialZoom: _defaultZoom,
+              minZoom: _minZoom,
+              maxZoom: _maxZoom,
+              // Rotation adds nothing here and fights the scroll view.
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
             ),
             children: [
-              // Real map tiles from OpenStreetMap — free, no API key needed.
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.taxitrack',
               ),
               MarkerLayer(
                 markers: [
-                  // Pickup pin
                   Marker(
-                    point: pickupLocation,
+                    point: kPickupLocation,
                     width: 70,
                     height: 60,
                     child: _buildPickupPin(),
                   ),
-                  // One marker per taxi
                   ..._taxis.map(
                     (taxi) => Marker(
-                      point: LatLng(taxi.latitude, taxi.longitude),
+                      point: taxi.location,
                       width: 50,
                       height: 50,
                       child: _buildTaxiMarker(taxi),
@@ -307,30 +349,33 @@ class _TrackScreenState extends State<TrackScreen> {
               ),
             ],
           ),
-          // Zoom controls
           Positioned(
             right: 12,
             top: 12,
             child: Column(
               children: [
-                _buildMapButton(Icons.add, onTap: () {
-                  _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1);
-                }),
+                _buildMapButton(
+                  Icons.add,
+                  label: 'Zoom in',
+                  onTap: () => _zoomBy(1),
+                ),
                 const SizedBox(height: 8),
-                _buildMapButton(Icons.remove, onTap: () {
-                  _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1);
-                }),
+                _buildMapButton(
+                  Icons.remove,
+                  label: 'Zoom out',
+                  onTap: () => _zoomBy(-1),
+                ),
               ],
             ),
           ),
-          // Recenter button
           Positioned(
             right: 12,
             bottom: 12,
             child: _buildMapButton(
               Icons.my_location,
+              label: 'Recenter',
               filled: true,
-              onTap: () => _mapController.move(pickupLocation, 14),
+              onTap: () => _mapController.move(kPickupLocation, _defaultZoom),
             ),
           ),
         ],
@@ -346,7 +391,7 @@ class _TrackScreenState extends State<TrackScreen> {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color: primaryBlue,
+            color: kPrimaryBlue,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
           ),
@@ -359,7 +404,10 @@ class _TrackScreenState extends State<TrackScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+              ),
             ],
           ),
           child: const Text(
@@ -381,47 +429,68 @@ class _TrackScreenState extends State<TrackScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: primaryBlue, width: 2),
+            border: Border.all(color: kPrimaryBlue, width: 2),
           ),
-          child: Icon(Icons.local_taxi, color: primaryBlue, size: 14),
+          child: const Icon(Icons.local_taxi, color: kPrimaryBlue, size: 14),
         ),
         Container(
           margin: const EdgeInsets.only(top: 2),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           decoration: BoxDecoration(
-            color: primaryBlue,
+            color: kPrimaryBlue,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             '${taxi.etaMinutes}m',
-            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMapButton(IconData icon, {bool filled = false, VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: filled ? primaryBlue : Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-          ],
+  Widget _buildMapButton(
+    IconData icon, {
+    required String label,
+    bool filled = false,
+    VoidCallback? onTap,
+  }) {
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: filled ? kPrimaryBlue : Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            semanticLabel: label,
+            color: filled ? Colors.white : Colors.black87,
+          ),
         ),
-        child: Icon(icon, size: 18, color: filled ? Colors.white : Colors.black87),
       ),
     );
   }
 
-
-  // List header + cards
+  // -------------------------------------------------------------------------
+  // List header + body
+  // -------------------------------------------------------------------------
 
   Widget _buildListHeader() {
     return Row(
@@ -434,27 +503,68 @@ class _TrackScreenState extends State<TrackScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: primaryBlue.withOpacity(0.08),
+            color: kPrimaryBlue.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            '${_taxis.length} taxis',
-            style: TextStyle(color: primaryBlue, fontSize: 12, fontWeight: FontWeight.w600),
+            '${_taxis.length} ${_taxis.length == 1 ? 'taxi' : 'taxis'}',
+            style: const TextStyle(
+              color: kPrimaryBlue,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
     );
   }
 
+  Widget _buildListBody() {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_taxis.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: Text(
+            'No taxis nearby right now.',
+            style: TextStyle(color: Colors.black54),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: _taxis
+          .map(
+            (taxi) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildTaxiCard(taxi),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   Widget _buildTaxiCard(Taxi taxi) {
-    final bool isAvailable = taxi.status == TaxiStatus.available;
+    final bool isAvailable = taxi.isAvailable;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
@@ -463,10 +573,14 @@ class _TrackScreenState extends State<TrackScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.08),
+              color: kPrimaryBlue.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.local_taxi, color: primaryBlue, size: 20),
+            child: const Icon(
+              Icons.local_taxi,
+              color: kPrimaryBlue,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -477,7 +591,10 @@ class _TrackScreenState extends State<TrackScreen> {
                   children: [
                     Text(
                       taxi.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -489,7 +606,11 @@ class _TrackScreenState extends State<TrackScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 13, color: Colors.grey[500]),
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 13,
+                      color: Colors.grey[500],
+                    ),
                     const SizedBox(width: 2),
                     Text(
                       '${taxi.distanceKm} km',
@@ -512,19 +633,27 @@ class _TrackScreenState extends State<TrackScreen> {
             children: [
               Text(
                 '${taxi.etaMinutes} min',
-                style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  color: kPrimaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isAvailable ? const Color(0xFFE3F6E8) : const Color(0xFFFCF2D8),
+                  color: isAvailable
+                      ? const Color(0xFFE3F6E8)
+                      : const Color(0xFFFCF2D8),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   isAvailable ? 'available' : 'filling',
                   style: TextStyle(
-                    color: isAvailable ? const Color(0xFF2E9E4F) : const Color(0xFFB8860B),
+                    color: isAvailable
+                        ? const Color(0xFF2E9E4F)
+                        : const Color(0xFFB8860B),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -537,11 +666,12 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
-
+  // -------------------------------------------------------------------------
   // Bottom nav
+  // -------------------------------------------------------------------------
 
   Widget _buildBottomNav() {
-    final items = [
+    const items = <(IconData, String)>[
       (Icons.home_outlined, 'Home'),
       (Icons.map_outlined, 'Track'),
       (Icons.history, 'History'),
@@ -552,7 +682,11 @@ class _TrackScreenState extends State<TrackScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, -2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -563,26 +697,31 @@ class _TrackScreenState extends State<TrackScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(items.length, (index) {
               final selected = index == _currentNavIndex;
+              final color = selected ? kPrimaryBlue : Colors.grey[400];
+
               return InkWell(
                 onTap: () => setState(() => _currentNavIndex = index),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      items[index].$1,
-                      color: selected ? primaryBlue : Colors.grey[400],
-                      size: 22,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      items[index].$2,
-                      style: TextStyle(
-                        color: selected ? primaryBlue : Colors.grey[400],
-                        fontSize: 11,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(items[index].$1, color: color, size: 22),
+                      const SizedBox(height: 2),
+                      Text(
+                        items[index].$2,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight:
+                              selected ? FontWeight.w600 : FontWeight.normal,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             }),
