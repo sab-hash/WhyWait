@@ -57,6 +57,7 @@ PreferredSizeWidget buildDriverAppBar(
     actions: actions,
   );
 }
+
 /// Displays a floating message to the user.
 void showDriverSnack(
   BuildContext context,
@@ -76,6 +77,7 @@ void showDriverSnack(
       ),
     );
 }
+
 /// White rounded card with a soft shadow.
 class DriverCard extends StatelessWidget {
   final Widget child;
@@ -112,6 +114,7 @@ class DriverCard extends StatelessWidget {
     );
   }
 }
+
 /// Section heading with an optional trailing widget.
 class DriverSectionTitle extends StatelessWidget {
   final String title;
@@ -162,6 +165,7 @@ class DriverGroupLabel extends StatelessWidget {
     );
   }
 }
+
 /// Rounded pill with a colored label and optional icon.
 class StatusChip extends StatelessWidget {
   final String label;
@@ -211,6 +215,7 @@ class StatusChip extends StatelessWidget {
     );
   }
 }
+
 /// An icon, a value, and a label arranged vertically.
 class StatTile extends StatelessWidget {
   final IconData icon;
@@ -312,6 +317,7 @@ class RoundIcon extends StatelessWidget {
     );
   }
 }
+
 /// Row card used by profile settings and navigation options.
 class DriverRowTile extends StatelessWidget {
   final IconData icon;
@@ -480,6 +486,95 @@ class DriverSegmentedTabs extends StatelessWidget {
             ),
           );
         }),
+      ),
+    );
+  }
+}
+
+/// Bottom navigation for Home, Map, History, and Profile.
+class DriverBottomNav extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const DriverBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  static const List<(IconData, String)> _items = [
+    (Icons.home_rounded, 'Home'),
+    (Icons.map_rounded, 'Map'),
+    (Icons.history_rounded, 'History'),
+    (Icons.person_rounded, 'Profile'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final safeIndex = currentIndex.clamp(0, _items.length - 1);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+          child: Row(
+            children: List.generate(_items.length, (index) {
+              final selected = index == safeIndex;
+              final color =
+                  selected ? DriverTheme.primaryBlue : Colors.grey;
+
+              return Expanded(
+                child: Semantics(
+                  button: true,
+                  selected: selected,
+                  label: _items[index].$2,
+                  child: InkWell(
+                    onTap: () => onTap(index),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _items[index].$1,
+                            color: color,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _items[index].$2,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 11,
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }
