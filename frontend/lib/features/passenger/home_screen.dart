@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
+import '../../services/grpc_client.dart';
+import '../../services/passenger_state.dart';
 import 'report_screen.dart';
-import 'profile_screen.dart';
+import 'route_planner_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
@@ -19,16 +20,14 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color lightBlue = Color(0xFFE3F2FD);
   static const Color darkText = Color(0xFF333333);
 
-  int selectedIndex = 0;
-
   String selectedStation = 'Bole Taxi Station';
   String stationDistance = '1.2 km away';
 
-  List<dynamic> _terminals = [];
+  List<Map<String, dynamic>> _terminals = [];
   int _taxiCount = 0;
   int _nearbyCount = 0;
   int _avgWait = 0;
-  List<dynamic> _popularRoutes = [];
+  List<Map<String, dynamic>> _popularRoutes = [];
   bool _isLoading = true;
 
   @override
@@ -38,22 +37,58 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    final terminals = await ApiService.getTerminals();
-    final status = await ApiService.getTaxiStatus();
-    final routes = await ApiService.getPopularRoutes();
+    try {
+      final terminalsFuture = GrpcClient().getTerminals();
+      final statusFuture = GrpcClient().getTaxiStatus();
+      final routesFuture = GrpcClient().getPopularRoutes();
 
-    setState(() {
-      _terminals = terminals;
-      _taxiCount = status['available'] ?? 0;
-      _nearbyCount = status['nearby_stations'] ?? 0;
-      _avgWait = status['average_wait'] ?? 0;
-      _popularRoutes = routes;
-      _isLoading = false;
-    });
+      final terminals = await terminalsFuture;
+      final status = await statusFuture;
+      final routes = await routesFuture;
+
+      setState(() {
+        _terminals = terminals.terminals.map((t) => {
+          'id': t.id,
+          'name': t.name,
+          'latitude': t.latitude,
+          'longitude': t.longitude,
+          'address': t.address,
+          'city': t.city,
+        }).toList();
+
+        _taxiCount = status.available;
+        _nearbyCount = status.nearbyStations;
+        _avgWait = status.averageWait;
+
+        _popularRoutes = routes.routes.map((r) => {
+          'from': r.from,
+          'to': r.to,
+          'waitTime': r.waitTime,
+        }).toList();
+
+        _isLoading = false;
+      });
+
+      PassengerState().terminals = _terminals;
+      PassengerState().selectedStation = selectedStation;
+    } catch (e) {
+      print('Error loading home data: $e');
+      setState(() => _isLoading = false);
+      _showError('Failed to load data. Please check your connection.');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -71,6 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildSearchBar(),
               const SizedBox(height: 18),
               _buildStationCard(),
+              const SizedBox(height: 12),
+              _buildPlanTripButton(),
               const SizedBox(height: 20),
               _buildSummaryCards(),
               const SizedBox(height: 28),
@@ -90,14 +127,42 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         elevation: 4,
         icon: const Icon(Icons.report_problem_outlined),
-        label: const Text('Report', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Report',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
-  // ==================== HEADER ====================
+  Widget _buildPlanTripButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RoutePlannerScreen()),
+          );
+        },
+        icon: const Icon(Icons.route_outlined),
+        label: const Text(
+          'Plan Your Trip',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: primaryBlue,
+          elevation: 0,
+          side: BorderSide(color: primaryBlue.withOpacity(0.3)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -152,7 +217,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== SEARCH BAR ====================
   Widget _buildSearchBar() {
     return Container(
       height: 58,
@@ -172,18 +236,16 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: InputDecoration(
           hintText: 'Where are you going?',
           hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: primaryBlue,
-            size: 25,
-          ),
+          prefixIcon:
+              const Icon(Icons.search_rounded, color: primaryBlue, size: 25),
           suffixIcon: Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: lightBlue,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.tune_rounded, color: primaryBlue, size: 20),
+            child:
+                const Icon(Icons.tune_rounded, color: primaryBlue, size: 20),
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 17),
@@ -192,7 +254,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== STATION CARD ====================
   Widget _buildStationCard() {
     return Container(
       width: double.infinity,
@@ -217,11 +278,8 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.location_on_rounded,
-              color: primaryBlue,
-              size: 25,
-            ),
+            child: const Icon(Icons.location_on_rounded,
+                color: primaryBlue, size: 25),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -274,7 +332,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== SUMMARY CARDS ====================
   Widget _buildSummaryCards() {
     return Row(
       children: [
@@ -361,7 +418,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== POPULAR ROUTES ====================
   Widget _buildPopularRoutes() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -451,190 +507,47 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: lightBlue,
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: const Icon(
-                Icons.local_taxi_rounded,
-                color: primaryBlue,
-                size: 20,
-              ),
+              child: const Icon(Icons.local_taxi_rounded,
+                  color: primaryBlue, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Row(
                 children: [
-                  Text(
-                    from,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
-                    ),
-                  ),
+                  Text(from,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: darkText)),
                   const SizedBox(width: 7),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: primaryBlue,
-                    size: 17,
-                  ),
+                  const Icon(Icons.arrow_forward_rounded,
+                      color: primaryBlue, size: 17),
                   const SizedBox(width: 7),
-                  Text(
-                    to,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
-                    ),
-                  ),
+                  Text(to,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: darkText)),
                 ],
               ),
             ),
-            Icon(
-              Icons.access_time_rounded,
-              size: 15,
-              color: Colors.grey.shade500,
-            ),
+            Icon(Icons.access_time_rounded,
+                size: 15, color: Colors.grey.shade500),
             const SizedBox(width: 4),
-            Text(
-              waitTime,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text(waitTime,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500)),
             const SizedBox(width: 3),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: primaryBlue,
-              size: 21,
-            ),
+            const Icon(Icons.chevron_right_rounded,
+                color: primaryBlue, size: 21),
           ],
         ),
       ),
     );
   }
 
-  // ==================== BOTTOM NAVIGATION ====================
-  Widget _buildBottomNavigation() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -3),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-                label: 'Home',
-                index: 0,
-              ),
-              _navItem(
-                icon: Icons.location_on_outlined,
-                activeIcon: Icons.location_on_rounded,
-                label: 'Track',
-                index: 1,
-              ),
-              _navItem(
-                icon: Icons.receipt_long_outlined,
-                activeIcon: Icons.receipt_long_rounded,
-                label: 'Trips',
-                index: 2,
-              ),
-              _navItem(
-                icon: Icons.person_outline_rounded,
-                activeIcon: Icons.person_rounded,
-                label: 'Profile',
-                index: 3,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem({
-    required IconData icon,
-    required IconData activeIcon,
-    required String label,
-    required int index,
-  }) {
-    final bool isSelected = selectedIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedIndex = index;
-        });
-
-        if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProfileScreen(
-                fullName: widget.fullName,
-                phoneNumber: widget.email,
-              ),
-            ),
-          );
-          return;
-        }
-
-        if (index != 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$label screen will be connected later'),
-              backgroundColor: primaryBlue,
-              duration: const Duration(seconds: 1),
-            ),
-          );
-        }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 70,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: isSelected ? lightBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
-                size: 23,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ==================== CHANGE STATION ====================
   void _changeStation() {
     if (_terminals.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -692,11 +605,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: lightBlue,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.location_on_rounded,
-                      color: primaryBlue,
-                      size: 21,
-                    ),
+                    child: const Icon(Icons.location_on_rounded,
+                        color: primaryBlue, size: 21),
                   ),
                   title: Text(
                     stationName,
@@ -706,16 +616,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   trailing: isSelected
-                      ? const Icon(
-                          Icons.check_circle_rounded,
-                          color: primaryBlue,
-                        )
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: primaryBlue)
                       : null,
                   onTap: () {
                     setState(() {
                       selectedStation = stationName;
                       stationDistance =
                           '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
+                      PassengerState().selectedStation = selectedStation;
                     });
                     Navigator.pop(context);
                   },
@@ -728,7 +637,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ==================== ROUTE DETAILS ====================
   void _showRouteDetails({
     required String from,
     required String to,
@@ -762,11 +670,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: lightBlue,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(
-                  Icons.local_taxi_rounded,
-                  color: primaryBlue,
-                  size: 36,
-                ),
+                child: const Icon(Icons.local_taxi_rounded,
+                    color: primaryBlue, size: 36),
               ),
               const SizedBox(height: 16),
               Text(
@@ -793,7 +698,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
-
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('You joined the $from → $to queue'),
