@@ -108,33 +108,20 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   DateTime get today {
     final now = DateTime.now();
-
-    return DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    return DateTime(now.year, now.month, now.day);
   }
 
   DateTime get startOfWeek {
-    return today.subtract(
-      Duration(days: today.weekday - 1),
-    );
+    return today.subtract(Duration(days: today.weekday - 1));
   }
 
   List<DriverTrip> get filteredTrips {
     if (selectedTab == 0) {
-      return trips.where((trip) {
-        return _isSameDay(trip.date, today);
-      }).toList();
+      return trips.where((trip) => _isSameDay(trip.date, today)).toList();
     }
-
     if (selectedTab == 1) {
-      return trips.where((trip) {
-        return !trip.date.isBefore(startOfWeek);
-      }).toList();
+      return trips.where((trip) => !trip.date.isBefore(startOfWeek)).toList();
     }
-
     return trips;
   }
 
@@ -145,28 +132,16 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
   }
 
   int get totalPassengers {
-    return filteredTrips.fold(
-      0,
-      (sum, trip) => sum + trip.passengers,
-    );
+    return filteredTrips.fold(0, (sum, trip) => sum + trip.passengers);
   }
 
   int get totalEarnings {
-    return filteredTrips.fold(
-      0,
-      (sum, trip) => sum + trip.fare,
-    );
+    return filteredTrips.fold(0, (sum, trip) => sum + trip.fare);
   }
 
   String get selectedTitle {
-    if (selectedTab == 0) {
-      return 'Today';
-    }
-
-    if (selectedTab == 1) {
-      return 'This Week';
-    }
-
+    if (selectedTab == 0) return 'Today';
+    if (selectedTab == 1) return 'This Week';
     return 'All Trips';
   }
 
@@ -180,10 +155,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         elevation: 0,
         title: const Text(
           'Trip History',
-          style: TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontSize: 21, fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -195,34 +167,26 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               child: filteredTrips.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        16,
-                        4,
-                        16,
-                        24,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                       itemCount: filteredTrips.length,
                       itemBuilder: (context, index) {
-                        return _buildTripCard(
-                          filteredTrips[index],
-                        );
+                        return _buildTripCard(filteredTrips[index]);
                       },
                     ),
             ),
           ],
         ),
       ),
+      // ✅ Bottom navigation bar is now provided by DriverScaffold (via go_router)
     );
   }
 
+  // ========================================================================
+  // TABS
+  // ========================================================================
   Widget _buildTabs() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(
-        16,
-        18,
-        16,
-        8,
-      ),
+      margin: const EdgeInsets.fromLTRB(16, 18, 16, 8),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -230,54 +194,32 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       ),
       child: Row(
         children: [
-          _buildTab(
-            title: 'Today',
-            index: 0,
-          ),
-          _buildTab(
-            title: 'This Week',
-            index: 1,
-          ),
-          _buildTab(
-            title: 'All',
-            index: 2,
-          ),
+          _buildTab(title: 'Today', index: 0),
+          _buildTab(title: 'This Week', index: 1),
+          _buildTab(title: 'All', index: 2),
         ],
       ),
     );
   }
 
-  Widget _buildTab({
-    required String title,
-    required int index,
-  }) {
+  Widget _buildTab({required String title, required int index}) {
     final bool isSelected = selectedTab == index;
 
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedTab = index;
-          });
-        },
+        onTap: () => setState(() => selectedTab = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-            vertical: 11,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 11),
           decoration: BoxDecoration(
-            color: isSelected
-                ? primeBlue
-                : Colors.transparent,
+            color: isSelected ? primeBlue : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
           ),
           child: Center(
             child: Text(
               title,
               style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : const Color(0xFF6B7280),
+                color: isSelected ? Colors.white : const Color(0xFF6B7280),
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -288,14 +230,12 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
+  // ========================================================================
+  // SUMMARY
+  // ========================================================================
   Widget _buildSummary() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        16,
-        8,
-        16,
-        14,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
       child: Row(
         children: [
           Expanded(
@@ -332,10 +272,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     required String value,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 13,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -349,11 +286,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: primeBlue,
-            size: 22,
-          ),
+          Icon(icon, color: primeBlue, size: 22),
           const SizedBox(height: 7),
           Text(
             title,
@@ -381,6 +314,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
+  // ========================================================================
+  // TRIP CARD
+  // ========================================================================
   Widget _buildTripCard(DriverTrip trip) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -416,8 +352,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _formatDate(trip.date),
@@ -430,10 +365,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                     const SizedBox(height: 3),
                     Text(
                       trip.time,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -448,16 +380,13 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 18),
-
           _buildRouteRow(
             icon: Icons.circle,
             iconSize: 9,
             title: 'From',
             location: trip.from,
           ),
-
           Padding(
             padding: const EdgeInsets.only(left: 3),
             child: Container(
@@ -466,21 +395,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               color: Colors.grey.shade300,
             ),
           ),
-
           _buildRouteRow(
             icon: Icons.location_on_rounded,
             iconSize: 18,
             title: 'To',
             location: trip.to,
           ),
-
           const SizedBox(height: 16),
-
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(12),
@@ -535,11 +458,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       children: [
         SizedBox(
           width: 20,
-          child: Icon(
-            icon,
-            color: primeBlue,
-            size: iconSize,
-          ),
+          child: Icon(icon, color: primeBlue, size: iconSize),
         ),
         const SizedBox(width: 12),
         Column(
@@ -568,6 +487,9 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
+  // ========================================================================
+  // EMPTY STATE
+  // ========================================================================
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -601,10 +523,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             Text(
               'There are no completed trips for $selectedTitle.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
             ),
           ],
         ),
@@ -612,22 +531,14 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
+  // ========================================================================
+  // HELPERS
+  // ========================================================================
   String _formatDate(DateTime date) {
     const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
     ];
-
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 }
