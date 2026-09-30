@@ -70,21 +70,28 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await GrpcClient().login(phone, password);
+            final response = await GrpcClient().login(phone, password);
       final user = response.user;
       final token = response.token;
 
-      if (token.isEmpty) {
+      if (token == null || token.isEmpty) {
         _showMessage('Login succeeded but no token was received');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      if (user == null) {
+        _showMessage('Login succeeded but no user info was returned');
         setState(() => _isLoading = false);
         return;
       }
 
       await LocalStorage.saveToken(token);
 
+      if (!mounted) return;
       _showMessage('✅ Welcome back, ${user.fullName}!');
 
-      final role = user.role;
+      final role = user.role;;
 
       // Role‑based navigation
       if (role == 'driver') {
