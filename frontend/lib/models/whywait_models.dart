@@ -87,15 +87,21 @@ class TrackRequest {
 
 class TaxiUpdate {
   final String taxiId;
+  final String plate;
+  final String driverName;
   final double latitude;
   final double longitude;
+  final double distanceKm;
   final String status;
   final int etaMinutes;
 
   TaxiUpdate({
     required this.taxiId,
+    this.plate = '',
+    this.driverName = '',
     required this.latitude,
     required this.longitude,
+    this.distanceKm = 0,
     required this.status,
     required this.etaMinutes,
   });
@@ -150,8 +156,11 @@ class TaxiServiceClient {
       await Future.delayed(const Duration(seconds: 2));
       yield TaxiUpdate(
         taxiId: 'AA-12345',
+        plate: 'AA-12345',
+        driverName: 'Abebe Tesfaye',
         latitude: 9.005401,
         longitude: 38.763611,
+        distanceKm: 1.8,
         status: 'en_route',
         etaMinutes: 4,
       );
