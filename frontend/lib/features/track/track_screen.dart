@@ -1,20 +1,21 @@
-import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:location/location.dart' as location;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../../services/api_service.dart';
+import '../../services/grpc_client.dart';
+import '../../generated/whywait.pb.dart';
 
 class TrackScreen extends StatefulWidget {
-  final String fromStation;
-  final String toStation;
+  final String station;
+  final List<Map<String, dynamic>> terminals;
 
   const TrackScreen({
     super.key,
-    required this.fromStation,
-    required this.toStation,
+    required this.station,
+    required this.terminals,
   });
 
   @override
@@ -22,644 +23,668 @@ class TrackScreen extends StatefulWidget {
 }
 
 class _TrackScreenState extends State<TrackScreen> {
-  static const Color primaryBlue = Color(0xFF1565C0);
-  static const Color lightBlue = Color(0xFFE3F2FD);
-
-  final MapController _mapController = MapController();
-  double _currentZoom = 13;
-  final LatLng _defaultCenter = const LatLng(9.0103, 38.7598);
-
-  List<LatLng> _routePoints = [];
-
-  final Map<String, _AnimatedTaxi> _animatedTaxis = {};
-  Timer? _refreshTimer;
-  Timer? _animationTimer;
+  // ---- Map state ----
+  List<TaxiUpdate> _taxis = [];
   bool _isLoading = true;
-  DateTime _lastUpdate = DateTime.now();
+  late LatLng _initialCenter;
+
+  // ---- Passenger location ----
+  LatLng? _userLocation;
+  bool _locationPermissionGranted = false;
+  final location.Location _location = location.Location();
+
+  // ---- Route state ----
+  String? _selectedDestinationId;
+  LatLng? _destination;
+  List<LatLng> _routePoints = [];
+  bool _isRouteLoading = false;
+  List<RouteSuggestion> _routeSuggestions = [];
+
+  // ---- Terminal ID for filtering ----
+  String? _selectedTerminalId;
 
   @override
   void initState() {
     super.initState();
-    _loadTaxis();
-    _fetchRoute();
-
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      _loadTaxis();
-    });
-
-    _animationTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
-      _updateAnimation();
-    });
+    _setInitialCenter();
+    _getUserLocation();
+    _listenToTaxis();
   }
 
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    _animationTimer?.cancel();
-    super.dispose();
+  // ============================================================
+  // GET USER LOCATION
+  // ============================================================
+  Future<void> _getUserLocation() async {
+    PermissionStatus status = await Permission.location.request();
+    if (status.isGranted) {
+      _locationPermissionGranted = true;
+      _location.onLocationChanged.listen((location.LocationData currentLocation) {
+        setState(() {
+          _userLocation = LatLng(
+            currentLocation.latitude ?? 0.0,
+            currentLocation.longitude ?? 0.0,
+          );
+        });
+      });
+    } else {
+      print('Location permission denied');
+    }
   }
 
-  void _updateAnimation() {
-    bool needsUpdate = false;
-    for (var taxi in _animatedTaxis.values) {
-      if (taxi.update()) {
-        needsUpdate = true;
+  // ============================================================
+  // SET INITIAL MAP CENTER
+  // ============================================================
+  void _setInitialCenter() {
+    LatLng? center;
+
+    for (var t in widget.terminals) {
+      if (t['name'] == widget.station && t['latitude'] is num && t['longitude'] is num) {
+        center = LatLng(
+          (t['latitude'] as num).toDouble(),
+          (t['longitude'] as num).toDouble(),
+        );
+        _selectedTerminalId = t['id'];
+        break;
       }
     }
-    if (needsUpdate) {
-      setState(() {});
+
+    if (center == null) {
+      for (var t in widget.terminals) {
+        if (t['latitude'] is num && t['longitude'] is num) {
+          center = LatLng(
+            (t['latitude'] as num).toDouble(),
+            (t['longitude'] as num).toDouble(),
+          );
+          break;
+        }
+      }
     }
+
+    _initialCenter = center ?? const LatLng(9.03, 38.74);
   }
 
-  Future<void> _loadTaxis() async {
+  // ============================================================
+  // TAXI STREAM (LIVE UPDATES)
+  // ============================================================
+  void _listenToTaxis() async {
     try {
-      final url = Uri.parse(
-        '${ApiService.baseUrl}/taxis/approaching?station=${Uri.encodeComponent(widget.fromStation)}',
-      );
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final newTaxis = data['taxis'] ?? [];
-
+      final stream = GrpcClient().trackTaxis(widget.station);
+      await for (final update in stream) {
         setState(() {
+          final index = _taxis.indexWhere((t) => t.taxiId == update.taxiId);
+          if (index != -1) {
+            _taxis[index] = update;
+          } else {
+            _taxis.add(update);
+          }
           _isLoading = false;
-          _lastUpdate = DateTime.now();
-          _syncAnimatedTaxis(newTaxis);
         });
       }
     } catch (e) {
-      print('❌ Error loading taxis: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      print('Error tracking taxis: $e');
+      setState(() => _isLoading = false);
     }
   }
 
-  void _syncAnimatedTaxis(List<dynamic> newTaxis) {
-    final newIds = <String>{};
+  // ============================================================
+  // FETCH ROUTE FROM OSRM
+  // ============================================================
+  Future<void> _fetchRoute(LatLng start, LatLng end) async {
+    setState(() => _isRouteLoading = true);
 
-    for (var taxiData in newTaxis) {
-      final id = taxiData['id'] ?? taxiData['plate'];
-      newIds.add(id);
+    final url =
+        'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson';
 
-      final lat = taxiData['latitude'] ?? 0.0;
-      final lng = taxiData['longitude'] ?? 0.0;
-      final target = LatLng(lat, lng);
-
-      if (_animatedTaxis.containsKey(id)) {
-        _animatedTaxis[id]!.setTarget(
-          target,
-          status: taxiData['status'] ?? 'available',
-          eta: taxiData['eta_minutes'] ?? 0,
-        );
-      } else {
-        _animatedTaxis[id] = _AnimatedTaxi(
-          startPosition: target,
-          targetPosition: target,
-          plate: taxiData['plate'] ?? 'Unknown',
-          status: taxiData['status'] ?? 'available',
-          eta: taxiData['eta_minutes'] ?? 0,
-        );
-      }
-    }
-
-    _animatedTaxis.removeWhere((key, value) => !newIds.contains(key));
-  }
-
-  List<Marker> _buildAnimatedMarkers() {
-    final List<Marker> markers = [];
-
-    // Station Marker (Blue)
-    markers.add(
-      Marker(
-        point: _defaultCenter,
-        width: 40,
-        height: 40,
-        child: const Icon(Icons.location_pin, color: Colors.blue, size: 40),
-      ),
-    );
-
-    // Taxi Markers (Animated)
-    for (var entry in _animatedTaxis.entries) {
-      final taxi = entry.value;
-
-      markers.add(
-        Marker(
-          point: taxi.currentPosition,
-          width: 30,
-          height: 30,
-          child: GestureDetector(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('🚕 Taxi ${taxi.plate} - ETA: ${taxi.eta}min'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
-            child: const Icon(Icons.local_taxi, color: Colors.green, size: 30),
-          ),
-        ),
-      );
-    }
-
-    return markers;
-  }
-
-  Future<void> _fetchRoute() async {
     try {
-      final url = Uri.parse(
-        '${ApiService.baseUrl}/routes/calculate?from_lat=9.0103&from_lng=38.7598&to_lat=8.9806&to_lng=38.7578',
-      );
-      final response = await http.get(url);
-
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final polylineEncoded = data['route']['polyline'] as String?;
-        if (polylineEncoded != null) {
-          final points = _decodePolyline(polylineEncoded);
-          setState(() {
-            _routePoints = points.map((p) => LatLng(p.latitude, p.longitude)).toList();
-          });
-        }
+        final route = data['routes'][0];
+        final geometry = route['geometry']['coordinates'];
+        final duration = (route['duration'] / 60).round();
+
+        setState(() {
+          _routePoints = geometry.map<LatLng>((coord) {
+            return LatLng(coord[1], coord[0]);
+          }).toList();
+          _routeSuggestions = [
+            RouteSuggestion(description: 'Direct Route', totalDuration: duration, segments: []),
+          ];
+          _isRouteLoading = false;
+        });
+
+        _showRouteInfo();
       }
     } catch (e) {
       print('Error fetching route: $e');
+      setState(() => _isRouteLoading = false);
     }
   }
 
-  List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> points = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      points.add(LatLng(lat / 1e5, lng / 1e5));
-    }
-    return points;
+  // ============================================================
+  // SHOW ROUTE INFO BOTTOM SHEET
+  // ============================================================
+  void _showRouteInfo() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Route Suggestions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              ..._routeSuggestions.map((s) {
+                return ListTile(
+                  leading: const Icon(Icons.route, color: Color(0xFF1565C0)),
+                  title: Text(s.description),
+                  trailing: Text(
+                    '${s.totalDuration} min',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1565C0)),
+                  ),
+                  onTap: () => Navigator.pop(context),
+                );
+              }).toList(),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1565C0), foregroundColor: Colors.white),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
+  // ============================================================
+  // GET TERMINAL NAME BY ID
+  // ============================================================
+  String _getTerminalName(String? terminalId) {
+    if (terminalId == null) return '-';
+    final terminal = widget.terminals.firstWhere(
+      (t) => t['id'] == terminalId,
+      orElse: () => {},
+    );
+    return terminal['name'] ?? '-';
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildMapSection(),
-                  _buildApproachingTaxisSection(),
-                ],
-              ),
+      appBar: AppBar(
+        title: Text('Taxis near ${widget.station}'),
+        backgroundColor: const Color(0xFF1565C0),
+        foregroundColor: Colors.white,
+        actions: [
+          if (_destination != null)
+            IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                setState(() {
+                  _destination = null;
+                  _selectedDestinationId = null;
+                  _routePoints = [];
+                  _routeSuggestions = [];
+                });
+              },
             ),
-          ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigation(),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-      decoration: const BoxDecoration(
-        color: primaryBlue,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _taxis.isEmpty && widget.terminals.isEmpty
+              ? const Center(child: Text('No data available'))
+              : Stack(
                   children: [
-                    Text(
-                      '${widget.fromStation} → ${widget.toStation}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    // ---- MAP ----
+                    FlutterMap(
+                      options: MapOptions(
+                        center: _userLocation ?? _initialCenter,
+                        zoom: 15,
                       ),
-                    ),
-                    Row(
                       children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.whywait',
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_animatedTaxis.length} taxis approaching',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
+
+                        // ---- TERMINAL MARKERS ----
+                        if (widget.terminals.isNotEmpty)
+                          MarkerLayer(
+                            markers: widget.terminals.where((t) {
+                              return t['latitude'] is num && t['longitude'] is num;
+                            }).map((terminal) {
+                              return Marker(
+                                width: 100,
+                                height: 60,
+                                point: LatLng(
+                                  (terminal['latitude'] as num).toDouble(),
+                                  (terminal['longitude'] as num).toDouble(),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.location_on, color: Colors.blue, size: 28),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.9),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        terminal['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                           ),
+
+                        // ---- PASSENGER LOCATION ----
+                        if (_userLocation != null)
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                width: 30,
+                                height: 30,
+                                point: _userLocation!,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.blue, width: 3),
+                                  ),
+                                  child: const Icon(Icons.person, color: Colors.blue, size: 16),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                        // ---- TAXI MARKERS ----
+                        MarkerLayer(
+                          markers: _taxis.map((taxi) {
+                            return Marker(
+                              width: 50,
+                              height: 50,
+                              point: LatLng(taxi.latitude, taxi.longitude),
+                              child: GestureDetector(
+                                onTap: () => _showTaxiDetails(taxi),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.local_taxi,
+                                      color: _getStatusColor(taxi.status),
+                                      size: 40,
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: _getStatusColor(taxi.status), width: 1.5),
+                                        ),
+                                        child: Text(
+                                          '${taxi.etaMinutes}m',
+                                          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black87),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
                         ),
+
+                        // ---- ROUTE POLYLINE ----
+                        if (_routePoints.isNotEmpty)
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: _routePoints,
+                                color: Colors.blue,
+                                strokeWidth: 4,
+                              ),
+                            ],
+                          ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications, color: Colors.white),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildMapSection() {
-    return SizedBox(
-      height: 350,
-      child: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _defaultCenter,
-              initialZoom: _currentZoom,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.whywait',
-              ),
-              MarkerLayer(markers: _buildAnimatedMarkers()),
-              if (_routePoints.isNotEmpty)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: _routePoints,
-                      color: Colors.blue,
-                      strokeWidth: 4.0,
+                    // ============================================================
+                    // PANEL: APPROACHING TAXIS (with Terminal A & B)
+                    // ============================================================
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Container(
+                          width: 200,
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Approaching Taxis',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                              const Divider(height: 8),
+                              if (_taxis.isEmpty)
+                                const Text(
+                                  'No taxis approaching',
+                                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                                )
+                              else
+                                Expanded(
+                                  child: ListView.separated(
+                                    itemCount: _taxis.length,
+                                    separatorBuilder: (_, __) => const Divider(height: 4),
+                                    itemBuilder: (context, index) {
+                                      final taxi = _taxis[index];
+                                      // For now, show all taxis. Later filter by terminal_a/b
+                                      // when proto includes those fields.
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(
+                                                  color: _getStatusColor(taxi.status),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                taxi.plate,
+                                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                              ),
+                                              const Spacer(),
+                                              Text(
+                                                '${taxi.etaMinutes}m',
+                                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          // 👇 Show Terminal A and B (from local terminals list)
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.flag, size: 10, color: Colors.grey),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                'A: ${_getTerminalName(_selectedTerminalId)}',
+                                                style: const TextStyle(fontSize: 8, color: Colors.grey),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              const Icon(Icons.flag, size: 10, color: Colors.grey),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                'B: ${_getTerminalName(_selectedTerminalId)}',
+                                                style: const TextStyle(fontSize: 8, color: Colors.grey),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // ============================================================
+                    // BOTTOM: COMPACT DESTINATION SELECTION (VERY SMALL)
+                    // ============================================================
+                    Positioned(
+                      bottom: 10,
+                      left: 10,
+                      right: 10,
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          child: Row(
+                            children: [
+                              // ---- Compact Dropdown ----
+                              Expanded(
+                                flex: 2,
+                                child: DropdownButtonFormField<String>(
+                                  decoration: const InputDecoration(
+                                    labelText: 'To',
+                                    labelStyle: TextStyle(fontSize: 10),
+                                    border: OutlineInputBorder(
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    isDense: true,
+                                  ),
+                                  style: const TextStyle(fontSize: 11),
+                                  value: _selectedDestinationId,
+                                  items: widget.terminals.map((t) {
+                                    return DropdownMenuItem<String>(
+                                      value: t['id'] as String?,
+                                      child: Text(t['name'], style: const TextStyle(fontSize: 10)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedDestinationId = value;
+                                      final term = widget.terminals.firstWhere(
+                                        (t) => t['id'] == value,
+                                      );
+                                      _destination = LatLng(
+                                        (term['latitude'] as num).toDouble(),
+                                        (term['longitude'] as num).toDouble(),
+                                      );
+                                      _routePoints = [];
+                                      _routeSuggestions = [];
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              // ---- Compact Route Button ----
+                              ElevatedButton(
+                                onPressed: _destination != null
+                                    ? () {
+                                        final start = _userLocation ?? _initialCenter;
+                                        _fetchRoute(start, _destination!);
+                                      }
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1565C0),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  minimumSize: const Size(0, 30),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: _isRouteLoading
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Go', style: TextStyle(fontSize: 11)),
+                              ),
+                              if (_routePoints.isNotEmpty) ...[
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(Icons.info_outline, color: Color(0xFF1565C0), size: 18),
+                                  onPressed: _showRouteInfo,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-            ],
-          ),
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Column(
-              children: [
-                _zoomButton(Icons.add, () {
-                  _currentZoom += 1;
-                  _mapController.move(_defaultCenter, _currentZoom);
-                }),
-                const SizedBox(height: 4),
-                _zoomButton(Icons.remove, () {
-                  _currentZoom -= 1;
-                  if (_currentZoom < 1) _currentZoom = 1;
-                  _mapController.move(_defaultCenter, _currentZoom);
-                }),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton.small(
-              onPressed: () {
-                _currentZoom = 14;
-                _mapController.move(_defaultCenter, _currentZoom);
-              },
-              backgroundColor: primaryBlue,
-              child: const Icon(Icons.my_location, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _zoomButton(IconData icon, VoidCallback onPressed) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon, size: 20),
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
-        color: Colors.black87,
-      ),
-    );
-  }
+  // ============================================================
+  // TAXI DETAILS BOTTOM SHEET
+  // ============================================================
+  void _showTaxiDetails(TaxiUpdate taxi) {
+    final distance = taxi.distanceKm.toStringAsFixed(1);
+    final eta = taxi.etaMinutes < 60
+        ? '${taxi.etaMinutes} min'
+        : '${(taxi.etaMinutes / 60).floor()}h ${(taxi.etaMinutes % 60).floor()}min';
 
-  Widget _buildApproachingTaxisSection() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Approaching Taxis',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: primaryBlue,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${_animatedTaxis.length} taxis',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (_animatedTaxis.isEmpty)
-            const Center(child: Text('No taxis approaching'))
-          else
-            ..._animatedTaxis.values.map((taxi) => _buildTaxiCard(taxi)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaxiCard(_AnimatedTaxi taxi) {
-    final distanceKm = (taxi.currentDistance ?? 0.0).toStringAsFixed(1);
-    final status = taxi.status;
-
-    Color statusColor;
-    String statusText;
-    switch (status) {
-      case 'available':
-        statusColor = Colors.green;
-        statusText = 'Available';
-        break;
-      case 'filling':
-        statusColor = Colors.orange;
-        statusText = 'Filling';
-        break;
-      case 'on_trip':
-        statusColor = Colors.red;
-        statusText = 'On Trip';
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusText = status;
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: lightBlue,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.local_taxi, color: primaryBlue, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Text(
-                    'Taxi ${taxi.plate}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
+                  Icon(Icons.local_taxi, color: _getStatusColor(taxi.status), size: 32),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                      Text(' $distanceKm km   ', style: const TextStyle(fontSize: 12)),
-                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                      Text(' ~${taxi.eta}min', style: const TextStyle(fontSize: 12)),
+                      Text(taxi.plate, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('Driver: ${taxi.driverName}', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                     ],
                   ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${taxi.eta}min',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: primaryBlue,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: statusColor,
-                      fontWeight: FontWeight.w600,
+              const Divider(height: 24),
+              Row(
+                children: [
+                  Expanded(child: _infoTile(Icons.location_on, 'Distance', '$distance km')),
+                  Expanded(child: _infoTile(Icons.access_time, 'ETA', eta)),
+                  Expanded(
+                    child: _infoTile(
+                      Icons.circle,
+                      'Status',
+                      taxi.status.toUpperCase(),
+                      color: _getStatusColor(taxi.status),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigation() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(Icons.home_outlined, 'Home', false),
-            _navItem(Icons.location_on_rounded, 'Track', true),
-            _navItem(Icons.history, 'History', false),
-            _navItem(Icons.person_outline, 'Profile', false),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, bool isSelected) {
-    return GestureDetector(
-      onTap: () {
-        if (label == 'Home') {
-          Navigator.pop(context);
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? primaryBlue : Colors.grey.shade500,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ],
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1565C0),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  Widget _infoTile(IconData icon, String label, String value, {Color? color}) {
+    return Column(
+      children: [
+        Icon(icon, color: color ?? const Color(0xFF1565C0), size: 20),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  // ============================================================
+  // STATUS COLOR
+  // ============================================================
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'available':
+        return Colors.green;
+      case 'filling':
+        return Colors.orange;
+      case 'ontrip':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }
 
-// ==================== ANIMATED TAXI CLASS ====================
-class _AnimatedTaxi {
-  LatLng currentPosition;
-  LatLng startPosition;
-  LatLng targetPosition;
-  String plate;
-  String status;
-  int eta;
-  double progress = 1.0;
-  double? currentDistance;
-  final double animationSpeed = 0.025;
+// ============================================================
+// ROUTE SUGGESTION MODELS
+// ============================================================
+class RouteSuggestion {
+  final String description;
+  final List<RouteSegment> segments;
+  final int totalDuration;
 
-  _AnimatedTaxi({
-    required this.startPosition,
-    required this.targetPosition,
-    required this.plate,
-    required this.status,
-    required this.eta,
-  }) : currentPosition = startPosition;
+  RouteSuggestion({
+    required this.description,
+    this.segments = const [],
+    required this.totalDuration,
+  });
+}
 
-  void setTarget(LatLng newTarget, {String? status, int? eta}) {
-    if (newTarget != targetPosition) {
-      startPosition = currentPosition;
-      targetPosition = newTarget;
-      progress = 0.0;
-      currentDistance = _calculateDistance(currentPosition, targetPosition);
-    }
-    if (status != null) this.status = status;
-    if (eta != null) this.eta = eta;
-  }
+class RouteSegment {
+  final String type;
+  final String from;
+  final String to;
+  final int duration;
 
-  bool update() {
-    if (progress >= 1.0) return false;
-
-    progress += animationSpeed;
-    if (progress > 1.0) progress = 1.0;
-
-    final lat = startPosition.latitude +
-        (targetPosition.latitude - startPosition.latitude) * progress;
-    final lng = startPosition.longitude +
-        (targetPosition.longitude - startPosition.longitude) * progress;
-    currentPosition = LatLng(lat, lng);
-
-    if (progress < 1.0) {
-      currentDistance = _calculateDistance(currentPosition, targetPosition);
-    }
-
-    return true;
-  }
-
-  double _calculateDistance(LatLng from, LatLng to) {
-    const R = 6371;
-    final dLat = (to.latitude - from.latitude) * pi / 180;
-    final dLng = (to.longitude - from.longitude) * pi / 180;
-    final a = (dLat / 2) * (dLat / 2) +
-        (from.latitude * pi / 180) *
-            (to.latitude * pi / 180) *
-            (dLng / 2) *
-            (dLng / 2);
-    final c = 2 * asin(sqrt(a));
-    return R * c;
-  }
+  RouteSegment({
+    required this.type,
+    required this.from,
+    required this.to,
+    required this.duration,
+  });
 }
