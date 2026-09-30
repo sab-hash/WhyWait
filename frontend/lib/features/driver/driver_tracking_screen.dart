@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../services/grpc_client.dart';
-import '../../generated/whywait.pb.dart';
+import '../../models/whywait_models.dart';
 
 class DriverMapScreen extends StatefulWidget {
   final String fromLabel;
