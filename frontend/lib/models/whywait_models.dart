@@ -19,15 +19,32 @@ class RegisterRequest {
   String password = '';
 }
 
+class User {
+  final String id;
+  final String fullName;
+  final String email;
+  final String phone;
+  final String role;
+
+  User({
+    this.id = '',
+    this.fullName = '',
+    this.email = '',
+    this.phone = '',
+    this.role = 'passenger',
+  });
+}
+
 class AuthResponse {
   final bool success;
   final String? token;
   final String? message;
+  final User? user;
 
-  AuthResponse({required this.success, this.token, this.message});
+  AuthResponse({required this.success, this.token, this.message, this.user});
 
-  factory AuthResponse.ok([String? token]) =>
-      AuthResponse(success: true, token: token);
+  factory AuthResponse.ok([String? token, User? user]) =>
+      AuthResponse(success: true, token: token, user: user);
   factory AuthResponse.fail(String message) =>
       AuthResponse(success: false, message: message);
 }
@@ -35,12 +52,16 @@ class AuthResponse {
 class Terminal {
   final String id;
   final String name;
+  final String address;
+  final String city;
   final double latitude;
   final double longitude;
 
   Terminal({
     required this.id,
     required this.name,
+    this.address = '',
+    this.city = '',
     required this.latitude,
     required this.longitude,
   });
@@ -55,8 +76,14 @@ class PopularRoute {
   final String from;
   final String to;
   final double fare;
+  final int waitTime;
 
-  PopularRoute({required this.from, required this.to, required this.fare});
+  PopularRoute({
+    required this.from,
+    required this.to,
+    required this.fare,
+    this.waitTime = 0,
+  });
 }
 
 class PopularRoutesResponse {
@@ -78,7 +105,16 @@ class TaxiStatus {
 
 class TaxiStatusResponse {
   final List<TaxiStatus> taxis;
-  TaxiStatusResponse({required this.taxis});
+  final int available;
+  final int nearbyStations;
+  final int averageWait;
+
+  TaxiStatusResponse({
+    required this.taxis,
+    this.available = 0,
+    this.nearbyStations = 0,
+    this.averageWait = 0,
+  });
 }
 
 class TrackRequest {
@@ -135,11 +171,27 @@ class DriverStatusResponse {
 class TaxiServiceClient {
   TaxiServiceClient([dynamic channel]);
 
-  Future<AuthResponse> login(LoginRequest req) async =>
-      AuthResponse.ok('mock-token');
+  Future<AuthResponse> login(LoginRequest req) async => AuthResponse.ok(
+        'mock-token',
+        User(
+          id: 'u-1',
+          fullName: 'Abebe Tesfaye',
+          email: req.email,
+          phone: req.email,
+          role: 'passenger',
+        ),
+      );
 
-  Future<AuthResponse> register(RegisterRequest req) async =>
-      AuthResponse.ok('mock-token');
+  Future<AuthResponse> register(RegisterRequest req) async => AuthResponse.ok(
+        'mock-token',
+        User(
+          id: 'u-2',
+          fullName: req.fullName,
+          email: req.email,
+          phone: req.phone,
+          role: 'passenger',
+        ),
+      );
 
   Future<TerminalsResponse> getTerminals(Empty _) async =>
       TerminalsResponse(terminals: const []);
@@ -170,6 +222,7 @@ class TaxiServiceClient {
   Future<LocationResponse> updateLocation(LocationUpdate req) async =>
       LocationResponse(success: true);
 
-  Future<DriverStatusResponse> updateDriverStatus(DriverStatusRequest req) async =>
+  Future<DriverStatusResponse> updateDriverStatus(
+          DriverStatusRequest req) async =>
       DriverStatusResponse(success: true);
 }
