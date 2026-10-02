@@ -20,6 +20,28 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   int selectedTab = 0;
 
+  List<DriverTrip> get filteredTrips {
+    final trips = _state.trips;
+
+    if (selectedTab == 0) {
+      final start = _state.startOfToday;
+      return trips.where((trip) => !trip.date.isBefore(start)).toList();
+    }
+
+    if (selectedTab == 1) {
+      final start = _state.startOfWeek;
+      return trips.where((trip) => !trip.date.isBefore(start)).toList();
+    }
+
+    return trips;
+  }
+
+  String get selectedTitle {
+    if (selectedTab == 0) return 'Today';
+    if (selectedTab == 1) return 'This Week';
+    return 'All Trips';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
