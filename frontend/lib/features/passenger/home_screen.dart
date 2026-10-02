@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../services/grpc_client.dart';
 import '../../services/passenger_state.dart';
 import 'report_screen.dart';
@@ -106,7 +107,9 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildSearchBar(),
               const SizedBox(height: 18),
               _buildStationCard(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              _buildRequestRideButton(),
+              const SizedBox(height: 10),
               _buildPlanTripButton(),
               const SizedBox(height: 20),
               _buildSummaryCards(),
@@ -134,6 +137,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildRequestRideButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => context.go('/passenger/request-ride'),
+        icon: const Icon(Icons.local_taxi_rounded),
+        label: const Text(
+          'Request a Ride',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 3,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPlanTripButton() {
     return SizedBox(
       width: double.infinity,
@@ -153,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.white,
           foregroundColor: primaryBlue,
           elevation: 0,
-          side: BorderSide(color: primaryBlue.withOpacity(0.3)),
+          side: BorderSide(color: primaryBlue.withValues(alpha: 0.3)),
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -200,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: Border.all(color: primaryBlue, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -218,37 +244,47 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Where are you going?',
-          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-          prefixIcon:
-              const Icon(Icons.search_rounded, color: primaryBlue, size: 25),
-          suffixIcon: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: lightBlue,
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: () => context.go('/passenger/request-ride'),
+      child: Container(
+        height: 58,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
-            child:
-                const Icon(Icons.tune_rounded, color: primaryBlue, size: 20),
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 17),
+          ],
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 16),
+            const Icon(Icons.search_rounded, color: primaryBlue, size: 25),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Where are you going?',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: lightBlue,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.tune_rounded,
+                color: primaryBlue,
+                size: 20,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -263,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.18),
+            color: primaryBlue.withValues(alpha: 0.18),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
@@ -376,7 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.025),
+            color: Colors.black.withValues(alpha: 0.025),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -470,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
               waitTime: '~${route['waitTime'] ?? 5} min',
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -492,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> {
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.025),
+              color: Colors.black.withValues(alpha: 0.025),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
