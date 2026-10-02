@@ -44,12 +44,35 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: DriverTheme.background,
-      appBar: buildDriverAppBar('Trip History', showBack: false),
-      body: const SafeArea(
-        child: Center(child: Text('Trip History')),
-      ),
+    return ListenableBuilder(
+      listenable: _state,
+      builder: (context, _) {
+        final trips = filteredTrips;
+
+        return Scaffold(
+          backgroundColor: DriverTheme.background,
+          appBar: buildDriverAppBar('Trip History', showBack: false),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                  child: DriverSegmentedTabs(
+                    labels: const ['Today', 'This Week', 'All'],
+                    selectedIndex: selectedTab,
+                    onChanged: (index) => setState(() => selectedTab = index),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('${trips.length} trips'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
