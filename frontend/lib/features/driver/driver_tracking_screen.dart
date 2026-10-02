@@ -11,4 +11,6 @@ class DriverTheme {
 
   static const Color background = Color(0xFFF7F9FC);
   static const Color divider = Color(0xFFE8E8E8);
+  static const Color textDark = Color(0xFF1F2937);
+  static const Color textGrey = Color(0xFF6B7280);
 }
