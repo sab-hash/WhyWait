@@ -63,6 +63,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                     onChanged: (index) => setState(() => selectedTab = index),
                   ),
                 ),
+                _buildSummary(trips),
                 Expanded(
                   child: Center(
                     child: Text('${trips.length} trips'),
@@ -73,6 +74,93 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSummary(List<DriverTrip> trips) {
+    final seats = trips
+        .where((trip) => trip.status != TripResult.cancelled)
+        .fold<int>(0, (sum, trip) => sum + trip.seats);
+    final earnings =
+        trips.fold<int>(0, (sum, trip) => sum + trip.estimatedEarnings);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildSummaryCard(
+              icon: Icons.route_rounded,
+              title: selectedTitle,
+              value: '${trips.length}',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _buildSummaryCard(
+              icon: Icons.event_seat_rounded,
+              title: 'Seats carried',
+              value: '$seats',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _buildSummaryCard(
+              icon: Icons.payments_rounded,
+              title: 'Earnings (est.)',
+              value: '$earnings',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: DriverTheme.primaryBlue, size: 22),
+          const SizedBox(height: 7),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: DriverTheme.textDark,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
