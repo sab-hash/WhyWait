@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../services/grpc_client.dart';
 import '../../core/storage/local_storage.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String fullName;
   final String phoneNumber;
+  final String email;
   final String? avatarUrl;
 
   const ProfileScreen({
     super.key,
     required this.fullName,
     required this.phoneNumber,
+    this.email = '',
     this.avatarUrl,
   });
 
@@ -56,9 +57,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _loadProfile() async {
-  // Use data passed from router – no API call yet
-  setState(() => _isLoading = false);
-}
+    // Use data passed from router – no API call yet
+    setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.3),
+            color: primaryBlue.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -155,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   border: Border.all(color: Colors.white, width: 3),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -166,7 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ? Image.network(
                           widget.avatarUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _avatarFallback(),
+                          errorBuilder: (_, _, _) => _avatarFallback(),
                         )
                       : _avatarFallback(),
                 ),
@@ -182,7 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 6,
                       ),
                     ],
@@ -214,11 +215,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ? 'Loading...'
                 : (_profile?['phone'] ?? widget.phoneNumber),
             style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
           ),
+          if (widget.email.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              widget.email,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -227,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -235,10 +247,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.edit_outlined,
-                    color: primaryBlue, size: 18),
-                const SizedBox(width: 6),
+              children: const [
+                Icon(Icons.edit_outlined, color: primaryBlue, size: 18),
+                SizedBox(width: 6),
                 Text(
                   'Edit Profile',
                   style: TextStyle(
@@ -257,7 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _avatarFallback() {
     return Container(
-      color: Colors.white.withOpacity(0.25),
+      color: Colors.white.withValues(alpha: 0.25),
       child: const Icon(Icons.person, size: 48, color: Colors.white),
     );
   }
@@ -273,12 +284,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: primaryBlue.withOpacity(0.04),
+            color: primaryBlue.withValues(alpha: 0.04),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),
@@ -337,37 +348,37 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ==================== SETTINGS ====================
   List<_SettingItem> get _settingItems => [
-    _SettingItem(
-      icon: Icons.notifications_none_rounded,
-      title: 'Notifications',
-      subtitle: 'Alerts when taxi is 1 min away',
-      color: Colors.orange,
-    ),
-    _SettingItem(
-      icon: Icons.location_on_outlined,
-      title: 'Saved Stations',
-      subtitle: 'Mexico, Bole, CMC',
-      color: Colors.blue,
-    ),
-    _SettingItem(
-      icon: Icons.shield_outlined,
-      title: 'Privacy & Security',
-      subtitle: 'Password, data settings',
-      color: Colors.purple,
-    ),
-    _SettingItem(
-      icon: Icons.translate_rounded,
-      title: 'Language',
-      subtitle: 'English',
-      color: Colors.teal,
-    ),
-    _SettingItem(
-      icon: Icons.headset_mic_outlined,
-      title: 'Support',
-      subtitle: 'Help center, contact us',
-      color: Colors.green,
-    ),
-  ];
+        _SettingItem(
+          icon: Icons.notifications_none_rounded,
+          title: 'Notifications',
+          subtitle: 'Alerts when taxi is 1 min away',
+          color: Colors.orange,
+        ),
+        _SettingItem(
+          icon: Icons.location_on_outlined,
+          title: 'Saved Stations',
+          subtitle: 'Mexico, Bole, CMC',
+          color: Colors.blue,
+        ),
+        _SettingItem(
+          icon: Icons.shield_outlined,
+          title: 'Privacy & Security',
+          subtitle: 'Password, data settings',
+          color: Colors.purple,
+        ),
+        _SettingItem(
+          icon: Icons.translate_rounded,
+          title: 'Language',
+          subtitle: 'English',
+          color: Colors.teal,
+        ),
+        _SettingItem(
+          icon: Icons.headset_mic_outlined,
+          title: 'Support',
+          subtitle: 'Help center, contact us',
+          color: Colors.green,
+        ),
+      ];
 
   Widget _buildSettingRow(_SettingItem item) {
     return GestureDetector(
@@ -380,7 +391,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -396,8 +407,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    item.color.withOpacity(0.15),
-                    item.color.withOpacity(0.05),
+                    item.color.withValues(alpha: 0.15),
+                    item.color.withValues(alpha: 0.05),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(14),
@@ -455,7 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -463,13 +474,13 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
+          children: const [
+            Icon(
               Icons.logout_rounded,
               color: Colors.redAccent,
               size: 22,
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Text(
               'Sign Out',
               style: TextStyle(
@@ -499,6 +510,5 @@ class _SettingItem {
     required this.title,
     required this.subtitle,
     required this.color,
-    this.onTap,
-  });
+  }) : onTap = null;
 }
