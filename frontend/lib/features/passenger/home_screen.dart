@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/grpc_client.dart';
 import '../../services/passenger_state.dart';
@@ -37,6 +38,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning,';
+    if (h < 17) return 'Good afternoon,';
+    return 'Good evening,';
+  }
+
+  String get _initials {
+    final parts = widget.fullName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+
   void _loadData() async {
     setState(() => _isLoading = true);
 
@@ -50,24 +65,28 @@ class _HomeScreenState extends State<HomeScreen> {
       final routes = await routesFuture;
 
       setState(() {
-        _terminals = terminals.terminals.map((t) => {
-          'id': t.id,
-          'name': t.name,
-          'latitude': t.latitude,
-          'longitude': t.longitude,
-          'address': t.address,
-          'city': t.city,
-        }).toList();
+        _terminals = terminals.terminals
+            .map((t) => {
+                  'id': t.id,
+                  'name': t.name,
+                  'latitude': t.latitude,
+                  'longitude': t.longitude,
+                  'address': t.address,
+                  'city': t.city,
+                })
+            .toList();
 
         _taxiCount = status.available;
         _nearbyCount = status.nearbyStations;
         _avgWait = status.averageWait;
 
-        _popularRoutes = routes.routes.map((r) => {
-          'from': r.from,
-          'to': r.to,
-          'waitTime': r.waitTime,
-        }).toList();
+        _popularRoutes = routes.routes
+            .map((r) => {
+                  'from': r.from,
+                  'to': r.to,
+                  'waitTime': r.waitTime,
+                })
+            .toList();
 
         _isLoading = false;
       });
@@ -75,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
       PassengerState().terminals = _terminals;
       PassengerState().selectedStation = selectedStation;
     } catch (e) {
-      print('Error loading home data: $e');
+      debugPrint('Error loading home data: $e');
       setState(() => _isLoading = false);
       _showError('Failed to load data. Please check your connection.');
     }
@@ -108,9 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 18),
               _buildStationCard(),
               const SizedBox(height: 16),
-              _buildRequestRideButton(),
+              _buildSuggestRouteButton(),
               const SizedBox(height: 10),
-              _buildPlanTripButton(),
+              _buildSharedTaxiButton(),
               const SizedBox(height: 20),
               _buildSummaryCards(),
               const SizedBox(height: 28),
@@ -137,58 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildRequestRideButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => context.go('/passenger/request-ride'),
-        icon: const Icon(Icons.local_taxi_rounded),
-        label: const Text(
-          'Request a Ride',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
-          foregroundColor: Colors.white,
-          elevation: 3,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlanTripButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RoutePlannerScreen()),
-          );
-        },
-        icon: const Icon(Icons.route_outlined),
-        label: const Text(
-          'Plan Your Trip',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: primaryBlue,
-          elevation: 0,
-          side: BorderSide(color: primaryBlue.withValues(alpha: 0.3)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    );
-  }
-
+  // ---------- Header with dynamic greeting + avatar ----------
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -197,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Good morning,',
+              _greeting,
               style: TextStyle(
                 fontSize: 15,
                 color: Colors.grey.shade600,
@@ -218,24 +186,29 @@ class _HomeScreenState extends State<HomeScreen> {
         GestureDetector(
           onTap: () {},
           child: Container(
-            width: 50,
-            height: 50,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: primaryBlue,
               shape: BoxShape.circle,
-              border: Border.all(color: primaryBlue, width: 1.5),
+              border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  color: primaryBlue.withValues(alpha: 0.25),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.person_outline_rounded,
-              size: 27,
-              color: primaryBlue,
+            alignment: Alignment.center,
+            child: Text(
+              _initials,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ),
@@ -243,9 +216,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ---------- Search bar opens Plan Your Trip ----------
   Widget _buildSearchBar() {
     return GestureDetector(
-      onTap: () => context.go('/passenger/request-ride'),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const RoutePlannerScreen()),
+        );
+      },
       child: Container(
         height: 58,
         decoration: BoxDecoration(
@@ -362,6 +341,267 @@ class _HomeScreenState extends State<HomeScreen> {
               'Change',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------- NEW: Suggest alternate routes ----------
+  Widget _buildSuggestRouteButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _showRouteSuggestions,
+        icon: const Icon(Icons.alt_route_rounded),
+        label: const Text(
+          'Suggest Best Route',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 3,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------- Shared line taxi button ----------
+  Widget _buildSharedTaxiButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RoutePlannerScreen()),
+          );
+        },
+        icon: const Icon(Icons.directions_bus_rounded),
+        label: const Text(
+          'Find a Shared Taxi',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: primaryBlue,
+          side: BorderSide(color: primaryBlue.withValues(alpha: 0.3)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------- Route suggestions bottom sheet ----------
+  void _showRouteSuggestions() {
+    final suggestions = [
+      {
+        'title': 'Direct from $selectedStation',
+        'sub': 'Fixed route · no transfers',
+        'note': 'Traffic heavy on Bole Road',
+        'eta': '25 min',
+        'fare': '45 ETB',
+        'tag': 'Slowest',
+        'tagColor': Colors.orange,
+      },
+      {
+        'title': 'Via Meskel Square Station',
+        'sub': 'Walk 300m → line taxi → final stop',
+        'note': 'Avoids the main road',
+        'eta': '15 min',
+        'fare': '35 ETB',
+        'tag': 'Recommended',
+        'tagColor': Colors.green,
+      },
+      {
+        'title': 'Via Piassa Station (backroad)',
+        'sub': 'Line taxi → short walk',
+        'note': 'Less crowded at this hour',
+        'eta': '18 min',
+        'fare': '40 ETB',
+        'tag': 'Alternative',
+        'tagColor': primaryBlue,
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Suggested Routes',
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.bold,
+                  color: primaryBlue,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Best options to your destination right now',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              ...suggestions.map((s) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _suggestionCard(s),
+                  )),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _suggestionCard(Map<String, dynamic> s) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  s['title'],
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: darkText,
+                  ),
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (s['tagColor'] as Color).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  s['tag'],
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: s['tagColor'] as Color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            s['sub'],
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            s['note'],
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade500,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.access_time_rounded,
+                  size: 15, color: primaryBlue),
+              const SizedBox(width: 4),
+              Text(
+                s['eta'],
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: darkText,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Icon(Icons.payments_outlined,
+                  size: 15, color: primaryBlue),
+              const SizedBox(width: 4),
+              Text(
+                s['fare'],
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: darkText,
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                height: 34,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Selected: ${s['title']}'),
+                        backgroundColor: primaryBlue,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Take this',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
