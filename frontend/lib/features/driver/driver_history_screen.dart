@@ -65,9 +65,15 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 ),
                 _buildSummary(trips),
                 Expanded(
-                  child: Center(
-                    child: Text('${trips.length} trips'),
-                  ),
+                  child: trips.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                          itemCount: trips.length,
+                          itemBuilder: (context, index) {
+                            return _buildTripCard(trips[index]);
+                          },
+                        ),
                 ),
               ],
             ),
@@ -271,4 +277,126 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   Icons.event_seat_outlined,
                   color: DriverTheme.primaryBlue,
                   size: 19,
-               
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${trip.seats} ${trip.seats == 1 ? 'seat' : 'seats'} carried',
+                  style: const TextStyle(
+                    color: Color(0xFF374151),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                _buildStatus(trip.status),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatus(TripResult status) {
+    IconData icon;
+    Color color;
+
+    switch (status) {
+      case TripResult.completed:
+        icon = Icons.check_circle_rounded;
+        color = Colors.green;
+        break;
+      case TripResult.cancelled:
+        icon = Icons.cancel_rounded;
+        color = Colors.red;
+        break;
+      case TripResult.interrupted:
+        icon = Icons.warning_rounded;
+        color = DriverTheme.warning;
+        break;
+    }
+
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 5),
+        Text(
+          status.label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRouteRow({
+    required IconData icon,
+    required double iconSize,
+    required String title,
+    required String location,
+  }) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 20,
+          child: Icon(icon, color: DriverTheme.primaryBlue, size: iconSize),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              location,
+              style: const TextStyle(
+                color: DriverTheme.textDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const RoundIcon(icon: Icons.history_rounded, size: 72),
+            const SizedBox(height: 18),
+            const Text(
+              'No trips found',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: DriverTheme.textDark,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              'There are no trips for $selectedTitle.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
