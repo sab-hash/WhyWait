@@ -258,47 +258,17 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             title: 'To',
             location: trip.to,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRouteRow({
-    required IconData icon,
-    required double iconSize,
-    required String title,
-    required String location,
-  }) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 20,
-          child: Icon(icon, color: DriverTheme.primaryBlue, size: iconSize),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: DriverTheme.background,
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 2),
-            Text(
-              location,
-              style: const TextStyle(
-                color: DriverTheme.textDark,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.event_seat_outlined,
+                  color: DriverTheme.primaryBlue,
+                  size: 19,
+               
