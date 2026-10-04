@@ -237,8 +237,68 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 18),
+          _buildRouteRow(
+            icon: Icons.circle,
+            iconSize: 9,
+            title: 'From',
+            location: trip.from,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 3),
+            child: Container(
+              width: 1,
+              height: 20,
+              color: Colors.grey.shade300,
+            ),
+          ),
+          _buildRouteRow(
+            icon: Icons.location_on_rounded,
+            iconSize: 18,
+            title: 'To',
+            location: trip.to,
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRouteRow({
+    required IconData icon,
+    required double iconSize,
+    required String title,
+    required String location,
+  }) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 20,
+          child: Icon(icon, color: DriverTheme.primaryBlue, size: iconSize),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              location,
+              style: const TextStyle(
+                color: DriverTheme.textDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
