@@ -1,35 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
-/// Colors, card style and small formatting helpers shared by every
-/// driver screen. These are the values from the original driver screens.
-class DriverTheme {
-  /// Main blue (home, history, buttons).
-  static const Color primaryBlue = Color(0xFF1565C0);
+import '../../models/driver_models.dart';
+import 'driver_state.dart';
+import 'driver_theme.dart';
+import 'driver_widgets.dart';
 
-  /// Dark blue (map header, profile header).
-  static const Color deepBlue = Color(0xFF0B3D78);
+/// Map tab for the driver's assigned route.
+///
+/// IMPORTANT: The position currently comes from DriverState's route
+/// simulation. It is not a real GPS location or a live backend update.
+class DriverMapScreen extends StatefulWidget {
+  const DriverMapScreen({super.key});
 
-  static const Color background = Color(0xFFF7F9FC);
-  static const Color divider = Color(0xFFE8E8E8);
-  static const Color textDark = Color(0xFF1F2937);
-  static const Color textGrey = Color(0xFF6B7280);
+  @override
+  State<DriverMapScreen> createState() => _DriverMapScreenState();
+}
 
-  static const Color success = Color(0xFF2E9E4F);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color danger = Color(0xFFE53935);
+class _DriverMapScreenState extends State<DriverMapScreen> {
+  static const Color startGreen = Color(0xFF2E9E4F);
 
-  /// The white rounded card with a soft shadow used across the app.
-  static BoxDecoration cardDecoration({double radius = 18}) {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(radius),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 12,
-          offset: const Offset(0, 5),
-        ),
-      ],
+  final MapController _mapController = MapController();
+  final DriverState _state = DriverState.instance;
+
+  static const LatLng _routeCenter = LatLng(9.0040, 38.7645);
+
+  bool _mapReady = false;
+
+  LatLng get _driverLatLng {
+    final position = _state.driverPosition;
+    return LatLng(position.lat, position.lng);
+  }
+
+  void _moveMap(LatLng center, double zoom) {
+    if (!_mapReady) return;
+
+    try {
+      _mapController.move(center, zoom);
+    } catch (_) {
+      // The map may have been detached while the screen was changing.
+    }
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: DriverTheme.background,
+      body: const SafeArea(
+        child: Center(child: Text('Map')),
+      ),
     );
   }
 }
