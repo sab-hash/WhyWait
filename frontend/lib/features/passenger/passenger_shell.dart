@@ -25,11 +25,7 @@ class _PassengerShellState extends State<PassengerShell> {
   late final List<Widget> _pages = [
     HomeScreen(fullName: widget.fullName, email: widget.email),
     const HistoryScreen(),
-    ProfileScreen(
-      fullName: widget.fullName,
-      phoneNumber: '',
-      email: widget.email,
-    ),
+    ProfileScreen(fullName: widget.fullName, phoneNumber : widget.email),
     const NearbyStationsScreen(),
   ];
 
