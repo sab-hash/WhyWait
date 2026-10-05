@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class RequestRideScreen extends StatefulWidget {
   const RequestRideScreen({super.key});
@@ -10,7 +11,6 @@ class RequestRideScreen extends StatefulWidget {
 class _RequestRideScreenState extends State<RequestRideScreen> {
   static const Color primaryBlue = Color(0xFF1565C0);
   static const Color backgroundColor = Color(0xFFF7F9FC);
-  static const Color lightBlue = Color(0xFFE3F2FD);
   static const Color darkText = Color(0xFF333333);
 
   final _pickupController = TextEditingController(text: 'Current location');
@@ -85,7 +85,13 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: primaryBlue),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/passenger');
+            }
+          },
         ),
         title: const Text(
           'Request a Ride',
@@ -200,7 +206,8 @@ class _RequestRideScreenState extends State<RequestRideScreen> {
         prefixIcon: Icon(icon, color: primaryBlue, size: 22),
         filled: true,
         fillColor: backgroundColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200),
