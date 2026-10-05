@@ -13,3 +13,7 @@
 
 # Coverage files
 *.out
+# Local debug artifacts
+analyze.txt
+debug.txt
+*.log
