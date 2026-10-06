@@ -98,4 +98,25 @@
         ],
       ),
     );
-  }
+  }            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.whywait',
+              ),
+              if (routePoints.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: routePoints,
+                      strokeWidth: 5,
+                      color: DriverTheme.primaryBlue.withValues(
+                        alpha: 0.85,
+                      ),
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: _buildMarkers(stops),
+              ),
+            ],
