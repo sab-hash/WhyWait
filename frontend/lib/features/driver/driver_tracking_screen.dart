@@ -119,4 +119,69 @@
               MarkerLayer(
                 markers: _buildMarkers(stops),
               ),
-            ],
+            ],  Widget _buildMapBanners() {
+    final problem = _state.problem;
+
+    return Positioned(
+      top: 10,
+      left: 10,
+      right: 10,
+      child: Column(
+        children: [
+          if (!_state.isOnline)
+            _banner(
+              icon: Icons.visibility_off_rounded,
+              text: "You're offline. Passengers can't see your taxi.",
+              color: Colors.grey.shade800,
+            ),
+          _banner(
+            icon: Icons.info_outline_rounded,
+            text: 'Showing simulated location, not live GPS.',
+            color: DriverTheme.deepBlue,
+          ),
+          if (problem != null)
+            _banner(
+              icon: Icons.warning_amber_rounded,
+              text: '${problem.type} reported. '
+                  'ETA delay: +${problem.delayMinutes} min.',
+              color: DriverTheme.warning,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _banner({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
