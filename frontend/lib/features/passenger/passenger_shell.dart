@@ -25,8 +25,12 @@ class _PassengerShellState extends State<PassengerShell> {
   late final List<Widget> _pages = [
     HomeScreen(fullName: widget.fullName, email: widget.email),
     const HistoryScreen(),
-    ProfileScreen(fullName: widget.fullName, phoneNumber : widget.email),
     const NearbyStationsScreen(),
+    ProfileScreen(
+      fullName: widget.fullName,
+      phoneNumber: '',
+      email: widget.email,
+    ),
   ];
 
   @override
@@ -63,14 +67,14 @@ class _PassengerShellState extends State<PassengerShell> {
               label: 'History',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded, color: Colors.grey),
-              selectedIcon: Icon(Icons.person_rounded, color: primaryBlue),
-              label: 'Profile',
-            ),
-            NavigationDestination(
               icon: Icon(Icons.map_outlined, color: Colors.grey),
               selectedIcon: Icon(Icons.map_rounded, color: primaryBlue),
               label: 'Maps',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded, color: Colors.grey),
+              selectedIcon: Icon(Icons.person_rounded, color: primaryBlue),
+              label: 'Profile',
             ),
           ],
         ),
