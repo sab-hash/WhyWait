@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/storage/local_storage.dart';
+import 'report_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String fullName;
@@ -35,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final double timeSavedHours = 3.5;
   String preferredMode = 'Minibus Taxi';
   bool discountActive = true;
+  bool _showBalances = false;
 
   String get _initials {
     final parts = widget.fullName.trim().split(RegExp(r'\s+'));
@@ -140,7 +142,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Row(
         children: [
-          // Avatar
           Container(
             width: 68,
             height: 68,
@@ -246,6 +247,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Eye toggle row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => _showBalances = !_showBalances),
+                child: Row(
+                  children: [
+                    Icon(
+                      _showBalances
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      size: 16,
+                      color: primaryBlue,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _showBalances ? 'Hide' : 'Show',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: primaryBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
@@ -304,35 +335,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required double amount,
     required Color accent,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: accent,
-              letterSpacing: 0.3,
+    return GestureDetector(
+      onTap: () => setState(() => _showBalances = !_showBalances),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: accent.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: accent,
+                letterSpacing: 0.3,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Br. ${amount.toStringAsFixed(2)}',
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: darkText,
+            const SizedBox(height: 6),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _showBalances
+                  ? Text(
+                      'Br. ${amount.toStringAsFixed(2)}',
+                      key: const ValueKey('amount'),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: darkText,
+                      ),
+                    )
+                  : Row(
+                      key: const ValueKey('stars'),
+                      children: const [
+                        Text(
+                          '••••••',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: darkText,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -587,56 +640,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: discountActive
-                  ? Colors.green.withValues(alpha: 0.08)
-                  : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
+          GestureDetector(
+            onTap: () => setState(() => discountActive = !discountActive),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
                 color: discountActive
-                    ? Colors.green.withValues(alpha: 0.25)
-                    : Colors.grey.shade300,
+                    ? Colors.green.withValues(alpha: 0.08)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: discountActive
+                      ? Colors.green.withValues(alpha: 0.25)
+                      : Colors.grey.shade300,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.school_rounded,
-                  color: discountActive ? Colors.green : Colors.grey,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    'Student / Public Service Discount Pass',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: darkText,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.school_rounded,
+                    color: discountActive ? Colors.green : Colors.grey,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Student / Public Service Discount Pass',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: darkText,
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: discountActive
-                        ? Colors.green.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    discountActive ? 'Active' : 'Inactive',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: discountActive ? Colors.green : Colors.grey,
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: discountActive
+                          ? Colors.green.withValues(alpha: 0.15)
+                          : Colors.grey.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      discountActive ? 'Active' : 'Inactive',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: discountActive ? Colors.green : Colors.grey,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -687,41 +743,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ================= SAFETY =================
   Widget _buildSafetySection() {
-    return Column(
-      children: [
-        _safetyTile(
-          icon: Icons.report_problem_rounded,
-          iconColor: Colors.orange,
-          title: 'Report Official Tariff Overcharge / Abuse',
-          subtitle: 'Submit a complaint to the Transport Authority',
-          onTap: () => _snack('Opening report form'),
-        ),
-        const SizedBox(height: 10),
-        _safetyTile(
-          icon: Icons.shield_rounded,
-          iconColor: Colors.red,
-          title: 'Emergency SOS',
-          subtitle: 'Share your trip with family & alert authorities',
-          onTap: () => _snack('SOS activated. Contacts notified.'),
-        ),
-      ],
-    );
-  }
-
-  Widget _safetyTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ReportScreen()),
+        );
+      },
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -733,40 +767,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
+                color: Colors.red.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: iconColor, size: 22),
+              child: const Icon(Icons.shield_rounded,
+                  color: Colors.red, size: 24),
             ),
             const SizedBox(width: 12),
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    'Report & Emergency SOS',
+                    style: TextStyle(
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: darkText,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
-                    subtitle,
+                    'Tariff abuse, safety issues, or share your trip',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade600,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
               ),
             ),
             const Icon(Icons.chevron_right_rounded,
-                color: Colors.grey, size: 22),
+                color: Colors.red, size: 22),
           ],
         ),
       ),
