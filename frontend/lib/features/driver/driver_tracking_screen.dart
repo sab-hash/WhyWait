@@ -58,3 +58,44 @@
       ),
     );
   }
+    Widget _buildMap() {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: DriverTheme.deepBlue,
+          width: 2,
+        ),
+      ),
+      child: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _routeCenter,
+              initialZoom: 13,
+              minZoom: 10,
+              maxZoom: 18,
+              onMapReady: () {
+                if (!mounted) return;
+
+                _mapReady = true;
+
+                // Center on the simulated taxi once the map is initialized.
+                _moveMap(_driverLatLng, 13);
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.whywait',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
