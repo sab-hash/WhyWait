@@ -271,3 +271,76 @@
       ],
     );
   }
+    Widget _buildDestinationFlag(String name) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: DriverTheme.deepBlue,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 3,
+            ),
+          ),
+          child: const Icon(
+            Icons.flag_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
+        ),
+        const SizedBox(height: 3),
+        _label(name, DriverTheme.deepBlue),
+      ],
+    );
+  }
+
+  Widget _buildStationMarker(Station station) {
+    final color = station.isTerminal
+        ? Colors.grey.shade700
+        : Colors.grey.shade500;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          station.isTerminal
+              ? Icons.local_taxi_rounded
+              : Icons.place_rounded,
+          color: color,
+          size: station.isTerminal ? 22 : 18,
+        ),
+        const SizedBox(height: 2),
+        _label(station.name, color),
+      ],
+    );
+  }
+
+  Widget _buildDriverMarker() {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: DriverTheme.primaryBlue,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white,
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.directions_bus_filled_rounded,
+        color: Colors.white,
+        size: 20,
+      ),
+    );
+  }
