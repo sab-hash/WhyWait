@@ -430,4 +430,39 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       ],
     );
   }
-  
+    void _proceedToBoardingGate() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Proceed to boarding gate?'),
+        content: Text(
+          'Head to $_gateNumber at $_assignedHub. '
+          'Your queue position will be released once passengers board.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _queuePosition = 1);
+              _showSnack('Marked as proceeding to boarding gate',
+                  color: primaryBlue);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _requestBreak() {
+    _showSnack('Break request sent to dispatch', color: warningOrange);
+  }
