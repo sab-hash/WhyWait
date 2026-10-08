@@ -344,3 +344,62 @@
       ),
     );
   }
+    List<Marker> _buildMarkers(List<Station> stops) {
+    final routeNames = stops.map((stop) => stop.name).toSet();
+    final markers = <Marker>[];
+
+    // Stations that are not part of the assigned route.
+    for (final station in _state.stations) {
+      if (routeNames.contains(station.name)) continue;
+
+      markers.add(
+        Marker(
+          point: LatLng(station.lat, station.lng),
+          width: 96,
+          height: 48,
+          child: _buildStationMarker(station),
+        ),
+      );
+    }
+
+    // Route stops.
+    for (var i = 0; i < stops.length; i++) {
+      final stop = stops[i];
+
+      final isStart = i == 0;
+      final isEnd = i == stops.length - 1;
+
+      final Widget child;
+
+      if (isStart) {
+        child = _buildStartMarker(stop.name);
+      } else if (isEnd) {
+        child = _buildDestinationFlag(stop.name);
+      } else {
+        child = _buildStopMarker(i, stop.name);
+      }
+
+      markers.add(
+        Marker(
+          point: LatLng(stop.lat, stop.lng),
+          width: 96,
+          height: 62,
+          child: child,
+        ),
+      );
+    }
+
+    // The simulated driver marker is drawn last.
+    if (stops.isNotEmpty) {
+      markers.add(
+        Marker(
+          point: _driverLatLng,
+          width: 46,
+          height: 46,
+          child: _buildDriverMarker(),
+        ),
+      );
+    }
+
+    return markers;
+  }
