@@ -640,3 +640,4 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     setState(() => _seatsOpen--);
     if (_seatsOpen == 0) _showSnack('Bus is now FULL', color: dangerRed);
   }
+  git commit -am "feat(driver): add seat availability counter"
