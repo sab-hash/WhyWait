@@ -194,3 +194,94 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         ),
       );
   }
+    // ==================== DRIVER INFO ROW ====================
+  Widget _buildDriverInfoRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.025),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _infoColumn(
+              label: 'PLATE',
+              child: Text(
+                widget.plateNumber,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  color: darkText,
+                ),
+              ),
+            ),
+          ),
+          Container(width: 1, height: 34, color: Colors.grey.shade200),
+          Expanded(
+            child: _infoColumn(
+              label: 'ROUTE',
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      widget.routeFrom,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: darkText,
+                      ),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: Icon(Icons.arrow_forward_rounded,
+                        size: 14, color: primaryBlue),
+                  ),
+                  Flexible(
+                    child: Text(
+                      widget.routeTo,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: darkText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoColumn({required String label, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9.5,
+            letterSpacing: 1,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey.shade500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        child,
+      ],
+    );
+  }
