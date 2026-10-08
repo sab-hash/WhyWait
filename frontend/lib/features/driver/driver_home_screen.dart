@@ -70,3 +70,127 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     );
   }
 }
+  // ==================== HEADER ====================
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        const Text('🚖', style: TextStyle(fontSize: 22)),
+        const SizedBox(width: 6),
+        const Expanded(
+          child: Text(
+            'DRIVER MODE',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: primaryBlue,
+            ),
+          ),
+        ),
+        _shiftBadge(),
+        const SizedBox(width: 8),
+        _profileButton(),
+      ],
+    );
+  }
+
+  Widget _shiftBadge() {
+    final color = _isShiftActive ? successGreen : Colors.grey.shade500;
+    return GestureDetector(
+      onTap: _toggleShift,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _isShiftActive ? 'ACTIVE SHIFT' : 'OFF DUTY',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _profileButton() {
+    return GestureDetector(
+      onTap: _openProfile,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: primaryBlue, width: 1.4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.person_outline_rounded,
+          color: primaryBlue,
+          size: 22,
+        ),
+      ),
+    );
+  }
+
+  // ==================== ACTIONS ====================
+  void _toggleShift() {
+    setState(() => _isShiftActive = !_isShiftActive);
+    _showSnack(
+      _isShiftActive ? 'Shift started' : 'Shift ended',
+      color: _isShiftActive ? successGreen : Colors.grey.shade700,
+    );
+  }
+
+  void _openProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(
+          fullName: widget.driverName,
+          phoneNumber: widget.email,
+        ),
+      ),
+    );
+  }
+
+  void _showSnack(String message, {Color color = primaryBlue}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+  }
