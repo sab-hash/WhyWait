@@ -49,6 +49,7 @@ class _DriverDemandScreenState extends State<DriverDemandScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            _buildMap(stations),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -100,6 +101,28 @@ class _DriverDemandScreenState extends State<DriverDemandScreen> {
                         onRoute: routeNames.contains(station.name),
                       ),
                     ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Based on passengers who joined queues in the '
+                          'passenger app.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
