@@ -183,4 +183,103 @@ class DriverDocumentsScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              StatusC
+              StatusChip(
+                label: document.statusLabel,
+                color: color,
+                icon: docStatusIcon(status),
+              ),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () => _showUploadSheet(context, state, document),
+                icon: const Icon(Icons.upload_rounded, size: 18),
+                label: Text(buttonLabel),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: DriverTheme.primaryBlue,
+                  side: BorderSide(
+                    color: DriverTheme.primaryBlue.withValues(alpha: 0.4),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// TODO: pick a real photo or file (for example `image_picker` /
+  /// `file_picker`) and upload it to the backend. For now the upload is
+  /// simulated: the document becomes "Pending" until the admin verifies it.
+  void _showUploadSheet(
+    BuildContext context,
+    DriverState state,
+    DriverDocument document,
+  ) {
+    final messenger = ScaffoldMessenger.of(context);
+
+    void upload(BuildContext sheetContext) {
+      Navigator.pop(sheetContext);
+      state.uploadDocument(document.id);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: DriverTheme.textDark,
+          content: Text(
+            '${document.title} uploaded. Waiting for verification.',
+          ),
+        ),
+      );
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Upload ${document.title}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const RoundIcon(
+                    icon: Icons.photo_camera_rounded,
+                    size: 40,
+                  ),
+                  title: const Text('Take a photo'),
+                  onTap: () => upload(sheetContext),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const RoundIcon(
+                    icon: Icons.attach_file_rounded,
+                    size: 40,
+                  ),
+                  title: const Text('Choose a file'),
+                  onTap: () => upload(sheetContext),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
