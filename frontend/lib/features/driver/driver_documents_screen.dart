@@ -183,30 +183,4 @@ class DriverDocumentsScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              StatusChip(
-                label: document.statusLabel,
-                color: color,
-                icon: docStatusIcon(status),
-              ),
-              const Spacer(),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.upload_rounded, size: 18),
-                label: Text(buttonLabel),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: DriverTheme.primaryBlue,
-                  side: BorderSide(
-                    color: DriverTheme.primaryBlue.withValues(alpha: 0.4),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
+              StatusC
