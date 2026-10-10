@@ -18,14 +18,36 @@ class DriverDocumentsScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) {
+        final documents = state.documents;
+
         return Scaffold(
           backgroundColor: DriverTheme.background,
           appBar: buildDriverAppBar('Documents'),
-          body: const SafeArea(
-            child: Center(child: Text('Documents')),
+          body: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+              children: [
+                for (final document in documents)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildDocumentCard(context, state, document),
+                  ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDocumentCard(
+    BuildContext context,
+    DriverState state,
+    DriverDocument document,
+  ) {
+    return const DriverCard(
+      padding: EdgeInsets.all(16),
+      child: Text('Document'),
     );
   }
 }
