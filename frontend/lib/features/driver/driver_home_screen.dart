@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../profile_screen.dart';
+import '../passenger/profile_screen.dart';
 
 /// Driver-mode home screen.
 ///

@@ -33,7 +33,13 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/driver',
-      builder: (context, state) => const DriverHomeScreen(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return DriverHomeScreen(
+          driverName: extra['driverName'] ?? 'Driver',
+          email: extra['email'] ?? 'driver@whywait.et',
+        );
+      },
     ),
   ],
 );

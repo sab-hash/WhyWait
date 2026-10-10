@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/grpc_client.dart';
 import '../../services/passenger_state.dart';
+import '../driver/driver_home_screen.dart';
 import 'report_screen.dart';
 import 'route_planner_screen.dart';
 
@@ -10,7 +11,15 @@ class HomeScreen extends StatefulWidget {
   final String fullName;
   final String email;
 
-  const HomeScreen({super.key, required this.fullName, required this.email});
+  /// 'passenger' (default) or 'driver'.
+  final String role;
+
+  const HomeScreen({
+    super.key,
+    required this.fullName,
+    required this.email,
+    this.role = 'passenger',
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -142,6 +151,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ── Driver mode: delegate to the dedicated driver dashboard. ──
+    if (widget.role == 'driver') {
+      return DriverHomeScreen(
+        driverName: widget.fullName,
+        email: widget.email,
+      );
+    }
+
+    // ── Passenger mode. ──
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
@@ -210,9 +228,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.trending_up_rounded, size: 14, color: accentYellow),
+                const Icon(Icons.trending_up_rounded,
+                    size: 14, color: accentYellow),
                 const SizedBox(width: 4),
-                Text(
+                const Text(
                   'Peak Hour',
                   style: TextStyle(
                     fontSize: 11,
