@@ -8,7 +8,8 @@ class DriverTripData {
       date: '18 Aug 2026',
       time: '8:30 AM',
       passengers: 10,
-      earnings: 300,
+      fare: 300,
+      rating: 4.5,
     ),
     DriverTrip(
       from: 'Mexico',
@@ -16,7 +17,8 @@ class DriverTripData {
       date: '18 Aug 2026',
       time: '10:15 AM',
       passengers: 8,
-      earnings: 240,
+      fare: 240,
+      rating: 4.0,
     ),
     DriverTrip(
       from: 'Piassa',
@@ -24,7 +26,8 @@ class DriverTripData {
       date: '17 Aug 2026',
       time: '1:00 PM',
       passengers: 12,
-      earnings: 360,
+      fare: 360,
+      rating: 4.8,
     ),
     DriverTrip(
       from: 'Megenagna',
@@ -32,7 +35,8 @@ class DriverTripData {
       date: '17 Aug 2026',
       time: '3:45 PM',
       passengers: 9,
-      earnings: 270,
+      fare: 270,
+      rating: 4.2,
     ),
     DriverTrip(
       from: 'Bole',
@@ -40,7 +44,8 @@ class DriverTripData {
       date: '16 Aug 2026',
       time: '9:20 AM',
       passengers: 11,
-      earnings: 330,
+      fare: 330,
+      rating: 4.5,
     ),
     DriverTrip(
       from: 'Kazanchis',
@@ -48,7 +53,8 @@ class DriverTripData {
       date: '16 Aug 2026',
       time: '12:30 PM',
       passengers: 8,
-      earnings: 240,
+      fare: 240,
+      rating: 4.0,
     ),
     DriverTrip(
       from: 'Merkato',
@@ -56,7 +62,8 @@ class DriverTripData {
       date: '15 Aug 2026',
       time: '2:15 PM',
       passengers: 12,
-      earnings: 360,
+      fare: 360,
+      rating: 4.8,
     ),
     DriverTrip(
       from: 'Megenagna',
@@ -64,7 +71,8 @@ class DriverTripData {
       date: '15 Aug 2026',
       time: '5:00 PM',
       passengers: 10,
-      earnings: 300,
+      fare: 300,
+      rating: 4.5,
     ),
   ];
 }
