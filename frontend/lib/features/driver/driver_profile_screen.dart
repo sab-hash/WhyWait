@@ -27,8 +27,30 @@ class DriverProfileScreen extends StatelessWidget {
       builder: (context, _) {
         return Scaffold(
           backgroundColor: DriverTheme.background,
-          body: const SafeArea(
-            child: Center(child: Text('Profile')),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 120),
+                  Transform.translate(
+                    offset: const Offset(0, -24),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: SizedBox(height: 90),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: DriverGroupLabel('VEHICLE'),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: SizedBox(height: 70),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
