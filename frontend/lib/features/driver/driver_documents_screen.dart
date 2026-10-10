@@ -27,6 +27,8 @@ class DriverDocumentsScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
               children: [
+                _buildSummary(state),
+                const SizedBox(height: 20),
                 for (final document in documents)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -37,6 +39,79 @@ class DriverDocumentsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSummary(DriverState state) {
+    final verification = state.verification;
+
+    String title;
+    String message;
+    Color color;
+    IconData icon;
+
+    switch (verification) {
+      case Verification.verified:
+        title = 'All documents verified';
+        message = 'You are cleared to go on duty.';
+        color = DriverTheme.success;
+        icon = Icons.verified_rounded;
+        break;
+      case Verification.pending:
+        title = 'Verification pending';
+        message = 'The admin is reviewing your documents.';
+        color = DriverTheme.primaryBlue;
+        icon = Icons.hourglass_bottom_rounded;
+        break;
+      case Verification.actionNeeded:
+        title = 'Action needed';
+        message = 'Upload the missing or expired documents.';
+        color = DriverTheme.danger;
+        icon = Icons.error_outline_rounded;
+        break;
+    }
+
+    final attention = state.documentsNeedingAttention;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 30),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  attention > 0 && verification != Verification.actionNeeded
+                      ? '$attention document${attention == 1 ? '' : 's'} '
+                          'expiring soon. Renew in time to stay on duty.'
+                      : message,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: DriverTheme.textGrey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
