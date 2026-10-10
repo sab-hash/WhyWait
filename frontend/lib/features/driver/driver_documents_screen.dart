@@ -45,9 +45,39 @@ class DriverDocumentsScreen extends StatelessWidget {
     DriverState state,
     DriverDocument document,
   ) {
-    return const DriverCard(
-      padding: EdgeInsets.all(16),
-      child: Text('Document'),
+    return DriverCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RoundIcon(icon: document.icon, color: DriverTheme.deepBlue),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      document.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: DriverTheme.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      document.description,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
