@@ -34,4 +34,28 @@ class DriverProfileScreen extends StatelessWidget {
       },
     );
   }
+
+  Widget _row(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: child,
+    );
+  }
+
+  void _open(BuildContext context, Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  String _documentsSubtitle(DriverState state) {
+    final attention = state.documentsNeedingAttention;
+    final pending = state.documents
+        .where((document) => document.status == DocStatus.pending)
+        .length;
+
+    final parts = <String>[];
+    if (attention > 0) parts.add('$attention need attention');
+    if (pending > 0) parts.add('$pending pending');
+
+    return parts.isEmpty ? 'All documents up to date' : parts.join(' • ');
+  }
 }
