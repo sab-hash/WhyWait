@@ -50,14 +50,127 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
     return ListenableBuilder(
       listenable: _state,
       builder: (context, _) {
+        final summary = _state.earningsSince(_start);
+
         return Scaffold(
           backgroundColor: DriverTheme.background,
           appBar: buildDriverAppBar('Earnings'),
-          body: const SafeArea(
-            child: Center(child: Text('Earnings')),
+          body: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+              children: [
+                DriverSegmentedTabs(
+                  labels: _tabs,
+                  selectedIndex: _selectedTab,
+                  onChanged: (index) => setState(() => _selectedTab = index),
+                ),
+                const SizedBox(height: 16),
+                _buildHero(summary),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHero(EarningsSummary summary) {
+    final allConfirmed = summary.estimated > 0 && summary.unconfirmed == 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: DriverTheme.deepBlue,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: DriverTheme.deepBlue.withValues(alpha: 0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            allConfirmed ? 'Confirmed earnings' : 'Estimated earnings',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${summary.estimated} ETB',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 38,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Fare × seats. Most passengers pay cash.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.75),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (summary.estimated == 0)
+            Text(
+              'No completed trips in this period yet.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 12,
+              ),
+            )
+          else if (allConfirmed)
+            _heroChip(
+              icon: Icons.check_circle_rounded,
+              text: 'All cash confirmed',
+              color: const Color(0xFF7CE0A0),
+            )
+          else
+            _heroChip(
+              icon: Icons.hourglass_bottom_rounded,
+              text: '${summary.unconfirmed} ETB not confirmed yet',
+              color: const Color(0xFFFFD27A),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroChip({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
