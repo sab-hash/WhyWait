@@ -89,6 +89,7 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
                 const SizedBox(height: 18),
                 const DriverGroupLabel('BREAKDOWN'),
                 const SizedBox(height: 10),
+                _buildBreakdown(summary),
               ],
             ),
           ),
@@ -196,102 +197,10 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
       ),
     );
   }
-}
 
-class _MiniStat extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
+  Widget _buildBreakdown(EarningsSummary summary) {
+    final commission = _state.commissionOn(summary.estimated);
+    final percent = DriverConfig.commissionPercent;
 
-  const _MiniStat({
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: DriverTheme.primaryBlue, size: 22),
-          const SizedBox(height: 7),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: const TextStyle(
-              color: DriverTheme.textDark,
-              fontSize: 19,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BreakdownRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isBold;
-  final Color? valueColor;
-
-  const _BreakdownRow({
-    required this.label,
-    required this.value,
-    this.isBold = false,
-    this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 13),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: isBold ? DriverTheme.textDark : DriverTheme.textGrey,
-                fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? DriverTheme.textDark,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final rows = <Widget>[
+     
