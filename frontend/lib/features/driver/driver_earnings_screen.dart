@@ -51,6 +51,7 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
       listenable: _state,
       builder: (context, _) {
         final summary = _state.earningsSince(_start);
+        final unconfirmedTrips = _unconfirmedTrips();
 
         return Scaffold(
           backgroundColor: DriverTheme.background,
@@ -90,6 +91,18 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
                 const DriverGroupLabel('BREAKDOWN'),
                 const SizedBox(height: 10),
                 _buildBreakdown(summary),
+                if (unconfirmedTrips.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const DriverGroupLabel('CONFIRM CASH'),
+                  const SizedBox(height: 10),
+                  for (final trip in unconfirmedTrips)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildUnconfirmedTile(trip),
+                    ),
+                ],
+                const SizedBox(height: 8),
+                _buildNote(),
               ],
             ),
           ),
@@ -203,4 +216,214 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
     final percent = DriverConfig.commissionPercent;
 
     final rows = <Widget>[
-     
+      _BreakdownRow(
+        label: 'Fixed fare per seat',
+        value: '${DriverState.farePerSeat} ETB',
+      ),
+      _BreakdownRow(
+        label: 'Seats carried',
+        value: '${summary.seatsCarried}',
+      ),
+      _BreakdownRow(
+        label: 'Estimated total',
+        value: '${summary.estimated} ETB',
+        isBold: true,
+      ),
+      _BreakdownRow(
+        label: 'Cash confirmed',
+        value: '${summary.confirmed} ETB',
+        valueColor: DriverTheme.success,
+      ),
+      _BreakdownRow(
+        label: 'Not confirmed yet',
+        value: '${summary.unconfirmed} ETB',
+        valueColor:
+            summary.unconfirmed > 0 ? DriverTheme.warning : DriverTheme.textGrey,
+      ),
+    ];
+
+    // Only shown if the team decides the app takes a cut.
+    if (commission != null && percent != null) {
+      rows.addAll([
+        _BreakdownRow(
+          label: 'App commission ($percent%)',
+          value: '- ${commission.toStringAsFixed(0)} ETB',
+          valueColor: DriverTheme.danger,
+        ),
+        _BreakdownRow(
+          label: 'Estimated after commission',
+          value: '${(summary.estimated - commission).toStringAsFixed(0)} ETB',
+          isBold: true,
+        ),
+      ]);
+    }
+
+    return DriverCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            rows[i],
+            if (i != rows.length - 1)
+              const Divider(height: 1, color: DriverTheme.divider),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnconfirmedTile(DriverTrip trip) {
+    return DriverCard(
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${trip.from} → ${trip.to}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: DriverTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${DriverTheme.formatShortDate(trip.date)}, '
+                  '${DriverTheme.formatTime(trip.date)} • '
+                  '${trip.seats} × ${trip.farePerSeat} = '
+                  '${trip.estimatedEarnings} ETB',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              _state.confirmTripCash(trip);
+              showDriverSnack(context, 'Cash confirmed.');
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNote() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'Totals are estimates (fare × seats) until you confirm the cash '
+            'you collected. Only completed trips count.',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _MiniStat({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: DriverTheme.primaryBlue, size: 22),
+          const SizedBox(height: 7),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(
+              color: DriverTheme.textDark,
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isBold;
+  final Color? valueColor;
+
+  const _BreakdownRow({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: isBold ? DriverTheme.textDark : DriverTheme.textGrey,
+                fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? DriverTheme.textDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
