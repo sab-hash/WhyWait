@@ -66,6 +66,29 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildHero(summary),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MiniStat(
+                        icon: Icons.directions_bus_rounded,
+                        title: 'Trips completed',
+                        value: '${summary.tripsCompleted}',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MiniStat(
+                        icon: Icons.event_seat_rounded,
+                        title: 'Seats carried',
+                        value: '${summary.seatsCarried}',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const DriverGroupLabel('BREAKDOWN'),
+                const SizedBox(height: 10),
               ],
             ),
           ),
@@ -166,6 +189,61 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
             style: TextStyle(
               color: color,
               fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _MiniStat({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: DriverTheme.primaryBlue, size: 22),
+          const SizedBox(height: 7),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(
+              color: DriverTheme.textDark,
+              fontSize: 19,
               fontWeight: FontWeight.w700,
             ),
           ),
