@@ -196,6 +196,20 @@ class DriverProfileScreen extends StatelessWidget {
               fontSize: 14,
             ),
           ),
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _headerChip(
+                icon: Icons.badge_outlined,
+                text: 'ID ${profile.driverId}',
+                color: DriverTheme.deepBlue,
+              ),
+              _verificationChip(state.verification),
+            ],
+          ),
         ],
       ),
     );
@@ -206,6 +220,29 @@ class DriverProfileScreen extends StatelessWidget {
       color: Colors.white.withValues(alpha: 0.2),
       child: const Icon(Icons.person, size: 44, color: Colors.white),
     );
+  }
+
+  Widget _verificationChip(Verification verification) {
+    switch (verification) {
+      case Verification.verified:
+        return _headerChip(
+          icon: Icons.verified_rounded,
+          text: 'Verified',
+          color: DriverTheme.success,
+        );
+      case Verification.pending:
+        return _headerChip(
+          icon: Icons.hourglass_bottom_rounded,
+          text: 'Pending review',
+          color: const Color(0xFFB7791F),
+        );
+      case Verification.actionNeeded:
+        return _headerChip(
+          icon: Icons.error_outline_rounded,
+          text: 'Action needed',
+          color: DriverTheme.danger,
+        );
+    }
   }
 
   Widget _headerChip({
