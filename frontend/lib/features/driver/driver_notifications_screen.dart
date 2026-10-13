@@ -38,7 +38,7 @@ class DriverNotificationsScreen extends StatelessWidget {
           ),
           body: SafeArea(
             child: notifications.isEmpty
-                ? const Center(child: Text('No notifications'))
+                ? _buildEmptyState()
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
                     itemCount: notifications.length,
@@ -125,6 +125,35 @@ class DriverNotificationsScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(30),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            RoundIcon(icon: Icons.notifications_none_rounded, size: 72),
+            SizedBox(height: 18),
+            Text(
+              'No notifications',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: DriverTheme.textDark,
+              ),
+            ),
+            SizedBox(height: 7),
+            Text(
+              'Queue updates, route changes and admin messages show up here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ],
+        ),
       ),
     );
   }
