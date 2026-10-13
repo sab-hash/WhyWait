@@ -16,6 +16,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // ==================== ANALYTICS STATE ====================
   String _selectedMonth = 'Oct 2026';
 
+    final List<CommuteShortcut> shortcuts = const [
+    CommuteShortcut(
+      icon: Icons.home_work_rounded,
+      label: 'Home ➔ Work',
+      from: 'Megenagna',
+      to: 'Mexico',
+    ),
+    CommuteShortcut(
+      icon: Icons.work_history_rounded,
+      label: 'Work ➔ Home',
+      from: 'Mexico',
+      to: 'Megenagna',
+    ),
+  ];
+
   final List<Map<String, dynamic>> trips = [
     {
       'date': 'Today',
@@ -763,4 +778,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
+}
+
+// ==================== DATA MODELS ====================
+
+class CommuteShortcut {
+  final IconData icon;
+  final String label;
+  final String from;
+  final String to;
+
+  const CommuteShortcut({
+    required this.icon,
+    required this.label,
+    required this.from,
+    required this.to,
+  });
 }
