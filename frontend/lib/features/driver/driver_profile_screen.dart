@@ -35,9 +35,9 @@ class DriverProfileScreen extends StatelessWidget {
                   _buildHeader(state),
                   Transform.translate(
                     offset: const Offset(0, -24),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: SizedBox(height: 90),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildStatsCard(state),
                     ),
                   ),
                   const Padding(
@@ -272,5 +272,65 @@ class DriverProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildStatsCard(DriverState state) {
+    final today = state.earningsSince(state.startOfToday);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (DriverConfig.ratingsEnabled) ...[
+            Expanded(
+              child: _statColumn(
+                '${state.profile.rating.toStringAsFixed(1)} ★',
+                'Rating',
+              ),
+            ),
+            _statDivider(),
+          ],
+          Expanded(
+            child: _statColumn('${state.completedTripsTotal}', 'Trips'),
+          ),
+          _statDivider(),
+          Expanded(
+            child: _statColumn('${today.estimated} ETB', 'Today (est.)'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statColumn(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+      ],
+    );
+  }
+
+  Widget _statDivider() {
+    return Container(width: 1, height: 34, color: Colors.grey[200]);
   }
 }
