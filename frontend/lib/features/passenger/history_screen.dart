@@ -192,7 +192,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildHeader() {
+    Widget _buildHeader() {
     return Row(
       children: [
         Container(
@@ -220,16 +220,64 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
         const SizedBox(width: 14),
-        const Text(
-          'Trip History',
-          style: TextStyle(
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
-            color: darkText,
+        const Expanded(
+          child: Text(
+            'Trip History',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+              color: darkText,
+            ),
           ),
         ),
+        _buildMonthChip(),
       ],
     );
+  }
+
+  Widget _buildMonthChip() {
+    return GestureDetector(
+      onTap: _pickMonth,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: primeBlue.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_today_rounded,
+              size: 14,
+              color: primeBlue,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _selectedMonth,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: primeBlue,
+              ),
+            ),
+            const SizedBox(width: 3),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 16,
+              color: primeBlue,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _pickMonth() {
+    // Filled in next commit.
   }
 
     Widget _buildSectionLabel(String text) {
