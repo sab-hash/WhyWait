@@ -228,6 +228,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+    Widget _buildSectionLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11.5,
+        letterSpacing: 1,
+        fontWeight: FontWeight.w800,
+        color: primeBlue,
+      ),
+    );
+  }
+
   Widget _buildTripList() {
     return ListView(
       physics: const BouncingScrollPhysics(),
