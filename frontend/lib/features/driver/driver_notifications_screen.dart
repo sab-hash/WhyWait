@@ -52,4 +52,17 @@ class DriverNotificationsScreen extends StatelessWidget {
       },
     );
   }
+
+  (IconData, Color) _typeStyle(NotificationType type) {
+    switch (type) {
+      case NotificationType.queue:
+        return (Icons.format_list_numbered_rounded, DriverTheme.primaryBlue);
+      case NotificationType.route:
+        return (Icons.alt_route_rounded, DriverTheme.deepBlue);
+      case NotificationType.document:
+        return (Icons.description_rounded, DriverTheme.warning);
+      case NotificationType.admin:
+        return (Icons.campaign_rounded, DriverTheme.success);
+    }
+  }
 }
