@@ -12,7 +12,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   static const Color primeBlue = Color(0xFF1565C0);
   static const Color backgroundColor = Color(0xFFF7F9FC);
   static const Color darkText = Color(0xFF172B4D);
+
+  // ==================== ANALYTICS STATE ====================
   String _selectedMonth = 'Oct 2026';
+
   final List<Map<String, dynamic>> trips = [
     {
       'date': 'Today',
@@ -98,6 +101,49 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return trips
         .where((trip) => trip['date'] == 'Yesterday')
         .toList();
+  }
+
+  // ==================== COMPUTED ANALYTICS ====================
+
+  /// Total fare across all trips, parsed from strings like "ETB 35".
+  double get _totalSpend {
+    double sum = 0;
+    for (final trip in trips) {
+      final fareStr = trip['fare'] as String? ?? '';
+      final digits = fareStr.replaceAll(RegExp(r'[^0-9.]'), '');
+      sum += double.tryParse(digits) ?? 0;
+    }
+    return sum;
+  }
+
+  /// Minutes saved from using tokens.
+  /// Placeholder: 15 minutes saved per trip until the backend provides real data.
+  int get _timeSavedMinutes => trips.length * 15;
+
+  /// Percent of trips that used at least one Taxi leg.
+  int get _taxiPercent {
+    if (trips.isEmpty) return 0;
+    final taxiTrips = trips.where((trip) {
+      final legs = trip['legs'] as List<dynamic>;
+      return legs.any((leg) => leg['type'] == 'Taxi');
+    }).length;
+    return ((taxiTrips / trips.length) * 100).round();
+  }
+
+  /// Percent of trips that used at least one Minibus leg.
+  int get _busPercent {
+    if (trips.isEmpty) return 0;
+    final busTrips = trips.where((trip) {
+      final legs = trip['legs'] as List<dynamic>;
+      return legs.any((leg) => leg['type'] == 'Minibus');
+    }).length;
+    return ((busTrips / trips.length) * 100).round();
+  }
+
+  String get _timeSavedDisplay {
+    final hours = _timeSavedMinutes ~/ 60;
+    final mins = _timeSavedMinutes % 60;
+    return '$hours Hours $mins Mins';
   }
 
   @override
