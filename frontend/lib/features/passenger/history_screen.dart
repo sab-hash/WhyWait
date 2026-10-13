@@ -276,8 +276,87 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  void _pickMonth() {
-    // Filled in next commit.
+    void _pickMonth() {
+    const months = [
+      'Jul 2026',
+      'Aug 2026',
+      'Sep 2026',
+      'Oct 2026',
+      'Nov 2026',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            const Text(
+              'Select Month',
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+                color: primeBlue,
+              ),
+            ),
+            const SizedBox(height: 15),
+            ...months.map((m) {
+              final isSelected = m == _selectedMonth;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: primeBlue.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_rounded,
+                    color: primeBlue,
+                    size: 21,
+                  ),
+                ),
+                title: Text(
+                  m,
+                  style: const TextStyle(
+                    color: darkText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: isSelected
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        color: primeBlue,
+                      )
+                    : null,
+                onTap: () {
+                  setState(() => _selectedMonth = m);
+                  Navigator.pop(ctx);
+                },
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 
     Widget _buildSectionLabel(String text) {
