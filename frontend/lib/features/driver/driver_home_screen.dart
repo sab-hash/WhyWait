@@ -35,6 +35,16 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
     }
   }
 
+  /// Completed trips in the selected period that are not confirmed yet.
+  List<DriverTrip> _unconfirmedTrips() {
+    final start = _start;
+    return _state.trips.where((trip) {
+      return trip.status == TripResult.completed &&
+          !trip.cashConfirmed &&
+          !trip.date.isBefore(start);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
