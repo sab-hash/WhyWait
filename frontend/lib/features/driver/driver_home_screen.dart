@@ -47,12 +47,31 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: DriverTheme.background,
-      appBar: buildDriverAppBar('Earnings'),
-      body: const SafeArea(
-        child: Center(child: Text('Earnings')),
-      ),
+    return ListenableBuilder(
+      listenable: _state,
+      builder: (context, _) {
+        final summary = _state.earningsSince(_start);
+        final unconfirmedTrips = _unconfirmedTrips();
+
+        return Scaffold(
+          backgroundColor: DriverTheme.background,
+          appBar: buildDriverAppBar('Earnings'),
+          body: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+              children: [
+                DriverSegmentedTabs(
+                  labels: _tabs,
+                  selectedIndex: _selectedTab,
+                  onChanged: (index) => setState(() => _selectedTab = index),
+                ),
+                const SizedBox(height: 16),
+                Center(child: Text('${unconfirmedTrips.length} unconfirmed')),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
