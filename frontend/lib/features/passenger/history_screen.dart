@@ -239,6 +239,113 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
+    Widget _buildAnalyticsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.045),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _analyticsTile(
+                  icon: Icons.payments_rounded,
+                  label: 'TOTAL SPEND',
+                  value: 'Br. ${_totalSpend.toStringAsFixed(2)}',
+                  suffix: ' ETB',
+                  color: primeBlue,
+                ),
+              ),
+              Container(width: 1, height: 56, color: Colors.grey.shade200),
+              Expanded(
+                child: _analyticsTile(
+                  icon: Icons.access_time_rounded,
+                  label: 'TIME SAVED',
+                  value: _timeSavedDisplay,
+                  suffix: '',
+                  color: const Color(0xFF2E7D32),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _analyticsTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String suffix,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 15, color: color),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                    height: 1,
+                  ),
+                ),
+              ),
+              if (suffix.isNotEmpty)
+                Text(
+                  suffix,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTripList() {
     return ListView(
