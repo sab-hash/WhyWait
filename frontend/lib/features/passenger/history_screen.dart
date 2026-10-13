@@ -12,7 +12,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   static const Color primeBlue = Color(0xFF1565C0);
   static const Color backgroundColor = Color(0xFFF7F9FC);
   static const Color darkText = Color(0xFF172B4D);
-
+  String _selectedMonth = 'Oct 2026';
   final List<Map<String, dynamic>> trips = [
     {
       'date': 'Today',
