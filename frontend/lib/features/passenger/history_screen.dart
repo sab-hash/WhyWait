@@ -279,6 +279,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ],
           ),
+                    const SizedBox(height: 16),
+                    _buildBreakdownBar(),
         ],
       ),
     );
@@ -344,6 +346,58 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
+    );
+  }
+
+    Widget _buildBreakdownBar() {
+    final int taxi = _taxiPercent.clamp(1, 100);
+    final int bus = _busPercent.clamp(1, 100);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Spending breakdown',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '$_taxiPercent% Taxi · $_busPercent% Bus',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: primeBlue,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Row(
+            children: [
+              Expanded(
+                flex: taxi,
+                child: Container(height: 10, color: primeBlue),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                flex: bus,
+                child: Container(
+                  height: 10,
+                  color: const Color(0xFF2E7D32),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
