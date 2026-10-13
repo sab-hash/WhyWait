@@ -171,8 +171,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 18),
+                            const SizedBox(height: 18),
               _buildHeader(),
+              const SizedBox(height: 22),
+              _buildSectionLabel('ONE-TAP COMMUTE SHORTCUTS'),
+              const SizedBox(height: 10),
+              ...shortcuts.map((s) => _buildShortcutCard(s)),
               const SizedBox(height: 22),
               _buildSectionLabel('MONTHLY IMPACT & SPEND'),
               const SizedBox(height: 10),
