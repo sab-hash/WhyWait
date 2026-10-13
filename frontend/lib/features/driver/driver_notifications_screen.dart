@@ -44,7 +44,7 @@ class DriverNotificationsScreen extends StatelessWidget {
                     itemCount: notifications.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      return const SizedBox.shrink();
+                      return _buildTile(state, notifications[index]);
                     },
                   ),
           ),
@@ -64,5 +64,68 @@ class DriverNotificationsScreen extends StatelessWidget {
       case NotificationType.admin:
         return (Icons.campaign_rounded, DriverTheme.success);
     }
+  }
+
+  Widget _buildTile(DriverState state, DriverNotification notification) {
+    final style = _typeStyle(notification.type);
+    final unread = !notification.read;
+
+    return DriverCard(
+      padding: const EdgeInsets.all(14),
+      onTap: () => state.markNotificationRead(notification.id),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RoundIcon(icon: style.$1, color: style.$2),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        notification.title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight:
+                              unread ? FontWeight.w800 : FontWeight.w600,
+                          color: DriverTheme.textDark,
+                        ),
+                      ),
+                    ),
+                    if (unread)
+                      Container(
+                        width: 9,
+                        height: 9,
+                        margin: const EdgeInsets.only(left: 8),
+                        decoration: const BoxDecoration(
+                          color: DriverTheme.primaryBlue,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  notification.body,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: DriverTheme.textGrey,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  DriverTheme.timeAgo(notification.time),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
