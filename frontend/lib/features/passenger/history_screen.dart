@@ -239,10 +239,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return GestureDetector(
       onTap: _pickMonth,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: primeBlue.withValues(alpha: 0.25),
           ),
