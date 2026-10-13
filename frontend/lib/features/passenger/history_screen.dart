@@ -158,7 +158,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             children: [
               const SizedBox(height: 18),
               _buildHeader(),
-              const SizedBox(height: 28),
+              const SizedBox(height: 22),
+              _buildSectionLabel('MONTHLY IMPACT & SPEND'),
+              const SizedBox(height: 10),
+              _buildAnalyticsCard(),
+              const SizedBox(height: 22),
               const Text(
                 'Your journeys',
                 style: TextStyle(
