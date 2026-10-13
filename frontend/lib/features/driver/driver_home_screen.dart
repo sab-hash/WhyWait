@@ -66,12 +66,84 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
                   onChanged: (index) => setState(() => _selectedTab = index),
                 ),
                 const SizedBox(height: 16),
+                _buildHero(summary),
                 Center(child: Text('${unconfirmedTrips.length} unconfirmed')),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHero(EarningsSummary summary) {
+    final allConfirmed = summary.estimated > 0 && summary.unconfirmed == 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: DriverTheme.deepBlue,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: DriverTheme.deepBlue.withValues(alpha: 0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            allConfirmed ? 'Confirmed earnings' : 'Estimated earnings',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${summary.estimated} ETB',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 38,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Fare × seats. Most passengers pay cash.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.75),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (summary.estimated == 0)
+            Text(
+              'No completed trips in this period yet.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 12,
+              ),
+            )
+          else if (allConfirmed)
+            _heroChip(
+              icon: Icons.check_circle_rounded,
+              text: 'All cash confirmed',
+              color: const Color(0xFF7CE0A0),
+            )
+          else
+            _heroChip(
+              icon: Icons.hourglass_bottom_rounded,
+              text: '${summary.unconfirmed} ETB not confirmed yet',
+              color: const Color(0xFFFFD27A),
+            ),
+        ],
+      ),
     );
   }
 }
