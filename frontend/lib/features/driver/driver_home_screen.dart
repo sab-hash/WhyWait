@@ -91,7 +91,18 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
                 const DriverGroupLabel('BREAKDOWN'),
                 const SizedBox(height: 10),
                 _buildBreakdown(summary),
-                Center(child: Text('${unconfirmedTrips.length} unconfirmed')),
+                if (unconfirmedTrips.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const DriverGroupLabel('CONFIRM CASH'),
+                  const SizedBox(height: 10),
+                  for (final trip in unconfirmedTrips)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildUnconfirmedTile(trip),
+                    ),
+                ],
+                const SizedBox(height: 8),
+                _buildNote(),
               ],
             ),
           ),
@@ -298,6 +309,23 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNote() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'Totals are estimates (fare × seats) until you confirm the cash '
+            'you collected. Only completed trips count.',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ),
+      ],
     );
   }
 }
