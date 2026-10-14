@@ -201,6 +201,9 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
   }
 
   Widget _buildBreakdown(EarningsSummary summary) {
+    final commission = _state.commissionOn(summary.estimated);
+    final percent = DriverConfig.commissionPercent;
+
     final rows = <Widget>[
       _BreakdownRow(
         label: 'Fixed fare per seat',
@@ -228,6 +231,22 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
       ),
     ];
 
+    // Only shown if the team decides the app takes a cut.
+    if (commission != null && percent != null) {
+      rows.addAll([
+        _BreakdownRow(
+          label: 'App commission ($percent%)',
+          value: '- ${commission.toStringAsFixed(0)} ETB',
+          valueColor: DriverTheme.danger,
+        ),
+        _BreakdownRow(
+          label: 'Estimated after commission',
+          value: '${(summary.estimated - commission).toStringAsFixed(0)} ETB',
+          isBold: true,
+        ),
+      ]);
+    }
+
     return DriverCard(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: Column(
@@ -237,6 +256,46 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
             if (i != rows.length - 1)
               const Divider(height: 1, color: DriverTheme.divider),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnconfirmedTile(DriverTrip trip) {
+    return DriverCard(
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${trip.from} → ${trip.to}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: DriverTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${DriverTheme.formatShortDate(trip.date)}, '
+                  '${DriverTheme.formatTime(trip.date)} • '
+                  '${trip.seats} × ${trip.farePerSeat} = '
+                  '${trip.estimatedEarnings} ETB',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              _state.confirmTripCash(trip);
+              showDriverSnack(context, 'Cash confirmed.');
+            },
+            child: const Text('Confirm'),
+          ),
         ],
       ),
     );
