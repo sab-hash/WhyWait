@@ -67,6 +67,29 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildHero(summary),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MiniStat(
+                        icon: Icons.directions_bus_rounded,
+                        title: 'Trips completed',
+                        value: '${summary.tripsCompleted}',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MiniStat(
+                        icon: Icons.event_seat_rounded,
+                        title: 'Seats carried',
+                        value: '${summary.seatsCarried}',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const DriverGroupLabel('BREAKDOWN'),
+                const SizedBox(height: 10),
                 Center(child: Text('${unconfirmedTrips.length} unconfirmed')),
               ],
             ),
