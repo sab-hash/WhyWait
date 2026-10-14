@@ -90,6 +90,7 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
                 const SizedBox(height: 18),
                 const DriverGroupLabel('BREAKDOWN'),
                 const SizedBox(height: 10),
+                _buildBreakdown(summary),
                 Center(child: Text('${unconfirmedTrips.length} unconfirmed')),
               ],
             ),
@@ -194,6 +195,48 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
               fontWeight: FontWeight.w700,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakdown(EarningsSummary summary) {
+    final rows = <Widget>[
+      _BreakdownRow(
+        label: 'Fixed fare per seat',
+        value: '${DriverState.farePerSeat} ETB',
+      ),
+      _BreakdownRow(
+        label: 'Seats carried',
+        value: '${summary.seatsCarried}',
+      ),
+      _BreakdownRow(
+        label: 'Estimated total',
+        value: '${summary.estimated} ETB',
+        isBold: true,
+      ),
+      _BreakdownRow(
+        label: 'Cash confirmed',
+        value: '${summary.confirmed} ETB',
+        valueColor: DriverTheme.success,
+      ),
+      _BreakdownRow(
+        label: 'Not confirmed yet',
+        value: '${summary.unconfirmed} ETB',
+        valueColor:
+            summary.unconfirmed > 0 ? DriverTheme.warning : DriverTheme.textGrey,
+      ),
+    ];
+
+    return DriverCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            rows[i],
+            if (i != rows.length - 1)
+              const Divider(height: 1, color: DriverTheme.divider),
+          ],
         ],
       ),
     );
