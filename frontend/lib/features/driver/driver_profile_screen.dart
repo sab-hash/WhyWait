@@ -44,9 +44,9 @@ class DriverProfileScreen extends StatelessWidget {
                     padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
                     child: DriverGroupLabel('VEHICLE'),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(height: 70),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildVehicleCard(context, state),
                   ),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
@@ -332,5 +332,16 @@ class DriverProfileScreen extends StatelessWidget {
 
   Widget _statDivider() {
     return Container(width: 1, height: 34, color: Colors.grey[200]);
+  }
+
+  Widget _buildVehicleCard(BuildContext context, DriverState state) {
+    final vehicle = state.vehicle;
+
+    return DriverRowTile(
+      icon: Icons.directions_car_filled_rounded,
+      title: '${vehicle.color} ${vehicle.model}',
+      subtitle: vehicle.plate,
+      onTap: () => _open(context, const DriverVehicleScreen()),
+    );
   }
 }
