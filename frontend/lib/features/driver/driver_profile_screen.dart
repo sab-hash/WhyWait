@@ -109,9 +109,9 @@ class DriverProfileScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(20, 4, 20, 20),
-                    child: SizedBox(height: 54),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    child: _buildSignOutButton(context),
                   ),
                 ],
               ),
@@ -145,6 +145,10 @@ class DriverProfileScreen extends StatelessWidget {
 
     return parts.isEmpty ? 'All documents up to date' : parts.join(' • ');
   }
+
+  // ---------------------------------------------------------------------------
+  // Header
+  // ---------------------------------------------------------------------------
 
   Widget _buildHeader(DriverState state) {
     final profile = state.profile;
@@ -274,6 +278,10 @@ class DriverProfileScreen extends StatelessWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Stats and vehicle
+  // ---------------------------------------------------------------------------
+
   Widget _buildStatsCard(DriverState state) {
     final today = state.earningsSince(state.startOfToday);
 
@@ -342,6 +350,115 @@ class DriverProfileScreen extends StatelessWidget {
       title: '${vehicle.color} ${vehicle.model}',
       subtitle: vehicle.plate,
       onTap: () => _open(context, const DriverVehicleScreen()),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sign out
+  // ---------------------------------------------------------------------------
+
+  Widget _buildSignOutButton(BuildContext context) {
+    return InkWell(
+      onTap: () => _signOut(context),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Sign Out',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _signOut(BuildContext context) async {
+    final state = DriverState.instance;
+
+    // A driver on a trip must not sign out: the taxi would vanish for
+    // passengers, the same rule as going offline.
+    if (!state.canGoOffline) {
+      showDriverSnack(
+        context,
+        "You can't sign out during a trip. End the trip first.",
+        isError: true,
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Sign out?',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'You will be taken off the queue and become invisible to '
+            'passengers.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Sign Out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Check the result before removing the saved token.
+    final error = state.setOnline(false);
+
+    if (error != null) {
+      if (context.mounted) {
+        showDriverSnack(context, error, isError: true);
+      }
+      return;
+    }
+
+    await LocalStorage.removeToken();
+
+    if (!context.mounted) return;
+
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
     );
   }
 }
