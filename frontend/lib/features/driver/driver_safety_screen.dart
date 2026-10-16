@@ -27,8 +27,95 @@ class DriverProfileScreen extends StatelessWidget {
       builder: (context, _) {
         return Scaffold(
           backgroundColor: DriverTheme.background,
-          body: const SafeArea(
-            child: Center(child: Text('Profile')),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 180),
+                  Transform.translate(
+                    offset: const Offset(0, -24),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: SizedBox(height: 90),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: DriverGroupLabel('VEHICLE'),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: SizedBox(height: 70),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
+                    child: DriverGroupLabel('ACCOUNT'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.folder_copy_outlined,
+                            title: 'Documents',
+                            subtitle: _documentsSubtitle(state),
+                            onTap: () => _open(
+                              context,
+                              const DriverDocumentsScreen(),
+                            ),
+                          ),
+                        ),
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'Earnings',
+                            subtitle: 'Today, this week, this month',
+                            onTap: () => _open(
+                              context,
+                              const DriverEarningsScreen(),
+                            ),
+                          ),
+                        ),
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.notifications_none_rounded,
+                            title: 'Notifications',
+                            subtitle: 'Queue, route and document alerts',
+                            trailing: state.unreadNotifications > 0
+                                ? StatusChip(
+                                    label: '${state.unreadNotifications} new',
+                                    color: DriverTheme.danger,
+                                  )
+                                : null,
+                            onTap: () => _open(
+                              context,
+                              const DriverNotificationsScreen(),
+                            ),
+                          ),
+                        ),
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.health_and_safety_outlined,
+                            title: 'Safety',
+                            subtitle: 'SOS, contacts, share location',
+                            onTap: () => _open(
+                              context,
+                              const DriverSafetyScreen(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    child: SizedBox(height: 54),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
