@@ -13,8 +13,7 @@ class _SettingItem {
     required this.icon,
     required this.title,
     required this.subtitle,
-    this.onTap,
-  });
+  }) : onTap = null;
 }
 
 class ProfileScreen extends StatefulWidget {
@@ -174,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? 'Loading...'
                 : (_profile?['phone'] ?? widget.phoneNumber),
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
@@ -205,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _avatarFallback() {
     return Container(
-      color: Colors.white.withOpacity(0.2),
+      color: Colors.white.withValues(alpha: 0.2),
       child: const Icon(Icons.person, size: 44, color: Colors.white),
     );
   }
@@ -218,7 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -287,7 +286,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSettingRow(_SettingItem item) {
     return InkWell(
-      onTap: item.onTap ?? () {},
+            onTap: item.onTap ??
+          () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.title} — coming soon'),
+                backgroundColor: primaryBlue,
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -296,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -308,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: primaryBlue.withOpacity(0.08),
+                color: primaryBlue.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(item.icon, color: primaryBlue, size: 20),
@@ -362,7 +370,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -400,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
