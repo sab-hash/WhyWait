@@ -3,6 +3,7 @@ import '../../services/api_service.dart';
 import 'report_screen.dart';
 import 'profile_screen.dart';
 import 'history_screen.dart';
+import 'live_tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
@@ -607,14 +608,15 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         // Tabs 0 (Home) and 1 (Track) — still unimplemented, show snackbar
-        if (index != 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$label screen will be connected later'),
-              backgroundColor: primaryBlue,
-              duration: const Duration(seconds: 1),
+                // Tab 1 — Track → Live Tracking
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const TrackScreen(),
             ),
           );
+          return;
         }
       }
        );
