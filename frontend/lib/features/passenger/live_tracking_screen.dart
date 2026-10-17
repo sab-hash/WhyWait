@@ -155,6 +155,12 @@ class _TrackScreenState extends State<TrackScreen> {
         body: SafeArea(child: _buildErrorState()),
       );
     }
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF7F8FA),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
