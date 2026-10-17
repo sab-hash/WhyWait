@@ -112,7 +112,8 @@ class _TrackScreenState extends State<TrackScreen> {
   final MapController _mapController = MapController();
   final TaxiService _taxiService = TaxiService();
 
-  List<Taxi> _taxis = [];
+    List<Taxi> _taxis = [];
+  String? _error;
   bool _isLoading = true;
   int _currentNavIndex = 1;
 
@@ -122,18 +123,38 @@ class _TrackScreenState extends State<TrackScreen> {
     _loadTaxis();
   }
 
-  Future<void> _loadTaxis() async {
-    setState(() => _isLoading = true);
-    final taxis = await _taxiService.fetchNearbyTaxis();
-    if (!mounted) return;
+    Future<void> _loadTaxis() async {
     setState(() {
-      _taxis = taxis;
-      _isLoading = false;
+      _isLoading = true;
+      _error = null;
     });
+
+    try {
+      final taxis = await _taxiService.fetchNearbyTaxis();
+
+      if (!mounted) return;
+
+      setState(() {
+        _taxis = taxis;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+        if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F8FA),
+        body: SafeArea(child: _buildErrorState()),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
@@ -219,7 +240,7 @@ class _TrackScreenState extends State<TrackScreen> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
@@ -243,7 +264,7 @@ class _TrackScreenState extends State<TrackScreen> {
                 Text(
                   '${_taxis.length} taxis approaching',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 13,
                   ),
                 ),
@@ -266,7 +287,7 @@ class _TrackScreenState extends State<TrackScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8),
         ],
       ),
       child: Stack(
@@ -359,7 +380,7 @@ class _TrackScreenState extends State<TrackScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
             ],
           ),
           child: const Text(
@@ -412,7 +433,7 @@ class _TrackScreenState extends State<TrackScreen> {
           color: filled ? primaryBlue : Colors.white,
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
           ],
         ),
         child: Icon(icon, size: 18, color: filled ? Colors.white : Colors.black87),
@@ -434,7 +455,7 @@ class _TrackScreenState extends State<TrackScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: primaryBlue.withOpacity(0.08),
+            color: primaryBlue.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -454,7 +475,7 @@ class _TrackScreenState extends State<TrackScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -463,7 +484,7 @@ class _TrackScreenState extends State<TrackScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.08),
+              color: primaryBlue.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.local_taxi, color: primaryBlue, size: 20),
@@ -552,7 +573,7 @@ class _TrackScreenState extends State<TrackScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, -2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, -2)),
         ],
       ),
       child: SafeArea(
@@ -587,6 +608,56 @@ class _TrackScreenState extends State<TrackScreen> {
               );
             }),
           ),
+        ),
+      ),
+    );
+  }
+    Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Something went wrong',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Could not load nearby taxis. Check your connection.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _loadTaxis,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
