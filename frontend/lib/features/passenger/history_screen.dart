@@ -31,13 +31,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ),
   ];
 
-  final List<Map<String, dynamic>> trips = [
+      final List<Map<String, dynamic>> trips = [
     {
       'date': 'Today',
       'from': 'Bole',
       'to': 'Mexico Square',
       'time': '10:30 AM',
       'fare': 'ETB 35',
+      'payment': 'Telebirr',
+      'plate': 'AA-3-A12345',
+      'association': 'Zone 1',
       'legs': [
         {
           'type': 'Taxi',
@@ -53,6 +56,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'to': 'Piassa',
       'time': '1:15 PM',
       'fare': 'ETB 45',
+      'payment': 'Telebirr',
+      'plate': 'AA-3-B67890',
+      'association': 'Zone 2',
       'legs': [
         {
           'type': 'Minibus',
@@ -74,6 +80,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'to': 'Bole',
       'time': '9:20 AM',
       'fare': 'ETB 20',
+      'payment': 'CBE Birr',
+      'plate': 'AA-3-C11223',
+      'association': 'Zone 3',
       'legs': [
         {
           'type': 'Minibus',
@@ -89,6 +98,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'to': 'CMC',
       'time': '4:45 PM',
       'fare': 'ETB 40',
+      'payment': 'CBE Birr',
+      'plate': 'AA-3-D44556',
+      'association': 'Zone 1',
       'legs': [
         {
           'type': 'Taxi',
@@ -746,8 +758,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 const SizedBox(width: 13),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         '${trip['from']} → ${trip['to']}',
@@ -773,6 +784,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               color: Colors.grey[600],
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.payments_outlined,
+                            size: 14,
+                            color: Colors.grey[500],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            trip['payment'] ?? '—',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -788,7 +813,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F9FC),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.directions_car_outlined,
+                    size: 14,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Plate: ${trip['plate'] ?? '—'}  ·  Assoc: ${trip['association'] ?? '—'}',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             Divider(
               height: 1,
               color: Colors.grey[200],
