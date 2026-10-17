@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../features/passenger/history_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/passenger/home_screen.dart';
@@ -26,6 +25,11 @@ final GoRouter appRouter = GoRouter(
           email: extra['email'] ?? '',
         );
       },
+    ),
+
+        GoRoute(
+      path: '/history',
+      builder: (context, state) => const HistoryScreen(),
     ),
 
     GoRoute(

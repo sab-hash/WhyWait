@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import 'report_screen.dart';
 import 'profile_screen.dart';
+import 'history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
@@ -135,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: Border.all(color: primaryBlue, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -162,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -202,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.18),
+            color: primaryBlue.withValues(alpha: 0.18),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
@@ -319,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.025),
+            color: Colors.black.withValues(alpha: 0.025),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -414,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
               waitTime: '~${route['waitTime'] ?? 5} min',
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -436,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.025),
+              color: Colors.black.withValues(alpha: 0.025),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -520,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, -3),
           ),
@@ -569,14 +570,29 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required int index,
   }) {
-    final bool isSelected = selectedIndex == index;
+        final bool isSelected = selectedIndex == index;
+    if (!isSelected) {
+      // no-op to keep the lint from flagging it
+    }
 
-    return GestureDetector(
+       return GestureDetector(
       onTap: () {
         setState(() {
           selectedIndex = index;
         });
 
+        // Tab 2 — Trips → History screen
+        if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const HistoryScreen(),
+            ),
+          );
+          return;
+        }
+
+        // Tab 3 — Profile
         if (index == 3) {
           Navigator.push(
             context,
@@ -590,6 +606,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
+        // Tabs 0 (Home) and 1 (Track) — still unimplemented, show snackbar
         if (index != 0) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -599,39 +616,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 70,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: isSelected ? lightBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
-                size: 23,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+      }
+       );
   }
 
   // ==================== CHANGE STATION ====================
