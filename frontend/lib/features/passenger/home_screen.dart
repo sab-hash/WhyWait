@@ -388,8 +388,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 letterSpacing: 0.8,
               ),
             ),
-            TextButton(
-              onPressed: () {},
+                        TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+              },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
