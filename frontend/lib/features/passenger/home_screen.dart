@@ -31,7 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _nearbyCount = 0;
   int _avgWait = 0;
   List<dynamic> _popularRoutes = [];
-  bool _isLoading = true;
+    bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -39,47 +40,62 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  void _loadData() async {
+   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
+      _error = null;
     });
 
-    final terminals = await ApiService.getTerminals();
-    final status = await ApiService.getTaxiStatus();
-    final routes = await ApiService.getPopularRoutes();
+    try {
+      final terminals = await ApiService.getTerminals();
+      final status = await ApiService.getTaxiStatus();
+      final routes = await ApiService.getPopularRoutes();
 
-    setState(() {
-      _terminals = terminals;
-      _taxiCount = status['available'] ?? 0;
-      _nearbyCount = status['nearby_stations'] ?? 0;
-      _avgWait = status['average_wait'] ?? 0;
-      _popularRoutes = routes;
-      _isLoading = false;
-    });
+      if (!mounted) return;
+
+      setState(() {
+        _terminals = terminals;
+        _taxiCount = status['available'] ?? 0;
+        _nearbyCount = status['nearby_stations'] ?? 0;
+        _avgWait = status['average_wait'] ?? 0;
+        _popularRoutes = routes;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildSearchBar(),
-              const SizedBox(height: 18),
-              _buildStationCard(),
-              const SizedBox(height: 20),
-              _buildSummaryCards(),
-              const SizedBox(height: 28),
-              _buildPopularRoutes(),
-            ],
-          ),
-        ),
+            body: SafeArea(
+        child: _error != null
+            ? _buildErrorState()
+            : _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 24),
+                        _buildSearchBar(),
+                        const SizedBox(height: 18),
+                        _buildStationCard(),
+                        const SizedBox(height: 20),
+                        _buildSummaryCards(),
+                        const SizedBox(height: 28),
+                        _buildPopularRoutes(),
+                      ],
+                    ),
+                  ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -812,6 +828,56 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+    Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Something went wrong',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Could not load data. Check your connection.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _loadData,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
