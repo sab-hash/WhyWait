@@ -32,7 +32,7 @@ class DriverProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 180),
+                  _buildHeader(state),
                   Transform.translate(
                     offset: const Offset(0, -24),
                     child: const Padding(
@@ -144,5 +144,67 @@ class DriverProfileScreen extends StatelessWidget {
     if (pending > 0) parts.add('$pending pending');
 
     return parts.isEmpty ? 'All documents up to date' : parts.join(' • ');
+  }
+
+  Widget _buildHeader(DriverState state) {
+    final profile = state.profile;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
+      decoration: const BoxDecoration(
+        color: DriverTheme.deepBlue,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+            ),
+            child: ClipOval(
+              child: profile.photoUrl != null
+                  ? Image.network(
+                      profile.photoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _avatarFallback(),
+                    )
+                  : _avatarFallback(),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            profile.fullName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            profile.phone,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _avatarFallback() {
+    return Container(
+      color: Colors.white.withValues(alpha: 0.2),
+      child: const Icon(Icons.person, size: 44, color: Colors.white),
+    );
   }
 }
