@@ -32,4 +32,33 @@ class DriverTheme {
       ],
     );
   }
+
+  // --------------------------------------------------------------------------
+  // Formatting
+  // --------------------------------------------------------------------------
+
+  static const List<String> _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  /// 18 August 2026
+  static String formatDate(DateTime date) {
+    return '${date.day} ${_months[date.month - 1]} ${date.year}';
+  }
+
+  /// 18 Aug
+  static String formatShortDate(DateTime date) {
+    return '${date.day} ${_months[date.month - 1].substring(0, 3)}';
+  }
 }
