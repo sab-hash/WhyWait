@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -27,6 +26,24 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+    @override
+  void initState() {
+    super.initState();
+    _checkExistingAuth();
+  }
+
+  Future<void> _checkExistingAuth() async {
+    final token = await LocalStorage.getToken();
+    if (!mounted) return;
+
+    if (token != null && token.isNotEmpty) {
+      // User already logged in — go to passenger home
+      context.go('/passenger', extra: {
+        'fullName': 'User',
+        'email': '',
+      });
+    }
   }
 
   // ==================== HANDLE SIGN IN ====================
