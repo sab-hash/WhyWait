@@ -23,6 +23,10 @@ class DriverShell extends StatefulWidget {
 class _DriverShellState extends State<DriverShell> {
   int _index = 0;
 
+  /// Tabs are built the first time they are opened and then kept alive,
+  /// so the map does not load until the driver opens it.
+  final Set<int> _visited = {0};
+
   Widget _page(int index) {
     switch (index) {
       case 0:
@@ -39,8 +43,13 @@ class _DriverShellState extends State<DriverShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const SafeArea(
-        child: Center(child: Text('Driver')),
+      body: IndexedStack(
+        index: _index,
+        children: List.generate(4, (index) {
+          return _visited.contains(index)
+              ? _page(index)
+              : const SizedBox.shrink();
+        }),
       ),
     );
   }
