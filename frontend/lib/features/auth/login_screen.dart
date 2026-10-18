@@ -45,14 +45,32 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+    @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  String? _validateInputs() {
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (phone.isEmpty) return 'Please enter your phone number';
+    if (phone.length < 9) return 'Enter a valid 9-digit phone number';
+    if (password.isEmpty) return 'Please enter your password';
+    if (password.length < 6) return 'Password must be at least 6 characters';
+    return null;
+  }
 
   // ==================== HANDLE SIGN IN ====================
   Future<void> _handleSignIn() async {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (phone.isEmpty || password.isEmpty) {
-      _showMessage('Please fill in all fields');
+       final validationError = _validateInputs();
+    if (validationError != null) {
+      _showMessage(validationError);
       return;
     }
 
