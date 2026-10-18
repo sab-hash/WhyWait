@@ -43,13 +43,17 @@ class _DriverShellState extends State<DriverShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: List.generate(4, (index) {
-          return _visited.contains(index)
-              ? _page(index)
-              : const SizedBox.shrink();
-        }),
+      body: const SafeArea(
+        child: Center(child: Text('Driver')),
+      ),
+      bottomNavigationBar: DriverBottomNav(
+        currentIndex: _index,
+        onTap: (index) {
+          setState(() {
+            _index = index;
+            _visited.add(index);
+          });
+        },
       ),
     );
   }
