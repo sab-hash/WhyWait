@@ -273,7 +273,16 @@ class DriverProfileScreen extends StatelessWidget {
       ),
     );
   }
+  Widget _buildVehicleCard(BuildContext context, DriverState state) {
+    final vehicle = state.vehicle;
 
+    return DriverRowTile(
+      icon: Icons.directions_car_filled_rounded,
+      title: '${vehicle.color} ${vehicle.model}',
+      subtitle: vehicle.plate,
+      onTap: () => _open(context, const DriverVehicleScreen()),
+    );
+  }
   Widget _buildStatsCard(DriverState state) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18),
