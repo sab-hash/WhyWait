@@ -23,6 +23,19 @@ class DriverShell extends StatefulWidget {
 class _DriverShellState extends State<DriverShell> {
   int _index = 0;
 
+  Widget _page(int index) {
+    switch (index) {
+      case 0:
+        return const DriverHomeScreen();
+      case 1:
+        return const DriverMapScreen();
+      case 2:
+        return const DriverHistoryScreen();
+      default:
+        return const DriverProfileScreen();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
