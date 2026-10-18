@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'register_screen.dart';
-import '../passenger/home_screen.dart';
-import '../../core/storage/local_storage.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/storage/local_storage.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   static const Color primaryBlue = Color(0xFF0B3D78);
 
@@ -33,19 +34,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Validate input
     if (phone.isEmpty || password.isEmpty) {
       _showMessage('Please fill in all fields');
       return;
     }
 
-    // Show loading indicator
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Logging in...'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+    setState(() => _isLoading = true);
 
     try {
       final url = Uri.parse('http://localhost:8080/login');
@@ -54,6 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': phone, 'password': password}),
       );
+
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -67,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         await LocalStorage.saveToken(token.toString());
 
-        _showMessage('✅ Welcome back, ${user['fullName'] ?? 'User'}!');
+        if (!mounted) return;
 
         final role = user['role'];
 
@@ -86,15 +82,25 @@ class _LoginScreenState extends State<LoginScreen> {
         _showMessage('❌ Invalid phone number or password');
       }
     } catch (e) {
+      if (!mounted) return;
       _showMessage('❌ Could not connect to server. Is the backend running?');
-      print('Error: $e');
+      debugPrint('Login error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
     );
   }
 
@@ -139,7 +145,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          _showMessage('Password reset coming soon');
+                        },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(0, 0),
@@ -212,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Text(
             'Real-time taxi visibility',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.75),
+              color: Colors.white.withValues(alpha: 0.75),
               fontSize: 13,
               letterSpacing: 0.3,
             ),
@@ -313,22 +321,32 @@ class _LoginScreenState extends State<LoginScreen> {
     return SizedBox(
       height: 52,
       child: ElevatedButton(
-        onPressed: _handleSignIn,
+        onPressed: _isLoading ? null : _handleSignIn,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(26),
           ),
           elevation: 0,
+          disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),
         ),
-        child: const Text(
-          'Sign In',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                'Sign In',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
@@ -354,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
       height: 52,
       child: OutlinedButton(
         onPressed: () {
-          // TODO: handle Google sign in
+          _showMessage('Google sign in coming soon');
         },
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: Colors.grey[300]!),
@@ -390,7 +408,10 @@ class _LoginScreenState extends State<LoginScreen> {
             const TextSpan(text: "Don't have an account? "),
             TextSpan(
               text: 'Sign up',
-              style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: primaryBlue,
+                fontWeight: FontWeight.w600,
+              ),
               recognizer: TapGestureRecognizer()
                 ..onTap = () {
                   context.go('/register');
