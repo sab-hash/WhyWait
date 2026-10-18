@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-// MODEL
+// ==================== MODEL ====================
 
 enum TaxiStatus { available, filling }
 
@@ -55,6 +55,7 @@ class Taxi {
     };
   }
 }
+
 class TaxiService {
   Future<List<Taxi>> fetchNearbyTaxis() async {
     await Future.delayed(const Duration(milliseconds: 400)); // simulate network
@@ -62,7 +63,7 @@ class TaxiService {
   }
 }
 
-// Pickup point: "Mexico" (Addis Ababa) 
+// Pickup point: "Mexico" (Addis Ababa)
 const LatLng pickupLocation = LatLng(9.0092, 38.7469);
 
 final List<Taxi> _mockTaxis = [
@@ -98,7 +99,8 @@ final List<Taxi> _mockTaxis = [
   ),
 ];
 
-// SCREEN
+// ==================== SCREEN ====================
+
 class TrackScreen extends StatefulWidget {
   const TrackScreen({super.key});
 
@@ -112,7 +114,7 @@ class _TrackScreenState extends State<TrackScreen> {
   final MapController _mapController = MapController();
   final TaxiService _taxiService = TaxiService();
 
-    List<Taxi> _taxis = [];
+  List<Taxi> _taxis = [];
   String? _error;
   bool _isLoading = true;
   int _currentNavIndex = 1;
@@ -123,7 +125,7 @@ class _TrackScreenState extends State<TrackScreen> {
     _loadTaxis();
   }
 
-    Future<void> _loadTaxis() async {
+  Future<void> _loadTaxis() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -149,18 +151,20 @@ class _TrackScreenState extends State<TrackScreen> {
 
   @override
   Widget build(BuildContext context) {
-        if (_error != null) {
+    if (_error != null) {
       return Scaffold(
         backgroundColor: const Color(0xFFF7F8FA),
         body: SafeArea(child: _buildErrorState()),
       );
     }
+
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF7F8FA),
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
@@ -179,15 +183,12 @@ class _TrackScreenState extends State<TrackScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _isLoading
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
+                      child: _taxis.isEmpty
+                          ? _buildEmptyTaxisState()
                           : Column(
                               children: _taxis
                                   .map((taxi) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.only(bottom: 10),
                                         child: _buildTaxiCard(taxi),
                                       ))
                                   .toList(),
@@ -205,7 +206,42 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
-  // Header
+  // ==================== EMPTY STATE ====================
+
+  Widget _buildEmptyTaxisState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
+        children: [
+          Icon(
+            Icons.local_taxi_outlined,
+            size: 48,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No taxis nearby',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Pull down to refresh, or try a nearby station.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==================== HEADER ====================
 
   Widget _buildHeader() {
     return Container(
@@ -249,7 +285,11 @@ class _TrackScreenState extends State<TrackScreen> {
                   color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.notifications_none,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -282,8 +322,7 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
-
-  // Real interactive OpenStreetMap via flutter_map
+  // ==================== MAP ====================
 
   Widget _buildMap() {
     return Container(
@@ -293,7 +332,10 @@ class _TrackScreenState extends State<TrackScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+          ),
         ],
       ),
       child: Stack(
@@ -307,21 +349,18 @@ class _TrackScreenState extends State<TrackScreen> {
               maxZoom: 18,
             ),
             children: [
-              // Real map tiles from OpenStreetMap — free, no API key needed.
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.taxitrack',
               ),
               MarkerLayer(
                 markers: [
-                  // Pickup pin
                   Marker(
                     point: pickupLocation,
                     width: 70,
                     height: 60,
                     child: _buildPickupPin(),
                   ),
-                  // One marker per taxi
                   ..._taxis.map(
                     (taxi) => Marker(
                       point: LatLng(taxi.latitude, taxi.longitude),
@@ -334,23 +373,27 @@ class _TrackScreenState extends State<TrackScreen> {
               ),
             ],
           ),
-          // Zoom controls
           Positioned(
             right: 12,
             top: 12,
             child: Column(
               children: [
                 _buildMapButton(Icons.add, onTap: () {
-                  _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1);
+                  _mapController.move(
+                    _mapController.camera.center,
+                    _mapController.camera.zoom + 1,
+                  );
                 }),
                 const SizedBox(height: 8),
                 _buildMapButton(Icons.remove, onTap: () {
-                  _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1);
+                  _mapController.move(
+                    _mapController.camera.center,
+                    _mapController.camera.zoom - 1,
+                  );
                 }),
               ],
             ),
           ),
-          // Recenter button
           Positioned(
             right: 12,
             bottom: 12,
@@ -386,7 +429,10 @@ class _TrackScreenState extends State<TrackScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+              ),
             ],
           ),
           child: const Text(
@@ -421,14 +467,22 @@ class _TrackScreenState extends State<TrackScreen> {
           ),
           child: Text(
             '${taxi.etaMinutes}m',
-            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMapButton(IconData icon, {bool filled = false, VoidCallback? onTap}) {
+  Widget _buildMapButton(
+    IconData icon, {
+    bool filled = false,
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -439,16 +493,22 @@ class _TrackScreenState extends State<TrackScreen> {
           color: filled ? primaryBlue : Colors.white,
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+            ),
           ],
         ),
-        child: Icon(icon, size: 18, color: filled ? Colors.white : Colors.black87),
+        child: Icon(
+          icon,
+          size: 18,
+          color: filled ? Colors.white : Colors.black87,
+        ),
       ),
     );
   }
 
-
-  // List header + cards
+  // ==================== LIST HEADER + CARDS ====================
 
   Widget _buildListHeader() {
     return Row(
@@ -466,7 +526,11 @@ class _TrackScreenState extends State<TrackScreen> {
           ),
           child: Text(
             '${_taxis.length} taxis',
-            style: TextStyle(color: primaryBlue, fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: primaryBlue,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -481,7 +545,11 @@ class _TrackScreenState extends State<TrackScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
@@ -504,30 +572,50 @@ class _TrackScreenState extends State<TrackScreen> {
                   children: [
                     Text(
                       taxi.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       taxi.plate,
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 13, color: Colors.grey[500]),
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 13,
+                      color: Colors.grey[500],
+                    ),
                     const SizedBox(width: 2),
                     Text(
                       '${taxi.distanceKm} km',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(width: 10),
-                    Icon(Icons.access_time, size: 13, color: Colors.grey[500]),
+                    Icon(
+                      Icons.access_time,
+                      size: 13,
+                      color: Colors.grey[500],
+                    ),
                     const SizedBox(width: 2),
                     Text(
                       '~${taxi.etaMinutes} min',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -539,19 +627,27 @@ class _TrackScreenState extends State<TrackScreen> {
             children: [
               Text(
                 '${taxi.etaMinutes} min',
-                style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(
+                  color: primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isAvailable ? const Color(0xFFE3F6E8) : const Color(0xFFFCF2D8),
+                  color: isAvailable
+                      ? const Color(0xFFE3F6E8)
+                      : const Color(0xFFFCF2D8),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   isAvailable ? 'available' : 'filling',
                   style: TextStyle(
-                    color: isAvailable ? const Color(0xFF2E9E4F) : const Color(0xFFB8860B),
+                    color: isAvailable
+                        ? const Color(0xFF2E9E4F)
+                        : const Color(0xFFB8860B),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -564,8 +660,7 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
-
-  // Bottom nav
+  // ==================== BOTTOM NAV ====================
 
   Widget _buildBottomNav() {
     final items = [
@@ -579,7 +674,11 @@ class _TrackScreenState extends State<TrackScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, -2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -606,7 +705,8 @@ class _TrackScreenState extends State<TrackScreen> {
                       style: TextStyle(
                         color: selected ? primaryBlue : Colors.grey[400],
                         fontSize: 11,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ],
@@ -618,7 +718,10 @@ class _TrackScreenState extends State<TrackScreen> {
       ),
     );
   }
-    Widget _buildErrorState() {
+
+  // ==================== ERROR STATE ====================
+
+  Widget _buildErrorState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
