@@ -21,12 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   static const Color primaryBlue = Color(0xFF0B3D78);
 
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
     @override
   void initState() {
     super.initState();
