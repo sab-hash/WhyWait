@@ -33,7 +33,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const Color primaryBlue = Color(0xFF0B3D78);
+    static const Color primaryBlue = Color(0xFF1565C0);
 
   int _currentNavIndex = 3;
 

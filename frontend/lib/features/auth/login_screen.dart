@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  static const Color primaryBlue = Color(0xFF0B3D78);
+  static const Color primaryBlue = Color(0xFF1565C0);
 
     @override
   void initState() {

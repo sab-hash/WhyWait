@@ -109,7 +109,7 @@ class TrackScreen extends StatefulWidget {
 }
 
 class _TrackScreenState extends State<TrackScreen> {
-  static const Color primaryBlue = Color(0xFF0B3D78);
+    static const Color primaryBlue = Color(0xFF1565C0);
 
   final MapController _mapController = MapController();
   final TaxiService _taxiService = TaxiService();
