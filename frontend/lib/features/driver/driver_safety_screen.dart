@@ -35,9 +35,9 @@ class DriverProfileScreen extends StatelessWidget {
                   _buildHeader(state),
                   Transform.translate(
                     offset: const Offset(0, -24),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: SizedBox(height: 90),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildStatsCard(state),
                     ),
                   ),
                   const Padding(
@@ -271,6 +271,24 @@ class DriverProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatsCard(DriverState state) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Row(),
     );
   }
 }
