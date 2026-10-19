@@ -61,4 +61,19 @@ class DriverTheme {
   static String formatShortDate(DateTime date) {
     return '${date.day} ${_months[date.month - 1].substring(0, 3)}';
   }
+
+  /// 08:30 AM
+  static String formatTime(DateTime date) {
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final suffix = date.hour >= 12 ? 'PM' : 'AM';
+    return '${hour.toString().padLeft(2, '0')}:$minute $suffix';
+  }
+
+  static String greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 }
