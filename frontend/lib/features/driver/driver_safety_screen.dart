@@ -17,7 +17,56 @@ import 'driver_widgets.dart';
 /// and Safety. Sign out is at the bottom.
 class DriverProfileScreen extends StatelessWidget {
   const DriverProfileScreen({super.key});
+  Future<void> _signOut(BuildContext context) async {
+    final state = DriverState.instance;
 
+    // A driver on a trip must not sign out: the taxi would vanish for
+    // passengers, the same rule as going offline.
+    if (!state.canGoOffline) {
+      showDriverSnack(
+        context,
+        "You can't sign out during a trip. End the trip first.",
+        isError: true,
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Sign out?',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'You will be taken off the queue and become invisible to '
+            'passengers.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Sign Out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Sign-out completion lands in the next commit.
+    if (confirmed != true) return;
+  }
   @override
   Widget build(BuildContext context) {
     final state = DriverState.instance;
