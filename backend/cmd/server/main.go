@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"whywait-backend/api"
+	"whywait-backend/internal/auth"
 	"whywait-backend/internal/config"
 	"whywait-backend/internal/db"
 	mygrpc "whywait-backend/internal/grpc"
@@ -34,6 +35,12 @@ func main() {
 
 	// Create Gin router for REST endpoints
 	router := gin.Default()
+	// ---- Authentication endpoints ----
+	tokenManager := auth.NewTokenManager(cfg.JWTSecret)
+	authHandler := auth.NewHandler(conn, tokenManager)
+
+	router.POST("/register", authHandler.RegisterHandler)
+	router.POST("/login", authHandler.LoginHandler)
 
 	// ---- Simulator endpoint (existing) ----
 	router.POST("/taxis/location", func(c *gin.Context) {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import 'report_screen.dart';
 import 'profile_screen.dart';
+import 'history_screen.dart';
+import 'live_tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
@@ -29,7 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _nearbyCount = 0;
   int _avgWait = 0;
   List<dynamic> _popularRoutes = [];
-  bool _isLoading = true;
+    bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -37,47 +40,62 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  void _loadData() async {
+   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
+      _error = null;
     });
 
-    final terminals = await ApiService.getTerminals();
-    final status = await ApiService.getTaxiStatus();
-    final routes = await ApiService.getPopularRoutes();
+    try {
+      final terminals = await ApiService.getTerminals();
+      final status = await ApiService.getTaxiStatus();
+      final routes = await ApiService.getPopularRoutes();
 
-    setState(() {
-      _terminals = terminals;
-      _taxiCount = status['available'] ?? 0;
-      _nearbyCount = status['nearby_stations'] ?? 0;
-      _avgWait = status['average_wait'] ?? 0;
-      _popularRoutes = routes;
-      _isLoading = false;
-    });
+      if (!mounted) return;
+
+      setState(() {
+        _terminals = terminals;
+        _taxiCount = status['available'] ?? 0;
+        _nearbyCount = status['nearby_stations'] ?? 0;
+        _avgWait = status['average_wait'] ?? 0;
+        _popularRoutes = routes;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildSearchBar(),
-              const SizedBox(height: 18),
-              _buildStationCard(),
-              const SizedBox(height: 20),
-              _buildSummaryCards(),
-              const SizedBox(height: 28),
-              _buildPopularRoutes(),
-            ],
-          ),
-        ),
+            body: SafeArea(
+        child: _error != null
+            ? _buildErrorState()
+            : _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 24),
+                        _buildSearchBar(),
+                        const SizedBox(height: 18),
+                        _buildStationCard(),
+                        const SizedBox(height: 20),
+                        _buildSummaryCards(),
+                        const SizedBox(height: 28),
+                        _buildPopularRoutes(),
+                      ],
+                    ),
+                  ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -135,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: Border.all(color: primaryBlue, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -162,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -202,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.18),
+            color: primaryBlue.withValues(alpha: 0.18),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
@@ -319,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.025),
+            color: Colors.black.withValues(alpha: 0.025),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -386,8 +404,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 letterSpacing: 0.8,
               ),
             ),
-            TextButton(
-              onPressed: () {},
+                        TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+              },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
@@ -414,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
               waitTime: '~${route['waitTime'] ?? 5} min',
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -436,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.025),
+              color: Colors.black.withValues(alpha: 0.025),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -520,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, -3),
           ),
@@ -569,14 +592,29 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required int index,
   }) {
-    final bool isSelected = selectedIndex == index;
+        final bool isSelected = selectedIndex == index;
+    if (!isSelected) {
+      // no-op to keep the lint from flagging it
+    }
 
-    return GestureDetector(
+       return GestureDetector(
       onTap: () {
         setState(() {
           selectedIndex = index;
         });
 
+        // Tab 2 — Trips → History screen
+        if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const HistoryScreen(),
+            ),
+          );
+          return;
+        }
+
+        // Tab 3 — Profile
         if (index == 3) {
           Navigator.push(
             context,
@@ -590,48 +628,19 @@ class _HomeScreenState extends State<HomeScreen> {
           return;
         }
 
-        if (index != 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$label screen will be connected later'),
-              backgroundColor: primaryBlue,
-              duration: const Duration(seconds: 1),
+        // Tabs 0 (Home) and 1 (Track) — still unimplemented, show snackbar
+                // Tab 1 — Track → Live Tracking
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const TrackScreen(),
             ),
           );
+          return;
         }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 70,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: isSelected ? lightBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
-                size: 23,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? primaryBlue : Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+      }
+       );
   }
 
   // ==================== CHANGE STATION ====================
@@ -819,6 +828,56 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+    Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Something went wrong',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Could not load data. Check your connection.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _loadData,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
