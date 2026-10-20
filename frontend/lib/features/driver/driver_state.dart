@@ -34,4 +34,68 @@ class DriverState extends ChangeNotifier {
   DriverState._();
 
   static final DriverState instance = DriverState._();
+
+  // --------------------------------------------------------------------------
+  // Assigned route
+  // --------------------------------------------------------------------------
+
+  static const int totalSeats = 14;
+  static const int farePerSeat = 25;
+  static const int routeMinutes = 25;
+
+  DateTime get routeValidFrom {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
+  DateTime get routeValidUntil {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month + 1, 0);
+  }
+
+  final DriverProfile profile = DriverMockData.profile;
+  final DriverVehicle vehicle = DriverMockData.vehicle();
+  final List<Station> stations = DriverMockData.stations;
+
+  // --------------------------------------------------------------------------
+  // Online status and trip state
+  // --------------------------------------------------------------------------
+
+  bool _isOnline = true;
+  TripStage _stage = TripStage.inQueue;
+
+  int _seatsFilled = 0;
+  int _queuePosition = 3;
+  int _queueLength = 6;
+
+  double _progress = 0;
+  bool _forward = true;
+
+  Timer? _simulation;
+
+  bool get isOnline => _isOnline;
+
+  TripStage get stage => _stage;
+
+  int get seatsFilled => _seatsFilled;
+
+  int get seatsLeft => totalSeats - _seatsFilled;
+
+  /// Queue position is unavailable while offline or during a trip.
+  int? get queuePosition {
+    if (!_isOnline || isOnTrip) return null;
+    return _queuePosition;
+  }
+
+  int get queueLength => _queueLength;
+
+  /// Loading counts as being on a trip.
+  bool get isOnTrip => _stage != TripStage.inQueue;
+
+  /// A driver cannot go offline during a trip.
+  bool get canGoOffline => !isOnTrip;
+
+  String get tripFrom => _forward ? 'Mexico' : 'Bole';
+
+  String get tripTo => _forward ? 'Bole' : 'Mexico';
 }
