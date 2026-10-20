@@ -31,7 +31,42 @@ class DriverVehicleScreen extends StatelessWidget {
                 const SizedBox(height: 22),
                 const DriverGroupLabel('DOCUMENT STATUS'),
                 const SizedBox(height: 10),
-                const SizedBox(height: 120),
+                DriverCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 6,
+                  ),
+                  child: Column(
+                    children: [
+                      _buildDocumentRow(
+                        state,
+                        'Registration',
+                        Icons.description_rounded,
+                        'registration',
+                      ),
+                      const Divider(
+                        height: 1,
+                        color: DriverTheme.divider,
+                      ),
+                      _buildDocumentRow(
+                        state,
+                        'Insurance',
+                        Icons.verified_user_rounded,
+                        'insurance',
+                      ),
+                      const Divider(
+                        height: 1,
+                        color: DriverTheme.divider,
+                      ),
+                      _buildDocumentRow(
+                        state,
+                        'Inspection',
+                        Icons.fact_check_rounded,
+                        'inspection',
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 22),
                 const DriverGroupLabel('MAINTENANCE'),
                 const SizedBox(height: 10),
@@ -44,5 +79,14 @@ class DriverVehicleScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildDocumentRow(
+    DriverState state,
+    String label,
+    IconData icon,
+    String documentId,
+  ) {
+    return const SizedBox.shrink();
   }
 }
