@@ -90,3 +90,51 @@ class DriverVehicleScreen extends StatelessWidget {
     return const SizedBox.shrink();
   }
 }
+  Widget _buildDocumentRow(
+    DriverState state,
+    String label,
+    IconData icon,
+    String documentId,
+  ) {
+    DriverDocument? document;
+
+    try {
+      document = state.documentById(documentId);
+    } on StateError {
+      // The requested document is not present in the local mock data.
+    }
+
+    if (document == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: DriverTheme.deepBlue,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: DriverTheme.textDark,
+                ),
+              ),
+            ),
+            const StatusChip(
+              label: 'Unavailable',
+              color: DriverTheme.textGrey,
+              icon: Icons.info_outline_rounded,
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Normal-status path arrives in the next commit.
+    return const SizedBox.shrink();
+  }
