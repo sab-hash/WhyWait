@@ -76,4 +76,14 @@ class DriverTheme {
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
   }
+
+  static String timeAgo(DateTime time) {
+    final difference = DateTime.now().difference(time);
+
+    if (difference.inMinutes < 1) return 'Just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes} min ago';
+    if (difference.inHours < 24) return '${difference.inHours} h ago';
+    if (difference.inDays == 1) return 'Yesterday';
+    return '${difference.inDays} days ago';
+  }
 }
