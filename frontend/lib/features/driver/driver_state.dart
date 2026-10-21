@@ -98,4 +98,76 @@ class DriverState extends ChangeNotifier {
   String get tripFrom => _forward ? 'Mexico' : 'Bole';
 
   String get tripTo => _forward ? 'Bole' : 'Mexico';
+
+  /// Changes the driver's online status.
+  ///
+  /// Returns an error message when the requested change is not allowed.
+  String? setOnline(bool value) {
+    if (value == _isOnline) return null;
+
+    if (!value && !canGoOffline) {
+      return "You can't go offline during a trip. End the trip first.";
+    }
+
+    _isOnline = value;
+
+    if (value) {
+      _queueLength += 1;
+      _queuePosition = _queueLength;
+    } else {
+      _queueLength = math.max(0, _queueLength - 1);
+      _queuePosition = 0;
+    }
+
+    notifyListeners();
+    return null;
+  }
+
+  /// Advances the trip through its allowed stages.
+  ///
+  /// Returns an error message when the transition is not allowed.
+  String? advance() {
+    if (!_isOnline) {
+      return 'Go online first.';
+    }
+
+    switch (_stage) {
+      case TripStage.inQueue:
+        _stage = TripStage.loading;
+        break;
+
+      case TripStage.loading:
+        if (_seatsFilled < 1) {
+          return 'Update the seat count before departing.';
+        }
+
+        _stage = TripStage.departed;
+        _progress = 0.04;
+        _queueLength = math.max(0, _queueLength - 1);
+        _queuePosition = 0;
+        break;
+
+      case TripStage.departed:
+        _stage = TripStage.onRoute;
+        _startSimulation();
+        break;
+
+      case TripStage.onRoute:
+        _stage = TripStage.arrived;
+        _progress = 1.0;
+        _stopSimulation();
+        break;
+
+      case TripStage.arrived:
+        // Use completeTrip() after confirming cash collection.
+        return null;
+    }
+
+    notifyListeners();
+    return null;
+  }
+
+  // Stubs; real implementations land in commit 7.
+  void _startSimulation() {}
+  void _stopSimulation() {}
 }
