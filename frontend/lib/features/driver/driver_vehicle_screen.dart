@@ -168,3 +168,33 @@ class DriverVehicleScreen extends StatelessWidget {
         ],
       ),
     );
+      Widget _buildMaintenance(DriverVehicle vehicle) {
+    return const SizedBox.shrink();
+  }
+
+  Widget _dateRow(String label, String value) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: DriverTheme.textGrey,
+            ),
+          ),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: DriverTheme.textDark,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
