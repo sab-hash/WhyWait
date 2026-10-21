@@ -198,3 +198,37 @@ class DriverVehicleScreen extends StatelessWidget {
       ],
     );
   }
+    Widget _buildMaintenance(DriverVehicle vehicle) {
+    final daysLeft = vehicle.serviceDaysLeft;
+
+    final String label;
+    final Color color;
+    final IconData icon;
+
+    if (daysLeft < 0) {
+      final overdueDays = daysLeft.abs();
+
+      label = 'Overdue by $overdueDays '
+          '${overdueDays == 1 ? 'day' : 'days'}';
+
+      color = DriverTheme.danger;
+      icon = Icons.error_rounded;
+    } else if (daysLeft == 0) {
+      label = 'Service due today';
+      color = DriverTheme.warning;
+      icon = Icons.schedule_rounded;
+    } else if (daysLeft <= 14) {
+      label = 'Service due in $daysLeft '
+          '${daysLeft == 1 ? 'day' : 'days'}';
+
+      color = DriverTheme.warning;
+      icon = Icons.schedule_rounded;
+    } else {
+      label = 'Good condition';
+      color = DriverTheme.success;
+      icon = Icons.check_circle_rounded;
+    }
+
+    // Full card body arrives in the next commit.
+    return SizedBox(height: 120, child: Center(child: Text(label)));
+  }
