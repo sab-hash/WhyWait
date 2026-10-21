@@ -138,3 +138,33 @@ class DriverVehicleScreen extends StatelessWidget {
     // Normal-status path arrives in the next commit.
     return const SizedBox.shrink();
   }
+      final status = document.status;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: DriverTheme.deepBlue,
+            size: 22,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: DriverTheme.textDark,
+              ),
+            ),
+          ),
+          StatusChip(
+            label: document.statusLabel,
+            color: docStatusColor(status),
+            icon: docStatusIcon(status),
+          ),
+        ],
+      ),
+    );
