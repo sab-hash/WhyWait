@@ -167,7 +167,94 @@ class DriverState extends ChangeNotifier {
     return null;
   }
 
-  // Stubs; real implementations land in commit 7.
+  /// Updates the number of filled seats while loading.
+  String? setSeats(int value) {
+    if (!DriverConfig.driverEditsSeats) {
+      return 'Terminal staff update the seat count.';
+    }
+
+    if (_stage != TripStage.loading) {
+      return 'You can update the seats while loading.';
+    }
+
+    _seatsFilled = value.clamp(0, totalSeats);
+
+    notifyListeners();
+    return null;
+  }
+
+  /// Completes a trip after the taxi reaches its destination.
+  void completeTrip({required bool cashConfirmed}) {
+    if (_stage != TripStage.arrived) return;
+
+    _recordTrip(
+      TripResult.completed,
+      cashConfirmed: cashConfirmed,
+    );
+
+    _forward = !_forward;
+
+    _resetToQueue(rejoinQueue: true);
+  }
+
+  /// Cancels a loading session before the taxi departs.
+  void cancelLoading() {
+    if (_stage != TripStage.loading) return;
+
+    _recordTrip(TripResult.cancelled);
+
+    _resetToQueue(rejoinQueue: false);
+  }
+
+  /// Ends a trip early, such as when the taxi breaks down.
+  void endTripInterrupted() {
+    if (!isOnTrip) return;
+
+    _recordTrip(TripResult.interrupted);
+
+    _resetToQueue(rejoinQueue: true);
+  }
+
+  final List<DriverTrip> _trips = <DriverTrip>[];
+
+  void _recordTrip(
+    TripResult result, {
+    bool cashConfirmed = false,
+  }) {
+    _trips.insert(
+      0,
+      DriverTrip(
+        date: DateTime.now(),
+        from: tripFrom,
+        to: tripTo,
+        seats: _seatsFilled,
+        farePerSeat: farePerSeat,
+        status: result,
+        cashConfirmed: cashConfirmed,
+      ),
+    );
+  }
+
+  void _resetToQueue({required bool rejoinQueue}) {
+    _stopSimulation();
+
+    _stage = TripStage.inQueue;
+    _seatsFilled = 0;
+    _progress = 0;
+
+    // Clear the active delay without deleting the last reported problem.
+    _problem = null;
+
+    if (rejoinQueue) {
+      _queueLength = 6;
+      _queuePosition = _queueLength;
+    }
+
+    notifyListeners();
+  }
+
+  // Stubs; real implementations land in commits 7 and 8.
   void _startSimulation() {}
   void _stopSimulation() {}
+  ProblemReport? _problem;
 }
