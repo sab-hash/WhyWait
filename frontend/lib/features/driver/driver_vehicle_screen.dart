@@ -27,10 +27,12 @@ class DriverVehicleScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
               children: [
-                Center(child: Text(vehicle.model)),
+                _buildHero(vehicle),
                 const SizedBox(height: 22),
+
                 const DriverGroupLabel('DOCUMENT STATUS'),
                 const SizedBox(height: 10),
+
                 DriverCard(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 18,
@@ -67,12 +69,52 @@ class DriverVehicleScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 22),
+
                 const DriverGroupLabel('MAINTENANCE'),
                 const SizedBox(height: 10),
-                const SizedBox(height: 80),
+
+                _buildMaintenance(vehicle),
+
                 const SizedBox(height: 22),
-                const SizedBox(height: 50),
+
+                SizedBox(
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      if (!context.mounted) return;
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => const DriverDocumentsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.folder_copy_outlined,
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'Manage documents',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: DriverTheme.primaryBlue,
+                      side: BorderSide(
+                        color: DriverTheme.primaryBlue.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -81,15 +123,101 @@ class DriverVehicleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDocumentRow(
-    DriverState state,
-    String label,
-    IconData icon,
-    String documentId,
-  ) {
-    return const SizedBox.shrink();
+  // --------------------------------------------------------------------------
+  // Vehicle overview
+  // --------------------------------------------------------------------------
+
+  Widget _buildHero(DriverVehicle vehicle) {
+    return DriverCard(
+      child: Column(
+        children: [
+          const RoundIcon(
+            icon: Icons.directions_bus_rounded,
+            color: DriverTheme.deepBlue,
+            size: 72,
+          ),
+          const SizedBox(height: 14),
+
+          Text(
+            vehicle.model,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: DriverTheme.textDark,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: DriverTheme.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: DriverTheme.divider,
+              ),
+            ),
+            child: Text(
+              vehicle.plate,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+                color: DriverTheme.textDark,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          const Divider(
+            height: 1,
+            color: DriverTheme.divider,
+          ),
+
+          const SizedBox(height: 18),
+
+          Row(
+            children: [
+              Expanded(
+                child: StatTile(
+                  icon: Icons.local_taxi_rounded,
+                  value: vehicle.type,
+                  label: 'Vehicle type',
+                ),
+              ),
+              const StatDivider(),
+              Expanded(
+                child: StatTile(
+                  icon: Icons.event_seat_rounded,
+                  value: '${vehicle.seats}',
+                  label: 'Seats',
+                ),
+              ),
+              const StatDivider(),
+              Expanded(
+                child: StatTile(
+                  icon: Icons.palette_outlined,
+                  value: vehicle.color,
+                  label: 'Color',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
-}
+
+  // --------------------------------------------------------------------------
+  // Documents
+  // --------------------------------------------------------------------------
+
   Widget _buildDocumentRow(
     DriverState state,
     String label,
@@ -135,10 +263,7 @@ class DriverVehicleScreen extends StatelessWidget {
       );
     }
 
-    // Normal-status path arrives in the next commit.
-    return const SizedBox.shrink();
-  }
-      final status = document.status;
+    final status = document.status;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -168,37 +293,13 @@ class DriverVehicleScreen extends StatelessWidget {
         ],
       ),
     );
-      Widget _buildMaintenance(DriverVehicle vehicle) {
-    return const SizedBox.shrink();
   }
 
-  Widget _dateRow(String label, String value) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: DriverTheme.textGrey,
-            ),
-          ),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: DriverTheme.textDark,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-    Widget _buildMaintenance(DriverVehicle vehicle) {
+  // --------------------------------------------------------------------------
+  // Maintenance
+  // --------------------------------------------------------------------------
+
+  Widget _buildMaintenance(DriverVehicle vehicle) {
     final daysLeft = vehicle.serviceDaysLeft;
 
     final String label;
@@ -229,10 +330,7 @@ class DriverVehicleScreen extends StatelessWidget {
       icon = Icons.check_circle_rounded;
     }
 
-    // Full card body arrives in the next commit.
-    return SizedBox(height: 120, child: Center(child: Text(label)));
-  }
-      return DriverCard(
+    return DriverCard(
       padding: const EdgeInsets.all(18),
       child: Column(
         children: [
@@ -263,56 +361,56 @@ class DriverVehicleScreen extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: 16),
+
           const Divider(
             height: 1,
             color: DriverTheme.divider,
           ),
+
           const SizedBox(height: 14),
+
           _dateRow(
             'Last service',
             DriverTheme.formatDate(vehicle.lastService),
           ),
+
           const SizedBox(height: 10),
+
           _dateRow(
             'Next service',
             DriverTheme.formatDate(vehicle.nextService),
           ),
         ],
       ),
-    );                SizedBox(
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      if (!context.mounted) return;
+    );
+  }
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => const DriverDocumentsScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.folder_copy_outlined,
-                      size: 20,
-                    ),
-                    label: const Text(
-                      'Manage documents',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: DriverTheme.primaryBlue,
-                      side: BorderSide(
-                        color: DriverTheme.primaryBlue.withValues(
-                          alpha: 0.4,
-                        ),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                ),
+  Widget _dateRow(String label, String value) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: DriverTheme.textGrey,
+            ),
+          ),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: DriverTheme.textDark,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
