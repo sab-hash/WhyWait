@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '/services/api_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../core/storage/local_storage.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -10,27 +12,28 @@ class ReportScreen extends StatefulWidget {
 
 class _ReportScreenState extends State<ReportScreen> {
   static const Color primaryBlue = Color(0xFF1565C0);
-  static const Color backgroundColor = Color(0xFFF7F9FC);
-  static const Color lightBlue = Color(0xFFE3F2FD);
-  static const Color darkText = Color(0xFF333333);
+  static const Color secondaryBlue = Color(0xFF1A6BC4);
+  static const Color backgroundColor = Color(0xFFF5F7FA);
+  static const Color lightBlue = Color(0xFFE8F0FE);
+  static const Color darkText = Color(0xFF1A2B4A);
 
-  String? selectedIssue;
-  String? selectedTrip;
-  String selectedReportFilter = 'All';
+  // ---- Form controllers ----
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _vehicleController = TextEditingController();
 
-  int selectedRating = 0;
+  // ---- Form state ----
+  String? _selectedIssue;
+  String? _selectedTrip;
+  int _selectedRating = 0;
+  bool _showValidation = false;
+  bool _isSubmitting = false;
+  bool _isLoadingReports = true;
 
-  bool showValidation = false;
-  bool isSubmitting = false;
-  bool isLoadingReports = true;
+  // ---- Report history ----
+  List<Map<String, dynamic>> _reports = [];
+  String _selectedReportFilter = 'All';
 
-  final TextEditingController descriptionController = TextEditingController();
-
-  final TextEditingController vehicleController = TextEditingController();
-
-  final TextEditingController feedbackController = TextEditingController();
-
-  final List<String> issueTypes = [
+  final List<String> _issueTypes = [
     'Driver behavior',
     'Fare issue',
     'Wrong route',
@@ -39,23 +42,21 @@ class _ReportScreenState extends State<ReportScreen> {
     'Other',
   ];
 
-  final List<String> recentTrips = [
+  final List<String> _recentTrips = [
     'Bole → Mexico',
     'Piazza → Bole',
     'Megenagna → Piazza',
     'Mexico → Bole',
   ];
 
-  final List<String> reportFilters = ['All', 'Pending', 'Reviewed', 'Resolved'];
+  final List<String> _reportFilters = ['All', 'Pending', 'Reviewed', 'Resolved'];
 
-  final Map<String, String> filterDescriptions = {
+  final Map<String, String> _filterDescriptions = {
     'All': 'All submitted reports',
     'Pending': 'Waiting for review',
     'Reviewed': 'Reports reviewed by the team',
     'Resolved': 'Issues that have been resolved',
   };
-
-  List<Map<String, dynamic>> reports = [];
 
   @override
   void initState() {
@@ -63,119 +64,180 @@ class _ReportScreenState extends State<ReportScreen> {
     _loadReports();
   }
 
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _vehicleController.dispose();
+    super.dispose();
+  }
+
+  // ============================================================
+  // LOAD REPORTS (Real API)
+  // ============================================================
   Future<void> _loadReports() async {
+    setState(() => _isLoadingReports = true);
     try {
-      final backendReports = await ApiService.getMyReports();
+      final token = await LocalStorage.getToken();
+      final url = Uri.parse('http://localhost:8080/reports');
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
-      if (!mounted) return;
-
-      setState(() {
-        reports = backendReports.map((report) {
-          return {
-            'id': report['id'],
-            'issue': report['issue_type'] ?? '',
-            'trip': report['trip_id'] ?? '',
-            'date': _formatDate(report['created_at']),
-            'status': _formatStatus(report['status']),
-            'description': report['description'] ?? '',
-            'vehicle': report['vehicle_details'] ?? 'Not provided',
-            'rating': report['rating'] ?? 0,
-            'response': report['response'] ?? '',
-          };
-        }).toList();
-
-        isLoadingReports = false;
-      });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List reportsData = data['reports'] ?? [];
+        setState(() {
+          _reports = reportsData.map((r) => {
+            'id': r['id'],
+            'issue': r['type'] ?? '',
+            'trip': _extractTrip(r['description']),
+            'date': _formatDateString(r['created_at']),
+            'status': _capitalize(r['status'] ?? 'pending'),
+            'description': r['description'] ?? '',
+            'vehicle': _extractVehicle(r['description']),
+            'response': '',
+          }).toList();
+          _isLoadingReports = false;
+        });
+      } else {
+        _showSnackbar('Failed to load reports', Colors.red);
+        setState(() => _isLoadingReports = false);
+      }
     } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        isLoadingReports = false;
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load reports: $e')));
+      _showSnackbar('Error loading reports: $e', Colors.red);
+      setState(() => _isLoadingReports = false);
     }
   }
 
-  String _formatStatus(dynamic status) {
-    if (status == null) return 'Pending';
-
-    switch (status.toString().toLowerCase()) {
-      case 'pending':
-        return 'Pending';
-      case 'reviewed':
-        return 'Reviewed';
-      case 'resolved':
-        return 'Resolved';
-      default:
-        return status.toString();
-    }
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  String _extractTrip(String description) {
+    final match = RegExp(r'Trip: (.+)').firstMatch(description);
+    return match?.group(1) ?? '';
   }
 
-  String _formatDate(dynamic date) {
-    if (date == null) return '';
+  String _extractVehicle(String description) {
+    final match = RegExp(r'Vehicle: (.+)').firstMatch(description);
+    return match?.group(1) ?? '';
+  }
 
+  String _formatDateString(String? dateStr) {
+    if (dateStr == null) return '';
     try {
-      final parsedDate = DateTime.parse(date.toString());
-
-      return '${parsedDate.day} '
-          '${_monthName(parsedDate.month)} '
-          '${parsedDate.year}';
+      final date = DateTime.parse(dateStr);
+      return '${date.day} ${_monthName(date.month)} ${date.year}';
     } catch (_) {
-      return date.toString();
+      return dateStr;
     }
   }
 
   String _monthName(int month) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return months[month - 1];
   }
 
-  bool get isFormValid {
-    return selectedTrip != null &&
-        selectedIssue != null &&
-        descriptionController.text.trim().isNotEmpty;
+  String _capitalize(String str) {
+    if (str.isEmpty) return str;
+    return str[0].toUpperCase() + str.substring(1);
   }
 
-  @override
-  void dispose() {
-    descriptionController.dispose();
-    vehicleController.dispose();
-    feedbackController.dispose();
-    super.dispose();
+  // ============================================================
+  // SUBMIT REPORT
+  // ============================================================
+  Future<void> _submitReport() async {
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty || _selectedIssue == null || _selectedTrip == null) {
+      setState(() => _showValidation = true);
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final token = await LocalStorage.getToken();
+      final url = Uri.parse('http://localhost:8080/reports');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'type': _selectedIssue,
+          'description': description,
+          'trip': _selectedTrip,
+          'vehicle': _vehicleController.text.trim(),
+          'rating': _selectedRating,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSuccessDialog();
+        _clearForm();
+        await _loadReports();
+      } else {
+        _showSnackbar('Failed to submit report', Colors.red);
+      }
+    } catch (e) {
+      _showSnackbar('Error: $e', Colors.red);
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
   }
 
+  void _clearForm() {
+    setState(() {
+      _selectedIssue = null;
+      _selectedTrip = null;
+      _selectedRating = 0;
+      _showValidation = false;
+    });
+    _descriptionController.clear();
+    _vehicleController.clear();
+  }
+
+  void _showSnackbar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  bool get _isFormValid =>
+      _selectedTrip != null &&
+      _selectedIssue != null &&
+      _descriptionController.text.trim().isNotEmpty;
+
+  // ============================================================
+  // BUILD
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
+        title: const Text(
+          'Report an Issue',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.3,
+          ),
+        ),
         backgroundColor: primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Report an Issue',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -200,35 +262,68 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // ============================================================
+  // INTRO CARD
+  // ============================================================
   Widget _buildIntroCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: lightBlue,
-        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [lightBlue, Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primaryBlue.withOpacity(0.10)),
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.report_problem_outlined, color: primaryBlue, size: 34),
-          SizedBox(width: 14),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryBlue, secondaryBlue],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.report_problem_outlined,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Help us improve your trip',
                   style: TextStyle(
-                    fontSize: 17,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: primaryBlue,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   'Tell us about any problem you experienced during your trip.',
-                  style: TextStyle(fontSize: 13, height: 1.4, color: darkText),
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),
@@ -238,6 +333,9 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // ============================================================
+  // TRIP SECTION
+  // ============================================================
   Widget _buildTripSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,40 +345,48 @@ class _ReportScreenState extends State<ReportScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: primaryBlue,
+            color: darkText,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           'Select the trip you want to report.',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: showValidation && selectedTrip == null
+              color: _showValidation && _selectedTrip == null
                   ? Colors.red.shade300
                   : Colors.grey.shade200,
+              width: _showValidation && _selectedTrip == null ? 2 : 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: selectedTrip,
+              value: _selectedTrip,
               isExpanded: true,
-              hint: const Text(
+              hint: Text(
                 'Select a recent trip',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(color: Colors.grey[400], fontSize: 14),
               ),
               icon: const Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: primaryBlue,
               ),
-              items: recentTrips.map((trip) {
+              items: _recentTrips.map((trip) {
                 return DropdownMenuItem<String>(
                   value: trip,
                   child: Text(
@@ -293,15 +399,11 @@ class _ReportScreenState extends State<ReportScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedTrip = value;
-                });
-              },
+              onChanged: (value) => setState(() => _selectedTrip = value),
             ),
           ),
         ),
-        if (showValidation && selectedTrip == null)
+        if (_showValidation && _selectedTrip == null)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
@@ -313,6 +415,9 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // ============================================================
+  // ISSUE SECTION
+  // ============================================================
   Widget _buildIssueSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -322,34 +427,42 @@ class _ReportScreenState extends State<ReportScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: primaryBlue,
+            color: darkText,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           'Select one issue that best describes your experience.',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: showValidation && selectedIssue == null
+              color: _showValidation && _selectedIssue == null
                   ? Colors.red.shade300
                   : Colors.grey.shade200,
+              width: _showValidation && _selectedIssue == null ? 2 : 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
-              for (int i = 0; i < issueTypes.length; i++)
-                _buildIssueOption(issueTypes[i], i == issueTypes.length - 1),
+              for (int i = 0; i < _issueTypes.length; i++)
+                _buildIssueOption(_issueTypes[i], i == _issueTypes.length - 1),
             ],
           ),
         ),
-        if (showValidation && selectedIssue == null)
+        if (_showValidation && _selectedIssue == null)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
@@ -362,76 +475,67 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildIssueOption(String issue, bool isLast) {
-    final bool isSelected = selectedIssue == issue;
+    final bool isSelected = _selectedIssue == issue;
 
-    return Column(
-      children: [
-        InkWell(
-          onTap: () {
-            setState(() {
-              selectedIssue = issue;
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            decoration: BoxDecoration(
-              color: isSelected ? lightBlue : Colors.white,
-              borderRadius: BorderRadius.vertical(
-                top: issue == issueTypes.first
-                    ? const Radius.circular(16)
-                    : Radius.zero,
-                bottom: isLast ? const Radius.circular(16) : Radius.zero,
-              ),
-            ),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: isSelected ? primaryBlue : lightBlue,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    _getIssueIcon(issue),
-                    color: isSelected ? Colors.white : primaryBlue,
-                    size: 21,
-                  ),
-                ),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Text(
-                    issue,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.w600,
-                      color: darkText,
-                    ),
-                  ),
-                ),
-                Icon(
-                  isSelected
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked,
-                  color: isSelected ? primaryBlue : Colors.grey.shade400,
-                  size: 22,
-                ),
-              ],
-            ),
+    return InkWell(
+      onTap: () => setState(() => _selectedIssue = issue),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? lightBlue : Colors.white,
+          borderRadius: BorderRadius.vertical(
+            top: issue == _issueTypes.first ? const Radius.circular(14) : Radius.zero,
+            bottom: isLast ? const Radius.circular(14) : Radius.zero,
           ),
         ),
-        if (!isLast)
-          Divider(
-            height: 1,
-            indent: 71,
-            endIndent: 16,
-            color: Colors.grey.shade200,
-          ),
-      ],
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(colors: [primaryBlue, secondaryBlue])
+                    : null,
+                color: isSelected ? null : lightBlue,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _getIssueIcon(issue),
+                color: isSelected ? Colors.white : primaryBlue,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                issue,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected ? primaryBlue : darkText,
+                ),
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? primaryBlue : Colors.grey.shade300,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, color: primaryBlue, size: 16)
+                  : null,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -452,6 +556,9 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
+  // ============================================================
+  // VEHICLE SECTION
+  // ============================================================
   Widget _buildVehicleSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,33 +568,40 @@ class _ReportScreenState extends State<ReportScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: primaryBlue,
+            color: darkText,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           'Optional information that can help us identify the trip.',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: TextField(
-            controller: vehicleController,
+            controller: _vehicleController,
             decoration: InputDecoration(
               hintText: 'Driver name, plate number, or vehicle details',
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
               prefixIcon: const Icon(
                 Icons.local_taxi_outlined,
                 color: primaryBlue,
               ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
-                vertical: 17,
+                vertical: 16,
                 horizontal: 12,
               ),
             ),
@@ -497,8 +611,11 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // ============================================================
+  // DESCRIPTION SECTION
+  // ============================================================
   Widget _buildDescriptionSection() {
-    final bool hasText = descriptionController.text.trim().isNotEmpty;
+    final bool hasText = _descriptionController.text.trim().isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,46 +625,51 @@ class _ReportScreenState extends State<ReportScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: primaryBlue,
+            color: darkText,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           'Give us more details about what happened.',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: showValidation && !hasText
+              color: _showValidation && !hasText
                   ? Colors.red.shade300
                   : Colors.grey.shade200,
+              width: _showValidation && !hasText ? 2 : 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: TextField(
-            controller: descriptionController,
-            maxLines: 6,
+            controller: _descriptionController,
+            maxLines: 5,
             maxLength: 500,
-            onChanged: (_) {
-              setState(() {});
-            },
+            onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              hintText: 'Describe the problem...',
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              hintText: 'Describe the problem in detail...',
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
               border: InputBorder.none,
               counterText: '',
               contentPadding: const EdgeInsets.all(16),
             ),
           ),
         ),
-        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            if (showValidation && !hasText)
+            if (_showValidation && !hasText)
               Text(
                 'Please describe the issue',
                 style: TextStyle(fontSize: 12, color: Colors.red.shade600),
@@ -555,8 +677,8 @@ class _ReportScreenState extends State<ReportScreen> {
             else
               const SizedBox.shrink(),
             Text(
-              '${descriptionController.text.length}/500',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              '${_descriptionController.text.length}/500',
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -564,6 +686,9 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // ============================================================
+  // RATING SECTION
+  // ============================================================
   Widget _buildRatingSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,42 +698,50 @@ class _ReportScreenState extends State<ReportScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: primaryBlue,
+            color: darkText,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           'How was your overall experience?',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(5, (index) {
               final int rating = index + 1;
-
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedRating = rating;
-                  });
-                },
+                onTap: () => setState(() => _selectedRating = rating),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: Icon(
-                    rating <= selectedRating
-                        ? Icons.star_rounded
-                        : Icons.star_border_rounded,
-                    size: 38,
-                    color: Colors.amber.shade600,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      rating <= _selectedRating
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      key: ValueKey(rating <= _selectedRating),
+                      size: 40,
+                      color: rating <= _selectedRating
+                          ? Colors.amber.shade600
+                          : Colors.grey.shade300,
+                    ),
                   ),
                 ),
               );
@@ -619,20 +752,20 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // ============================================================
+  // SUBMIT BUTTON
+  // ============================================================
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: isSubmitting
+        onPressed: _isSubmitting
             ? null
             : () {
-                setState(() {
-                  showValidation = true;
-                });
-
-                if (isFormValid) {
-                  _showConfirmationDialog();
+                setState(() => _showValidation = true);
+                if (_isFormValid) {
+                  _submitReport();
                 }
               },
         style: ElevatedButton.styleFrom(
@@ -643,8 +776,15 @@ class _ReportScreenState extends State<ReportScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: isSubmitting
-            ? const CircularProgressIndicator(color: Colors.white)
+        child: _isSubmitting
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
             : const Text(
                 'Submit Report',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -653,13 +793,13 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // ============================================================
+  // REPORTS SECTION
+  // ============================================================
   Widget _buildReportsSection() {
-    final List<Map<String, dynamic>> filteredReports =
-        selectedReportFilter == 'All'
-        ? reports
-        : reports.where((report) {
-            return report['status'] == selectedReportFilter;
-          }).toList();
+    final filteredReports = _selectedReportFilter == 'All'
+        ? _reports
+        : _reports.where((r) => r['status'] == _selectedReportFilter).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,7 +810,7 @@ class _ReportScreenState extends State<ReportScreen> {
             const Text(
               'MY REPORTS',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: primaryBlue,
                 letterSpacing: 0.8,
@@ -678,14 +818,14 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
             Text(
               '${filteredReports.length} reports',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         _buildReportFilters(),
         const SizedBox(height: 16),
-        if (isLoadingReports)
+        if (_isLoadingReports)
           const Center(
             child: Padding(
               padding: EdgeInsets.all(30),
@@ -693,16 +833,12 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
           )
         else if (filteredReports.isEmpty)
-          _buildFilteredEmptyState()
+          _buildEmptyState()
         else
-          Column(
-            children: filteredReports.map((report) {
-              return Padding(
+          ...filteredReports.map((report) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _buildReportCard(report),
-              );
-            }).toList(),
-          ),
+              )),
       ],
     );
   }
@@ -712,29 +848,26 @@ class _ReportScreenState extends State<ReportScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 42,
+          height: 40,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: reportFilters.length,
+            itemCount: _reportFilters.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
-              final String filter = reportFilters[index];
-
-              final bool isSelected = selectedReportFilter == filter;
+              final filter = _reportFilters[index];
+              final isSelected = _selectedReportFilter == filter;
 
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedReportFilter = filter;
-                  });
-                },
+                onTap: () => setState(() => _selectedReportFilter = filter),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? primaryBlue : Colors.white,
-                    borderRadius: BorderRadius.circular(22),
+                    gradient: isSelected
+                        ? LinearGradient(colors: [primaryBlue, secondaryBlue])
+                        : null,
+                    color: isSelected ? null : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isSelected ? primaryBlue : Colors.grey.shade200,
                     ),
@@ -744,7 +877,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.grey.shade600,
+                      color: isSelected ? Colors.white : Colors.grey[600],
                     ),
                   ),
                 ),
@@ -752,24 +885,137 @@ class _ReportScreenState extends State<ReportScreen> {
             },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Padding(
           padding: const EdgeInsets.only(left: 4),
           child: Text(
-            filterDescriptions[selectedReportFilter] ?? '',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            _filterDescriptions[_selectedReportFilter] ?? '',
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildFilteredEmptyState() {
-    String title;
-    String message;
+  Widget _buildReportCard(Map<String, dynamic> report) {
+    final String status = report['status'] ?? 'Pending';
+    final Color statusColor = _getStatusColor(status);
+
+    return GestureDetector(
+      onTap: () => _showReportDetails(report),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [primaryBlue, secondaryBlue],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.report_problem_outlined,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    report['issue'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    report['trip'] ?? '',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    report['date'] ?? '',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [statusColor.withOpacity(0.15), statusColor.withOpacity(0.05)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: statusColor.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    status,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Resolved':
+        return Colors.green.shade700;
+      case 'Reviewed':
+        return primaryBlue;
+      default:
+        return Colors.orange.shade700;
+    }
+  }
+
+  Widget _buildEmptyState() {
+    String title, message;
     IconData icon;
 
-    switch (selectedReportFilter) {
+    switch (_selectedReportFilter) {
       case 'Pending':
         title = 'No pending reports';
         message = 'You do not have any reports waiting for review.';
@@ -801,128 +1047,226 @@ class _ReportScreenState extends State<ReportScreen> {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 42, color: Colors.grey.shade400),
+          Icon(icon, size: 48, color: Colors.grey.shade300),
           const SizedBox(height: 12),
           Text(
             title,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+              color: Colors.grey[600],
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 13, color: Colors.grey[500]),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReportCard(Map<String, dynamic> report) {
-    final String status = report['status'] ?? 'Pending';
-
-    return GestureDetector(
-      onTap: () {
-        _showReportDetails(report);
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: lightBlue,
-                borderRadius: BorderRadius.circular(12),
+  // ============================================================
+  // REPORT DETAILS BOTTOM SHEET
+  // ============================================================
+  void _showReportDetails(Map<String, dynamic> report) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.75,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              child: const Icon(
-                Icons.report_problem_outlined,
-                color: primaryBlue,
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    report['issue'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    report['trip'] ?? '',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    report['date'] ?? '',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primaryBlue, secondaryBlue],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.report_problem_outlined,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            report['issue'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: primaryBlue,
+                            ),
+                          ),
+                        ),
+                        _buildStatusBadge(report['status'] ?? 'Pending'),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildDetailItem('Trip', report['trip'] ?? ''),
+                    _buildDetailItem('Date', report['date'] ?? ''),
+                    _buildDetailItem('Vehicle', report['vehicle'] ?? ''),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'DESCRIPTION',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: primaryBlue,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Text(
+                        report['description'] ?? '',
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.6,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                    if ((report['response'] ?? '').toString().isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      const Text(
+                        'TEAM RESPONSE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: primaryBlue,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: lightBlue,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: primaryBlue.withOpacity(0.1)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.support_agent_rounded,
+                              color: primaryBlue,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                report['response'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.6,
+                                  color: darkText,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryBlue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Close',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            _buildStatusBadge(status),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
   Widget _buildStatusBadge(String status) {
-    Color color;
-    Color background;
-    IconData icon;
-
-    switch (status) {
-      case 'Resolved':
-        color = Colors.green.shade700;
-        background = Colors.green.shade50;
-        icon = Icons.check_circle_outline_rounded;
-        break;
-      case 'Reviewed':
-        color = primaryBlue;
-        background = lightBlue;
-        icon = Icons.visibility_outlined;
-        break;
-      default:
-        color = Colors.orange.shade700;
-        background = Colors.orange.shade50;
-        icon = Icons.access_time_rounded;
-    }
-
+    final Color color = _getStatusColor(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(9),
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
           const SizedBox(width: 4),
           Text(
             status,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -932,212 +1276,24 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  void _showReportDetails(Map<String, dynamic> report) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.65,
-          minChildSize: 0.45,
-          maxChildSize: 0.9,
-          builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: lightBlue,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(
-                          Icons.report_problem_outlined,
-                          color: primaryBlue,
-                          size: 25,
-                        ),
-                      ),
-                      const SizedBox(width: 13),
-                      Expanded(
-                        child: Text(
-                          report['issue'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                            color: primaryBlue,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  _buildDetailItem(
-                    'Trip',
-                    report['trip'] ?? '',
-                    Icons.route_outlined,
-                  ),
-                  _buildDetailItem(
-                    'Date',
-                    report['date'] ?? '',
-                    Icons.calendar_today_outlined,
-                  ),
-                  _buildDetailItem(
-                    'Vehicle',
-                    report['vehicle'] ?? '',
-                    Icons.directions_car_outlined,
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'STATUS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: primaryBlue,
-                      letterSpacing: 0.7,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildStatusTimeline(report['status'] ?? 'Pending'),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'DESCRIPTION',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: primaryBlue,
-                      letterSpacing: 0.7,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      report['description'] ?? '',
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ),
-                  if ((report['response'] ?? '').toString().isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    const Text(
-                      'TEAM RESPONSE',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: primaryBlue,
-                        letterSpacing: 0.7,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: lightBlue,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.support_agent_rounded,
-                            color: primaryBlue,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              report['response'] ?? '',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                height: 1.5,
-                                color: darkText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 26),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryBlue,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Close',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailItem(String title, String value, IconData icon) {
+  Widget _buildDetailItem(String title, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 19, color: primaryBlue),
-          const SizedBox(width: 12),
-          Text(
-            '$title:',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+          SizedBox(
+            width: 70,
+            child: Text(
+              '$title:',
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+            ),
           ),
-          const SizedBox(width: 7),
           Expanded(
             child: Text(
               value,
               style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
                 color: darkText,
               ),
             ),
@@ -1147,215 +1303,54 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  Widget _buildStatusTimeline(String status) {
-    final bool reviewed = status == 'Reviewed' || status == 'Resolved';
-
-    final bool resolved = status == 'Resolved';
-
-    return Column(
-      children: [
-        _timelineItem('Report submitted', true, Icons.send_rounded),
-        _timelineLine(reviewed || resolved),
-        _timelineItem(
-          'Report reviewed',
-          reviewed || resolved,
-          Icons.visibility_outlined,
-        ),
-        _timelineLine(resolved),
-        _timelineItem(
-          'Issue resolved',
-          resolved,
-          Icons.check_circle_outline_rounded,
-        ),
-      ],
-    );
-  }
-
-  Widget _timelineItem(String title, bool completed, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: completed ? primaryBlue : Colors.grey.shade200,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 19,
-            color: completed ? Colors.white : Colors.grey.shade400,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: completed ? FontWeight.bold : FontWeight.w500,
-            color: completed ? darkText : Colors.grey.shade500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _timelineLine(bool completed) {
-    return Container(
-      width: 2,
-      height: 22,
-      margin: const EdgeInsets.only(left: 18),
-      color: completed ? primaryBlue : Colors.grey.shade200,
-    );
-  }
-
-  void _showConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            'Submit report?',
-            style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            'Are you sure you want to submit this report?',
-            style: TextStyle(fontSize: 14, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                _submitReport();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBlue,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Confirm'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _submitReport() async {
-    setState(() {
-      isSubmitting = true;
-    });
-
-    try {
-      final report = await ApiService.createReport(
-        tripId: '00000000-0000-0000-0000-000000000001',
-        issueType: selectedIssue!,
-        description: descriptionController.text.trim(),
-        vehicleDetails: vehicleController.text.trim().isEmpty
-            ? null
-            : vehicleController.text.trim(),
-        rating: selectedRating == 0 ? null : selectedRating,
-      );
-
-      if (!mounted) return;
-
-      reports.insert(0, {
-        'id': report['id'],
-        'issue': report['issue_type'] ?? '',
-        'trip': report['trip_id'] ?? '',
-        'date': _formatDate(report['created_at']),
-        'status': _formatStatus(report['status']),
-        'description': report['description'] ?? '',
-        'vehicle': report['vehicle_details'] ?? 'Not provided',
-        'rating': report['rating'] ?? 0,
-        'response': report['response'] ?? '',
-      });
-
-      setState(() {
-        isSubmitting = false;
-      });
-
-      _clearForm();
-
-      _showSuccessDialog();
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        isSubmitting = false;
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to submit report: $e')));
-    }
-  }
-
-  void _clearForm() {
-    setState(() {
-      selectedIssue = null;
-      selectedTrip = null;
-      selectedRating = 0;
-      showValidation = false;
-    });
-
-    descriptionController.clear();
-    vehicleController.clear();
-    feedbackController.clear();
-  }
-
+  // ============================================================
+  // SUCCESS DIALOG
+  // ============================================================
   void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {
+      builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 70,
-                height: 70,
-                decoration: const BoxDecoration(
-                  color: lightBlue,
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green.shade400, Colors.green.shade600],
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.check_rounded,
-                  color: primaryBlue,
-                  size: 42,
+                  color: Colors.white,
+                  size: 40,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               const Text(
-                'Report Submitted',
+                'Report Submitted!',
                 style: TextStyle(
-                  fontSize: 21,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: primaryBlue,
+                  color: darkText,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
                 'Your report has been submitted and is now pending review.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 13,
-                  height: 1.4,
-                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                  height: 1.5,
+                  color: Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 24),
@@ -1363,13 +1358,10 @@ class _ReportScreenState extends State<ReportScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
+                  onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryBlue,
                     foregroundColor: Colors.white,
-                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
