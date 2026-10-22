@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:grpc/grpc.dart';
+import 'package:http/http.dart' as http;
 
 import '../../core/storage/local_storage.dart';
+import '../../services/grpc_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,12 +17,16 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _phoneFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  static const Color primaryBlue = Color(0xFF1565C0);
+  static const Color primaryBlue = Color(0xFF0B3D78);
+  static const Color lightBlue = Color(0xFFE8F0FE);
 
-    @override
+  @override
   void initState() {
     super.initState();
     _checkExistingAuth();
@@ -32,18 +38,31 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      // User already logged in — go to passenger home
       context.go('/passenger', extra: {
         'fullName': user?['fullName'] ?? 'User',
         'email': user?['email'] ?? '',
       });
     }
   }
-    @override
-  void dispose() {
-    _phoneController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Phone number is required';
+    }
+    if (value.trim().length < 9) {
+      return 'Please enter a valid phone number';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
   }
 
   String? _validateInputs() {
@@ -56,14 +75,22 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  // ==================== HANDLE SIGN IN ====================
   Future<void> _handleSignIn() async {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-       final validationError = _validateInputs();
-    if (validationError != null) {
-      _showMessage(validationError);
+    if (phone.isEmpty || password.isEmpty) {
+      _showMessage('Please fill in all fields');
+      return;
+    }
+
+    if (phone.length < 9) {
+      _showMessage('Please enter a valid phone number');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showMessage('Password must be at least 6 characters');
       return;
     }
 
@@ -75,54 +102,113 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final url = Uri.parse('http://localhost:8080/login');
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': loginIdentifier, 'password': password}),
-      );
+      String? token;
+      String fullName = 'User';
+      String email = '';
+      String role = 'passenger';
 
-      if (!mounted) return;
+      bool httpSuccess = false;
+      try {
+        final url = Uri.parse('http://localhost:8080/login');
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': loginIdentifier, 'password': password}),
+        );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final user = data['user'];
-        final token = data['token'];
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final userData = data['user'];
+          token = data['token']?.toString();
 
-        if (token == null || token.toString().isEmpty) {
+          if (token != null && token.isNotEmpty) {
+            await LocalStorage.saveToken(token);
+            if (userData is Map) {
+              await LocalStorage.saveUser(Map<String, dynamic>.from(userData));
+              fullName = (userData['fullName'] ?? 'User').toString();
+              email = (userData['email'] ?? '').toString();
+              role = (userData['role'] ?? 'passenger').toString();
+            }
+            httpSuccess = true;
+          }
+        } else if (response.statusCode == 401) {
+          if (!mounted) return;
+          _showMessage('Invalid phone number or password');
+          return;
+        }
+      } catch (_) {
+        // Backend HTTP server not reachable, try gRPC client fallback
+      }
+
+      if (!httpSuccess) {
+        final grpcResponse = await GrpcClient().login(phone, password);
+        final grpcUser = grpcResponse.user;
+        token = grpcResponse.token;
+
+        if (token == null || token.isEmpty) {
+          if (!mounted) return;
           _showMessage('Login succeeded but no token was received');
           return;
         }
 
-        await LocalStorage.saveToken(token.toString());
-        if (user is Map) {
-          await LocalStorage.saveUser(Map<String, dynamic>.from(user));
+        if (grpcUser == null) {
+          if (!mounted) return;
+          _showMessage('Login succeeded but no user info was returned');
+          return;
         }
 
-        if (!mounted) return;
+        await LocalStorage.saveToken(token);
+        await LocalStorage.saveUser({
+          'id': grpcUser.id,
+          'fullName': grpcUser.fullName,
+          'email': grpcUser.email,
+          'phone': grpcUser.phone,
+          'role': grpcUser.role,
+        });
 
-        final role = user['role'];
+        fullName = grpcUser.fullName;
+        email = grpcUser.email;
+        role = grpcUser.role;
+      }
 
-        if (role == 'driver') {
-          context.go('/driver');
-        } else {
-          context.go(
-            '/passenger',
-            extra: {
-              'fullName': user['fullName'] ?? 'User',
-              'email': user['email'] ?? '',
-            },
-          );
-        }
+      if (!mounted) return;
+
+      _showMessage('Welcome back, $fullName!');
+
+      if (role == 'driver') {
+        context.go('/driver', extra: {
+          'fullName': fullName,
+          'driverName': fullName,
+          'email': email,
+        });
+      } else if (role == 'admin') {
+        context.go('/admin');
       } else {
-        _showMessage('❌ Invalid phone number or password');
+        context.go(
+          '/passenger',
+          extra: {
+            'fullName': fullName,
+            'email': email,
+          },
+        );
+      }
+    } on GrpcError catch (e) {
+      if (!mounted) return;
+
+      if (e.code == StatusCode.unauthenticated) {
+        _showMessage('Invalid phone number or password');
+      } else {
+        _showMessage('Login failed: ${e.message}');
       }
     } catch (e) {
       if (!mounted) return;
-      _showMessage('❌ Could not connect to server. Is the backend running?');
+
+      _showMessage('Could not connect to server. Is the backend running?');
       debugPrint('Login error: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -141,75 +227,41 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _phoneFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        top: false,
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 24),
               _buildHeader(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Sign in',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Welcome back to your account',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildLabel('PHONE NUMBER'),
-                    const SizedBox(height: 8),
-                    _buildPhoneField(),
-                    const SizedBox(height: 20),
-                    _buildLabel('PASSWORD'),
-                    const SizedBox(height: 8),
-                    _buildPasswordField(),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          _showMessage('Password reset coming soon');
-                        },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 0),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          'Forgot password?',
-                          style: TextStyle(
-                            color: primaryBlue,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildSignInButton(),
-                    const SizedBox(height: 20),
-                    _buildOrDivider(),
-                    const SizedBox(height: 20),
-                    _buildGoogleButton(),
-                    const SizedBox(height: 60),
-                    _buildSignUpRow(),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 32),
+              _buildWelcomeText(),
+              const SizedBox(height: 24),
+              _buildForm(),
+              const SizedBox(height: 16),
+              _buildForgotPassword(),
+              const SizedBox(height: 20),
+              _buildSignInButton(),
+              const SizedBox(height: 20),
+              _buildOrDivider(),
+              const SizedBox(height: 20),
+              _buildGoogleButton(),
+              const SizedBox(height: 30),
+              _buildSignUpRow(),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -218,47 +270,49 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(top: 60, bottom: 40),
-      decoration: const BoxDecoration(
-        color: primaryBlue,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
-        ),
-      ),
+    return Center(
       child: Column(
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              gradient: const LinearGradient(
+                colors: [primaryBlue, Color(0xFF1A6BC4)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: primaryBlue.withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: const Icon(
               Icons.local_taxi_outlined,
-              color: primaryBlue,
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'TaxiTrack',
-            style: TextStyle(
               color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              size: 36,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Real-time taxi visibility',
+          const SizedBox(height: 16),
+          const Text(
+            'WhyWait',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.75),
-              fontSize: 13,
-              letterSpacing: 0.3,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: primaryBlue,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            'Real-time taxi tracking',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -266,88 +320,152 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: Colors.black87,
-        letterSpacing: 0.3,
-      ),
+  Widget _buildWelcomeText() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Welcome Back 👋',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Sign in to continue tracking taxis',
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+        ),
+      ],
     );
   }
 
-  InputDecoration _fieldDecoration() {
-    return InputDecoration(
-      filled: true,
-      fillColor: const Color(0xFFF1F3F6),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    );
-  }
-
-  Widget _buildPhoneField() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F3F6),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
+  Widget _buildForm() {
+    return Form(
+      child: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 16, right: 8),
-            child: Text(
-              '+251',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          Container(
+            decoration: BoxDecoration(
+              color: lightBlue,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 16, right: 8),
+                  child: Text(
+                    '+251',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: primaryBlue,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 28,
+                  color: Colors.grey[300],
+                ),
+                Expanded(
+                  child: TextFormField(
+                    controller: _phoneController,
+                    focusNode: _phoneFocus,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    validator: _validatePhone,
+                    decoration: const InputDecoration(
+                      hintText: '9X XXX XXXX',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
+                    ),
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(_passwordFocus);
+                    },
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 14),
+                  child: Icon(
+                    Icons.smartphone,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                ),
+              ],
             ),
           ),
-          Container(width: 1, height: 24, color: Colors.grey[300]),
-          Expanded(
-            child: TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: '9X XXX XXXX',
-                hintStyle: TextStyle(color: Colors.grey),
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: lightBlue,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: TextFormField(
+              controller: _passwordController,
+              focusNode: _passwordFocus,
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              validator: _validatePassword,
+              decoration: InputDecoration(
+                hintText: 'Enter your password',
+                hintStyle: TextStyle(color: Colors.grey[500]),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                prefixIcon: const Icon(
+                  Icons.lock_outline,
+                  color: Colors.grey,
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                 ),
               ),
+              onFieldSubmitted: (_) => _handleSignIn(),
             ),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(right: 14),
-            child: Icon(Icons.smartphone, color: Colors.grey, size: 20),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPasswordField() {
-    return TextField(
-      controller: _passwordController,
-      obscureText: _obscurePassword,
-      decoration: _fieldDecoration().copyWith(
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
-            color: Colors.grey,
-            size: 20,
+  Widget _buildForgotPassword() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: () {
+          _showMessage('Password reset coming soon');
+        },
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(0, 0),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(
+          'Forgot password?',
+          style: TextStyle(
+            color: primaryBlue,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
           ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
         ),
       ),
     );
@@ -355,33 +473,40 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildSignInButton() {
     return SizedBox(
-      height: 52,
+      height: 56,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleSignIn,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(16),
           ),
           elevation: 0,
-          disabledBackgroundColor: primaryBlue.withValues(alpha: 0.6),
+          disabledBackgroundColor: primaryBlue.withOpacity(0.6),
         ),
         child: _isLoading
             ? const SizedBox(
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
                   color: Colors.white,
                 ),
               )
-            : const Text(
-                'Sign In',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward, size: 18),
+                ],
               ),
       ),
     );
@@ -395,7 +520,11 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'or',
-            style: TextStyle(color: Colors.grey[500], fontSize: 13),
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         Expanded(child: Divider(color: Colors.grey[300])),
@@ -413,20 +542,20 @@ class _LoginScreenState extends State<LoginScreen> {
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: Colors.grey[300]!),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.public, size: 18, color: Colors.black87),
+            const Icon(Icons.public, size: 20, color: Colors.black87),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Continue with Google',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: Colors.grey[800],
               ),
             ),
           ],
