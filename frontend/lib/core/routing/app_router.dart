@@ -1,5 +1,7 @@
+```dart
 import 'package:go_router/go_router.dart';
 
+import '../../features/passenger/history_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/passenger/passenger_shell.dart';
@@ -32,14 +34,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const RequestRideScreen(),
     ),
     GoRoute(
+      path: '/history',
+      builder: (context, state) => const HistoryScreen(),
+    ),
+    GoRoute(
       path: '/driver',
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>? ?? {};
-        return DriverHomeScreen(
-          driverName: extra['driverName'] ?? 'Driver',
-          email: extra['email'] ?? 'driver@whywait.et',
-        );
-      },
-    ),
-  ],
-);
+        final extra = state.extra as Map

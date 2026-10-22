@@ -1,11 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:go_router/go_router.dart';
 import 'package:grpc/grpc.dart';
-import 'dart:async';
 
-import 'register_screen.dart';
-import '../passenger/home_screen.dart';
 import '../../core/storage/local_storage.dart';
 import '../../services/grpc_client.dart';
 
@@ -20,8 +18,11 @@ class _LoginScreenState extends State<LoginScreen> {
   // ============================================================
   // Controllers & Focus Nodes
   // ============================================================
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneController =
+      TextEditingController();
+  final TextEditingController _passwordController =
+      TextEditingController();
+
   final FocusNode _phoneFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
@@ -32,15 +33,51 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color lightBlue = Color(0xFFE8F0FE);
 
   // ============================================================
+  // Lifecycle & Existing Authentication
+  // ============================================================
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingAuth();
+  }
+
+  Future<void> _checkExistingAuth() async {
+    final token = await LocalStorage.getToken();
+
+    if (!mounted) return;
+
+    if (token != null && token.isNotEmpty) {
+      context.go(
+        '/passenger',
+        extra: {
+          'fullName': 'User',
+          'email': '',
+        },
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _phoneFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
+
+  // ============================================================
   // Validation
   // ============================================================
   String? _validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Phone number is required';
     }
-    if (value.length < 9) {
+
+    if (value.trim().length < 9) {
       return 'Please enter a valid phone number';
     }
+
     return null;
   }
 
@@ -48,9 +85,22 @@ class _LoginScreenState extends State<LoginScreen> {
     if (value == null || value.isEmpty) {
       return 'Password is required';
     }
+
     if (value.length < 6) {
       return 'Password must be at least 6 characters';
     }
+
+    return null;
+  }
+
+  String? _validateInputs() {
+    final phoneError = _validatePhone(_phoneController.text);
+    if (phoneError != null) return phoneError;
+
+    final passwordError =
+        _validatePassword(_passwordController.text);
+    if (passwordError != null) return passwordError;
+
     return null;
   }
 
@@ -61,39 +111,47 @@ class _LoginScreenState extends State<LoginScreen> {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Validate
-    if (phone.isEmpty || password.isEmpty) {
-      _showMessage('Please fill in all fields');
+    final validationError = _validateInputs();
+
+    if (validationError != null) {
+      _showMessage(validationError);
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-            final response = await GrpcClient().login(phone, password);
+      // Authenticate through the existing gRPC client.
+      final response = await GrpcClient().login(phone, password);
+
       final user = response.user;
       final token = response.token;
 
+      if (!mounted) return;
+
       if (token == null || token.isEmpty) {
-        _showMessage('Login succeeded but no token was received');
-        setState(() => _isLoading = false);
+        _showMessage(
+          'Login succeeded but no token was received',
+        );
         return;
       }
 
       if (user == null) {
-        _showMessage('Login succeeded but no user info was returned');
-        setState(() => _isLoading = false);
+        _showMessage(
+          'Login succeeded but no user info was returned',
+        );
         return;
       }
 
       await LocalStorage.saveToken(token);
 
       if (!mounted) return;
-      _showMessage('✅ Welcome back, ${user.fullName}!');
 
-      final role = user.role;;
+      _showMessage('Welcome back, ${user.fullName}!');
 
-      // Role‑based navigation
+      // Navigate according to the authenticated user's role.
+      final role = user.role;
+
       if (role == 'driver') {
         context.go('/driver');
       } else if (role == 'admin') {
@@ -108,21 +166,36 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } on GrpcError catch (e) {
+      if (!mounted) return;
+
       if (e.code == StatusCode.unauthenticated) {
-        _showMessage('❌ Invalid phone number or password');
+        _showMessage(
+          'Invalid phone number or password',
+        );
       } else {
-        _showMessage('❌ Login failed: ${e.message}');
+        _showMessage('Login failed: ${e.message}');
       }
     } catch (e) {
-      _showMessage('❌ Could not connect to server. Is the backend running?');
-      print('Login error: $e');
+      if (!mounted) return;
+
+      _showMessage(
+        'Could not connect to server. Is the backend running?',
+      );
+
+      debugPrint('Login error: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
+  // ============================================================
+  // Messages
+  // ============================================================
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -133,18 +206,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
-
-  // ============================================================
-  // Lifecycle
-  // ============================================================
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    _passwordController.dispose();
-    _phoneFocus.dispose();
-    _passwordFocus.dispose();
-    super.dispose();
   }
 
   // ============================================================
@@ -161,29 +222,45 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
-              // ----- Header -----
+
+              // Header
               _buildHeader(),
+
               const SizedBox(height: 32),
-              // ----- Welcome Text -----
+
+              // Welcome Text
               _buildWelcomeText(),
+
               const SizedBox(height: 24),
-              // ----- Form -----
+
+              // Login Form
               _buildForm(),
+
               const SizedBox(height: 16),
-              // ----- Forgot Password -----
+
+              // Forgot Password
               _buildForgotPassword(),
+
               const SizedBox(height: 20),
-              // ----- Sign In Button -----
+
+              // Sign In Button
               _buildSignInButton(),
+
               const SizedBox(height: 20),
-              // ----- OR Divider -----
+
+              // Divider
               _buildOrDivider(),
+
               const SizedBox(height: 20),
-              // ----- Google Button -----
+
+              // Google Button
               _buildGoogleButton(),
+
               const SizedBox(height: 30),
-              // ----- Sign Up -----
+
+              // Sign Up
               _buildSignUpRow(),
+
               const SizedBox(height: 24),
             ],
           ),
@@ -193,9 +270,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ============================================================
-  // UI Components
+  // Header
   // ============================================================
-
   Widget _buildHeader() {
     return Center(
       child: Column(
@@ -205,7 +281,10 @@ class _LoginScreenState extends State<LoginScreen> {
             height: 72,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [primaryBlue, Color(0xFF1A6BC4)],
+                colors: [
+                  primaryBlue,
+                  Color(0xFF1A6BC4),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -224,7 +303,9 @@ class _LoginScreenState extends State<LoginScreen> {
               size: 36,
             ),
           ),
+
           const SizedBox(height: 16),
+
           const Text(
             'WhyWait',
             style: TextStyle(
@@ -234,6 +315,7 @@ class _LoginScreenState extends State<LoginScreen> {
               letterSpacing: 0.5,
             ),
           ),
+
           Text(
             'Real-time taxi tracking',
             style: TextStyle(
@@ -247,6 +329,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ============================================================
+  // Welcome Text
+  // ============================================================
   Widget _buildWelcomeText() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +344,9 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.black87,
           ),
         ),
+
         const SizedBox(height: 4),
+
         Text(
           'Sign in to continue tracking taxis',
           style: TextStyle(
@@ -271,11 +358,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ============================================================
+  // Login Form
+  // ============================================================
   Widget _buildForm() {
     return Form(
       child: Column(
         children: [
-          // ----- Phone Field -----
+          // Phone Field
           Container(
             decoration: BoxDecoration(
               color: lightBlue,
@@ -284,7 +374,10 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Row(
               children: [
                 const Padding(
-                  padding: EdgeInsets.only(left: 16, right: 8),
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 8,
+                  ),
                   child: Text(
                     '+251',
                     style: TextStyle(
@@ -294,11 +387,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+
                 Container(
                   width: 1,
                   height: 28,
                   color: Colors.grey[300],
                 ),
+
                 Expanded(
                   child: TextFormField(
                     controller: _phoneController,
@@ -308,7 +403,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: _validatePhone,
                     decoration: const InputDecoration(
                       hintText: '9X XXX XXXX',
-                      hintStyle: TextStyle(color: Colors.grey),
+                      hintStyle: TextStyle(
+                        color: Colors.grey,
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
@@ -316,10 +413,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     onFieldSubmitted: (_) {
-                      FocusScope.of(context).requestFocus(_passwordFocus);
+                      FocusScope.of(context).requestFocus(
+                        _passwordFocus,
+                      );
                     },
                   ),
                 ),
+
                 const Padding(
                   padding: EdgeInsets.only(right: 14),
                   child: Icon(
@@ -331,8 +431,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
+
           const SizedBox(height: 16),
-          // ----- Password Field -----
+
+          // Password Field
           Container(
             decoration: BoxDecoration(
               color: lightBlue,
@@ -346,7 +448,9 @@ class _LoginScreenState extends State<LoginScreen> {
               validator: _validatePassword,
               decoration: InputDecoration(
                 hintText: 'Enter your password',
-                hintStyle: TextStyle(color: Colors.grey[500]),
+                hintStyle: TextStyle(
+                  color: Colors.grey[500],
+                ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -379,12 +483,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ============================================================
+  // Forgot Password
+  // ============================================================
   Widget _buildForgotPassword() {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {
-          // TODO: Forgot password flow
           _showMessage('Password reset coming soon');
         },
         style: TextButton.styleFrom(
@@ -404,6 +510,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ============================================================
+  // Sign In Button
+  // ============================================================
   Widget _buildSignInButton() {
     return SizedBox(
       height: 56,
@@ -416,7 +525,8 @@ class _LoginScreenState extends State<LoginScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 0,
-          disabledBackgroundColor: primaryBlue.withOpacity(0.6),
+          disabledBackgroundColor:
+              primaryBlue.withOpacity(0.6),
         ),
         child: _isLoading
             ? const SizedBox(
@@ -438,19 +548,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, size: 18),
+                  Icon(
+                    Icons.arrow_forward,
+                    size: 18,
+                  ),
                 ],
               ),
       ),
     );
   }
 
+  // ============================================================
+  // OR Divider
+  // ============================================================
   Widget _buildOrDivider() {
     return Row(
       children: [
-        Expanded(child: Divider(color: Colors.grey[300])),
+        Expanded(
+          child: Divider(
+            color: Colors.grey[300],
+          ),
+        ),
+
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+          ),
           child: Text(
             'or',
             style: TextStyle(
@@ -460,11 +583,19 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        Expanded(child: Divider(color: Colors.grey[300])),
+
+        Expanded(
+          child: Divider(
+            color: Colors.grey[300],
+          ),
+        ),
       ],
     );
   }
 
+  // ============================================================
+  // Google Button
+  // ============================================================
   Widget _buildGoogleButton() {
     return SizedBox(
       height: 52,
@@ -473,7 +604,9 @@ class _LoginScreenState extends State<LoginScreen> {
           _showMessage('Google sign in coming soon');
         },
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey[300]!),
+          side: BorderSide(
+            color: Colors.grey[300]!,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -481,8 +614,14 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.public, size: 20, color: Colors.black87),
+            const Icon(
+              Icons.public,
+              size: 20,
+              color: Colors.black87,
+            ),
+
             const SizedBox(width: 10),
+
             Text(
               'Continue with Google',
               style: TextStyle(
@@ -497,6 +636,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ============================================================
+  // Sign Up Row
+  // ============================================================
   Widget _buildSignUpRow() {
     return Center(
       child: RichText(
@@ -506,10 +648,13 @@ class _LoginScreenState extends State<LoginScreen> {
             fontSize: 14,
           ),
           children: [
-            const TextSpan(text: "Don't have an account? "),
+            const TextSpan(
+              text: "Don't have an account? ",
+            ),
+
             TextSpan(
               text: 'Sign Up',
-              style: TextStyle(
+              style: const TextStyle(
                 color: primaryBlue,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,

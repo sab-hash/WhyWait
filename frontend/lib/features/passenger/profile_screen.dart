@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../core/storage/local_storage.dart';
 import 'report_screen.dart';
 
@@ -28,31 +29,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   static const Color lightBlue = Color(0xFFE3F0FF);
   static const Color darkText = Color(0xFF1A2B4A);
 
-  // Mock data (replace with API later)
+  // Temporary UI data. Replace with API-provided values when the backend
+  // contract for wallets, commute analytics, and preferences is available.
   final String commuterId = 'AD-8842';
   final double telebirrBalance = 420.50;
   final double cbeBalance = 150.00;
   final double monthlySpend = 680.00;
   final double timeSavedHours = 3.5;
+
   String preferredMode = 'Minibus Taxi';
   bool discountActive = true;
   bool _showBalances = false;
 
   String get _initials {
-    final parts = widget.fullName.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts.first.isEmpty) return 'U';
+    final name = widget.fullName.trim();
+    if (name.isEmpty) return 'U';
+
+    final parts = name.split(RegExp(r'\s+'));
     if (parts.length == 1) return parts.first[0].toUpperCase();
+
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
-  void _snack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: primaryBlue,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: primaryBlue,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
@@ -75,7 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: primaryBlue),
-            onPressed: () => _snack('Settings'),
+            onPressed: () => _snack('Settings coming soon'),
           ),
         ],
       ),
@@ -112,7 +120,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= SECTION LABEL =================
   Widget _sectionLabel(String text) {
     return Text(
       text,
@@ -125,7 +132,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= PROFILE BLOCK =================
   Widget _buildProfileBlock() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -150,7 +156,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(color: primaryBlue, width: 2),
             ),
             child: ClipOval(
-              child: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+              child: widget.avatarUrl != null &&
+                      widget.avatarUrl!.isNotEmpty
                   ? Image.network(
                       widget.avatarUrl!,
                       fit: BoxFit.cover,
@@ -165,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.fullName,
+                  widget.fullName.isEmpty ? 'Commuter' : widget.fullName,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -174,13 +181,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${widget.phoneNumber.isEmpty ? "+251 91 123 4567" : widget.phoneNumber} • Commuter ID: #$commuterId',
+                  '${widget.phoneNumber.isEmpty ? "Phone number not provided" : widget.phoneNumber} • Commuter ID: #$commuterId',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                if (widget.email.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.email,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Container(
                   padding:
@@ -189,11 +206,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: Colors.green.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.check_circle_rounded,
-                          color: Colors.green, size: 14),
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.green,
+                        size: 14,
+                      ),
                       SizedBox(width: 4),
                       Text(
                         'Verified Commuter',
@@ -229,7 +249,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= WALLETS CARD =================
   Widget _buildWalletsCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -245,9 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Eye toggle row
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -369,19 +386,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: darkText,
                       ),
                     )
-                  : Row(
-                      key: const ValueKey('stars'),
-                      children: const [
-                        Text(
-                          '••••••',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: darkText,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ],
+                  : const Text(
+                      '••••••',
+                      key: ValueKey('hidden-amount'),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: darkText,
+                        letterSpacing: 2,
+                      ),
                     ),
             ),
           ],
@@ -430,7 +443,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= COMMUTE SHORTCUTS =================
   Widget _buildCommuteShortcuts() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -532,7 +544,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _commuteRow({required String title, required String subtitle}) {
+  Widget _commuteRow({
+    required String title,
+    required String subtitle,
+  }) {
     return Row(
       children: [
         Container(
@@ -542,8 +557,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: lightBlue,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(Icons.alt_route_rounded,
-              color: primaryBlue, size: 18),
+          child: const Icon(
+            Icons.alt_route_rounded,
+            color: primaryBlue,
+            size: 18,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -589,7 +607,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= TRANSIT PREFERENCES =================
   Widget _buildTransitPreferences() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -727,12 +744,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: selected ? Colors.white : primaryBlue,
             ),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: selected ? Colors.white : darkText,
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: selected ? Colors.white : darkText,
+                ),
               ),
             ),
           ],
@@ -741,13 +761,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= SAFETY =================
   Widget _buildSafetySection() {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const ReportScreen()),
+          MaterialPageRoute(
+            builder: (_) => const ReportScreen(),
+          ),
         );
       },
       child: Container(
@@ -773,8 +794,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.red.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.shield_rounded,
-                  color: Colors.red, size: 24),
+              child: const Icon(
+                Icons.shield_rounded,
+                color: Colors.red,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -800,15 +824,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: Colors.red, size: 22),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.red,
+              size: 22,
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ================= BOTTOM ACTIONS =================
   Widget _buildBottomActions() {
     return Column(
       children: [
@@ -819,11 +845,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.receipt_long_rounded, size: 18),
             label: const Text(
               'Full Trip History & Receipts',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: primaryBlue,
-              side: BorderSide(color: primaryBlue.withValues(alpha: 0.4)),
+              side: BorderSide(
+                color: primaryBlue.withValues(alpha: 0.4),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -843,11 +874,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.logout_rounded, size: 18),
             label: const Text(
               'Sign Out',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.redAccent,
-              side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
+              side: BorderSide(
+                color: Colors.redAccent.withValues(alpha: 0.4),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
