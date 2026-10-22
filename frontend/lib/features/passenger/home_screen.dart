@@ -484,27 +484,34 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Row(
                 children: [
-                  Text(
-                    from,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
+                  Flexible(
+                    child: Text(
+                      from,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: darkText,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 7),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: primaryBlue,
-                    size: 17,
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      color: primaryBlue,
+                      size: 16,
+                    ),
                   ),
-                  const SizedBox(width: 7),
-                  Text(
-                    to,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
+                  Flexible(
+                    child: Text(
+                      to,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: darkText,
+                      ),
                     ),
                   ),
                 ],
@@ -592,16 +599,27 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required int index,
   }) {
-        final bool isSelected = selectedIndex == index;
-    if (!isSelected) {
-      // no-op to keep the lint from flagging it
-    }
+    final bool isSelected = selectedIndex == index;
 
-       return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
       onTap: () {
         setState(() {
           selectedIndex = index;
         });
+
+        // Tab 1 — Track → Live Tracking
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const TrackScreen(),
+            ),
+          ).then((_) {
+            if (mounted) setState(() => selectedIndex = 0);
+          });
+          return;
+        }
 
         // Tab 2 — Trips → History screen
         if (index == 2) {
@@ -610,7 +628,9 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(
               builder: (_) => const HistoryScreen(),
             ),
-          );
+          ).then((_) {
+            if (mounted) setState(() => selectedIndex = 0);
+          });
           return;
         }
 
@@ -624,23 +644,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 phoneNumber: widget.email,
               ),
             ),
-          );
+          ).then((_) {
+            if (mounted) setState(() => selectedIndex = 0);
+          });
           return;
         }
-
-        // Tabs 0 (Home) and 1 (Track) — still unimplemented, show snackbar
-                // Tab 1 — Track → Live Tracking
-        if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const TrackScreen(),
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? primaryBlue : Colors.grey.shade400,
+              size: 24,
             ),
-          );
-          return;
-        }
-      }
-       );
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? primaryBlue : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ==================== CHANGE STATION ====================

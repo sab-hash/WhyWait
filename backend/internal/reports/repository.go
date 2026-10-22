@@ -2,6 +2,7 @@ package reports
 
 import (
 	"database/sql"
+	"log"
 	"time"
 )
 
@@ -12,7 +13,7 @@ type Repository struct {
 type Report struct {
 	ID             string    `json:"id"`
 	PassengerID    string    `json:"passenger_id"`
-	TripID         string    `json:"trip_id"`
+	TripID         *string   `json:"trip_id,omitempty"`
 	IssueType      string    `json:"issue_type"`
 	Description    string    `json:"description"`
 	VehicleDetails *string   `json:"vehicle_details,omitempty"`
@@ -24,7 +25,32 @@ type Report struct {
 }
 
 func NewRepository(db *sql.DB) *Repository {
-	return &Repository{DB: db}
+	repo := &Repository{DB: db}
+	repo.EnsureTablesExist()
+	return repo
+}
+
+func (repo *Repository) EnsureTablesExist() {
+	query := `
+	CREATE TABLE IF NOT EXISTS reports (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		passenger_id VARCHAR(100) NOT NULL,
+		trip_id UUID,
+		issue_type VARCHAR(100) NOT NULL,
+		description TEXT NOT NULL,
+		vehicle_details VARCHAR(255),
+		rating INT,
+		status VARCHAR(50) DEFAULT 'pending',
+		response TEXT,
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+		updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+	);
+	CREATE INDEX IF NOT EXISTS idx_reports_passenger_id ON reports(passenger_id);
+	`
+	_, err := repo.DB.Exec(query)
+	if err != nil {
+		log.Printf("⚠️ Warning creating reports table: %v", err)
+	}
 }
 
 func (repo *Repository) Create(

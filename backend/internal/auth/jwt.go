@@ -18,7 +18,7 @@ func NewTokenManager(jwtSecret []byte) *TokenManager {
 }
 
 // ==================== JWT HELPERS ====================
-func (tm *TokenManager) generateToken(userID, email, role string) (string, error) {
+func (tm *TokenManager) GenerateToken(userID, email, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"email":   email,
@@ -29,6 +29,10 @@ func (tm *TokenManager) generateToken(userID, email, role string) (string, error
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	return token.SignedString(tm.jwtSecret)
+}
+
+func (tm *TokenManager) generateToken(userID, email, role string) (string, error) {
+	return tm.GenerateToken(userID, email, role)
 }
 
 func (tm *TokenManager) validateToken(tokenString string) (*jwt.Token, error) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -130,11 +131,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Show success message — user will actually see it now
         showMessage('✅ Welcome $registeredName! Please sign in.');
 
-        // Wait 2 seconds so the snackbar is readable, then pop back to login
+        // Wait 2 seconds so the snackbar is readable, then navigate to login
         await Future.delayed(const Duration(seconds: 2));
 
         if (!mounted) return;
-        Navigator.pop(context);
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/login');
+        }
       } else {
         // Try to parse error message from response
         try {
@@ -193,7 +198,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onPressed: isLoading
                         ? null
                         : () {
-                            Navigator.pop(context);
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go('/login');
+                            }
                           },
                     icon: const Icon(
                       Icons.arrow_back,
@@ -419,6 +428,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Already have an account? ',
+                          style: TextStyle(
+                            color: Color(0xFF555555),
+                            fontSize: 13,
+                          ),
+                        ),
+                        InkWell(
+                          onTap: isLoading
+                              ? null
+                              : () {
+                                  if (context.canPop()) {
+                                    context.pop();
+                                  } else {
+                                    context.go('/login');
+                                  }
+                                },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: 4,
+                              horizontal: 2,
+                            ),
+                            child: Text(
+                              'Sign in',
+                              style: TextStyle(
+                                color: Color(0xFF1565C0),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

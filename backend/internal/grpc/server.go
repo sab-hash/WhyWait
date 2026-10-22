@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"whywait-backend/api"
+	"whywait-backend/internal/auth"
 
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
@@ -22,7 +23,8 @@ import (
 // TaxiServer implements the gRPC TaxiService
 type TaxiServer struct {
 	api.UnimplementedTaxiServiceServer
-	DB *sql.DB
+	DB           *sql.DB
+	TokenManager *auth.TokenManager
 
 	// Track last history insert time per taxi
 	historyMu       sync.Mutex
@@ -30,9 +32,10 @@ type TaxiServer struct {
 }
 
 // NewTaxiServer creates a new gRPC server instance
-func NewTaxiServer(db *sql.DB) *TaxiServer {
+func NewTaxiServer(db *sql.DB, tm *auth.TokenManager) *TaxiServer {
 	return &TaxiServer{
 		DB:              db,
+		TokenManager:    tm,
 		lastHistoryTime: make(map[string]time.Time),
 	}
 }
@@ -57,7 +60,7 @@ func (s *TaxiServer) Register(ctx context.Context, req *api.RegisterRequest) (*a
 		return nil, status.Error(codes.AlreadyExists, "Email or phone already exists")
 	}
 
-	token := generateToken(id, req.Email)
+	token := s.generateToken(id, req.Email, "passenger")
 
 	return &api.AuthResponse{
 		Success: true,
@@ -67,7 +70,7 @@ func (s *TaxiServer) Register(ctx context.Context, req *api.RegisterRequest) (*a
 			FullName: req.FullName,
 			Email:    req.Email,
 			Phone:    req.Phone,
-			Role:     "user",
+			Role:     "passenger",
 		},
 	}, nil
 }
@@ -91,7 +94,7 @@ func (s *TaxiServer) Login(ctx context.Context, req *api.LoginRequest) (*api.Aut
 		return nil, status.Error(codes.Unauthenticated, "Invalid credentials")
 	}
 
-	token := generateToken(id, email)
+	token := s.generateToken(id, email, role)
 
 	return &api.AuthResponse{
 		Success: true,
@@ -243,9 +246,18 @@ func (s *TaxiServer) TrackTaxis(req *api.TrackRequest, stream api.TaxiService_Tr
 // getApproachingTaxis is a helper method to fetch taxis near a station
 func (s *TaxiServer) getApproachingTaxis(stationName string) ([]*api.TaxiUpdate, error) {
 	var stationLat, stationLng float64
-	err := s.DB.QueryRow("SELECT latitude, longitude FROM terminals WHERE name = $1", stationName).Scan(&stationLat, &stationLng)
+	err := s.DB.QueryRow(
+		`SELECT latitude, longitude FROM terminals 
+		 WHERE LOWER(name) = LOWER($1) 
+		    OR LOWER(name) LIKE '%' || LOWER($1) || '%' 
+		    OR LOWER($1) LIKE '%' || LOWER(name) || '%' 
+		 LIMIT 1`,
+		stationName,
+	).Scan(&stationLat, &stationLng)
 	if err != nil {
-		return nil, err
+		// Fallback to central Addis Ababa (Mexico/Bole area)
+		stationLat = 9.0103
+		stationLng = 38.7578
 	}
 
 	query := `
@@ -440,10 +452,16 @@ func (s *TaxiServer) GetAssignedTaxis(ctx context.Context, req *api.AssignedTaxi
 }
 
 // ============================================================
-// JWT Helper (Simulated – replace with real JWT)
+// JWT Helper
 // ============================================================
 
-func generateToken(userID, email string) string {
-	// TODO: Replace with real JWT from your auth package
+func (s *TaxiServer) generateToken(userID, email, role string) string {
+	if s.TokenManager != nil {
+		token, err := s.TokenManager.GenerateToken(userID, email, role)
+		if err == nil {
+			return token
+		}
+		log.Printf("⚠️ Failed to generate JWT token: %v", err)
+	}
 	return "jwt-token-" + userID + "-" + email
 }

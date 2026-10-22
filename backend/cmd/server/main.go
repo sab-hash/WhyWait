@@ -1,17 +1,21 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"whywait-backend/api"
 	"whywait-backend/internal/auth"
 	"whywait-backend/internal/config"
 	"whywait-backend/internal/db"
 	mygrpc "whywait-backend/internal/grpc"
+	"whywait-backend/internal/reports"
+	"whywait-backend/internal/routes"
+	"whywait-backend/internal/taxis"
+	"whywait-backend/internal/terminals"
+	"whywait-backend/internal/trips"
+	"whywait-backend/internal/users"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
@@ -25,9 +29,12 @@ func main() {
 	conn := db.Connect(cfg.DatabaseURL)
 	defer conn.Close()
 
+	// Token Manager for JWT Auth
+	tokenManager := auth.NewTokenManager(cfg.JWTSecret)
+
 	// Create gRPC server
 	grpcServer := grpc.NewServer()
-	taxiServer := mygrpc.NewTaxiServer(conn)
+	taxiServer := mygrpc.NewTaxiServer(conn, tokenManager)
 	api.RegisterTaxiServiceServer(grpcServer, taxiServer)
 
 	// Wrap gRPC server with gRPC-Web support
@@ -35,14 +42,32 @@ func main() {
 
 	// Create Gin router for REST endpoints
 	router := gin.Default()
-	// ---- Authentication endpoints ----
-	tokenManager := auth.NewTokenManager(cfg.JWTSecret)
-	authHandler := auth.NewHandler(conn, tokenManager)
 
+	// Initialize modular handlers
+	authHandler := auth.NewHandler(conn, tokenManager)
+	terminalsHandler := terminals.NewHandler(conn)
+	routesHandler := routes.NewHandler(conn)
+	taxisHandler := taxis.NewHandler(conn)
+	usersHandler := users.NewHandler(conn)
+	tripsHandler := trips.NewHandler(conn)
+	reportsRepo := reports.NewRepository(conn)
+	reportsHandler := reports.NewHandler(reportsRepo)
+
+	// ---- Authentication endpoints ----
 	router.POST("/register", authHandler.RegisterHandler)
 	router.POST("/login", authHandler.LoginHandler)
 
-	// ---- Simulator endpoint (existing) ----
+	// ---- Terminals & Routes endpoints ----
+	router.GET("/terminals", terminalsHandler.GetTerminalsHandler)
+	router.GET("/routes/popular", routesHandler.GetPopularRoutesHandler)
+	router.GET("/routes/plan", routesHandler.PlanRouteHandler)
+
+	// ---- Taxi status & tracking endpoints ----
+	router.GET("/taxis/status", taxisHandler.GetTaxiStatusHandler)
+	router.GET("/taxis/approaching", taxisHandler.GetApproachingTaxisHandler)
+	router.PUT("/driver/status", taxisHandler.UpdateDriverStatusHandler)
+
+	// ---- Location update endpoint (used by simulator & driver) ----
 	router.POST("/taxis/location", func(c *gin.Context) {
 		var req struct {
 			TaxiID    string  `json:"taxi_id"`
@@ -68,101 +93,23 @@ func main() {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"success": true})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Location updated"})
 	})
 
-	// ---- GET Reports (fetch user's reports) ----
-	router.GET("/reports", func(c *gin.Context) {
-		// Get user_id from JWT (if available)
-		userID := c.GetString("user_id")
-		if userID == "" {
-			// Fallback: use first user from DB (for testing)
-			err := conn.QueryRow("SELECT id FROM users LIMIT 1").Scan(&userID)
-			if err != nil {
-				c.JSON(401, gin.H{"error": "Unauthorized: no user found"})
-				return
-			}
-		}
+	// ---- Protected passenger endpoints ----
+	authMiddleware := auth.AuthMiddleware(tokenManager)
+	router.GET("/users/profile", authMiddleware, usersHandler.GetProfileHandler)
+	router.PUT("/users/profile", authMiddleware, usersHandler.UpdateProfileHandler)
+	router.POST("/reports", authMiddleware, reportsHandler.CreateReport)
+	router.GET("/reports/me", authMiddleware, reportsHandler.GetMyReports)
+	router.GET("/reports", authMiddleware, reportsHandler.GetMyReports)
 
-		rows, err := conn.Query(`
-			SELECT id, type, description, status, created_at 
-			FROM reports 
-			WHERE user_id = $1 
-			ORDER BY created_at DESC
-		`, userID)
-		if err != nil {
-			c.JSON(500, gin.H{"error": "Failed to fetch reports"})
-			return
-		}
-		defer rows.Close()
-
-		var reports []gin.H
-		for rows.Next() {
-			var id, type_, description, status string
-			var createdAt time.Time
-			err := rows.Scan(&id, &type_, &description, &status, &createdAt)
-			if err != nil {
-				continue
-			}
-			reports = append(reports, gin.H{
-				"id":          id,
-				"type":        type_,
-				"description": description,
-				"status":      status,
-				"created_at":  createdAt.Format("2006-01-02 15:04:05"),
-			})
-		}
-		c.JSON(200, gin.H{"reports": reports})
-	})
-
-	// ---- POST Reports (submit a report) ----
-	router.POST("/reports", func(c *gin.Context) {
-		var req struct {
-			Type        string `json:"type"`
-			Description string `json:"description"`
-			Trip        string `json:"trip"`
-			Vehicle     string `json:"vehicle"`
-			Rating      int    `json:"rating"`
-		}
-		if err := c.BindJSON(&req); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid request"})
-			return
-		}
-
-		// Get user_id from JWT (if available)
-		userID := c.GetString("user_id")
-		if userID == "" {
-			// Fallback: use first user from DB (for testing)
-			err := conn.QueryRow("SELECT id FROM users LIMIT 1").Scan(&userID)
-			if err != nil {
-				c.JSON(401, gin.H{"error": "Unauthorized: no user found"})
-				return
-			}
-		}
-
-		// Combine extra fields into description
-		fullDescription := req.Description
-		if req.Trip != "" {
-			fullDescription += "\nTrip: " + req.Trip
-		}
-		if req.Vehicle != "" {
-			fullDescription += "\nVehicle: " + req.Vehicle
-		}
-		if req.Rating > 0 {
-			fullDescription += "\nRating: " + fmt.Sprintf("%d/5", req.Rating)
-		}
-
-		_, err := conn.Exec(`
-			INSERT INTO reports (user_id, type, description)
-			VALUES ($1, $2, $3)
-		`, userID, req.Type, fullDescription)
-		if err != nil {
-			c.JSON(500, gin.H{"error": "Failed to save report"})
-			return
-		}
-
-		c.JSON(201, gin.H{"success": true, "message": "Report submitted"})
-	})
+	// ---- Trips endpoints ----
+	router.GET("/trips/me", authMiddleware, tripsHandler.GetMyTrips)
+	router.GET("/trips", authMiddleware, tripsHandler.GetMyTrips)
+	router.GET("/trips/analytics", authMiddleware, tripsHandler.GetAnalytics)
+	router.GET("/trips/shortcuts", authMiddleware, tripsHandler.GetShortcuts)
+	router.GET("/trips/:id", authMiddleware, tripsHandler.GetTripDetails)
 
 	// ---- CORS handler ----
 	handler := cors.New(cors.Options{
@@ -171,7 +118,7 @@ func main() {
 		AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding"},
 		AllowCredentials: true,
-		Debug:            true,
+		Debug:            false,
 	}).Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
 			wrappedGrpc.ServeHTTP(w, r)
@@ -185,3 +132,4 @@ func main() {
 		log.Fatal("❌ Failed to serve:", err)
 	}
 }
+

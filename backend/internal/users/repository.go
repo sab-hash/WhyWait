@@ -39,3 +39,25 @@ func (repo *Repository) GetByID(id string) (*User, error) {
 
 	return &user, nil
 }
+
+func (repo *Repository) UpdateProfile(id string, fullName string, phone string, email string) (*User, error) {
+	query := `
+		UPDATE users
+		SET full_name = $2, phone = $3, email = $4
+		WHERE id = $1
+		RETURNING id, full_name, phone, email
+	`
+
+	var user User
+	err := repo.DB.QueryRow(query, id, fullName, phone, email).Scan(
+		&user.ID,
+		&user.FullName,
+		&user.Phone,
+		&user.Email,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

@@ -18,11 +18,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/passenger',
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>;
+        final extra = state.extra is Map ? state.extra as Map : null;
 
         return HomeScreen(
-          fullName: extra['fullName'] ?? 'User',
-          email: extra['email'] ?? '',
+          fullName: (extra?['fullName'] ?? 'User').toString(),
+          email: (extra?['email'] ?? '').toString(),
         );
       },
     ),

@@ -71,10 +71,15 @@ class _ReportScreenState extends State<ReportScreen> {
 
       setState(() {
         reports = backendReports.map((report) {
+          final tripDisplay = report['trip_id'] != null &&
+                  report['trip_id'].toString().isNotEmpty
+              ? report['trip_id'].toString()
+              : (report['vehicle_details'] ?? 'Recent Trip');
+
           return {
             'id': report['id'],
             'issue': report['issue_type'] ?? '',
-            'trip': report['trip_id'] ?? '',
+            'trip': tripDisplay,
             'date': _formatDate(report['created_at']),
             'status': _formatStatus(report['status']),
             'description': report['description'] ?? '',
@@ -1256,13 +1261,17 @@ class _ReportScreenState extends State<ReportScreen> {
     });
 
     try {
+      final tripInfo = selectedTrip ?? 'Recent Trip';
+      final vehicleText = vehicleController.text.trim();
+      final combinedVehicle = vehicleText.isEmpty
+          ? tripInfo
+          : '$vehicleText ($tripInfo)';
+
       final report = await ApiService.createReport(
         tripId: '00000000-0000-0000-0000-000000000001',
         issueType: selectedIssue!,
         description: descriptionController.text.trim(),
-        vehicleDetails: vehicleController.text.trim().isEmpty
-            ? null
-            : vehicleController.text.trim(),
+        vehicleDetails: combinedVehicle,
         rating: selectedRating == 0 ? null : selectedRating,
       );
 
@@ -1270,13 +1279,16 @@ class _ReportScreenState extends State<ReportScreen> {
 
       reports.insert(0, {
         'id': report['id'],
-        'issue': report['issue_type'] ?? '',
-        'trip': report['trip_id'] ?? '',
-        'date': _formatDate(report['created_at']),
-        'status': _formatStatus(report['status']),
-        'description': report['description'] ?? '',
-        'vehicle': report['vehicle_details'] ?? 'Not provided',
-        'rating': report['rating'] ?? 0,
+        'issue': report['issue_type'] ?? selectedIssue,
+        'trip': tripInfo,
+        'date': _formatDate(
+          report['created_at'] ?? DateTime.now().toIso8601String(),
+        ),
+        'status': _formatStatus(report['status'] ?? 'pending'),
+        'description':
+            report['description'] ?? descriptionController.text.trim(),
+        'vehicle': report['vehicle_details'] ?? combinedVehicle,
+        'rating': report['rating'] ?? selectedRating,
         'response': report['response'] ?? '',
       });
 
@@ -1294,9 +1306,12 @@ class _ReportScreenState extends State<ReportScreen> {
         isSubmitting = false;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to submit report: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit report: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

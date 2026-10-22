@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../services/api_service.dart';
+import '../../core/storage/local_storage.dart';
 import 'trip_details_screen.dart';
+import 'live_tracking_screen.dart';
+import 'profile_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -16,7 +21,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // ==================== ANALYTICS STATE ====================
   String _selectedMonth = 'Oct 2026';
 
-    final List<CommuteShortcut> shortcuts = const [
+  @override
+  void initState() {
+    super.initState();
+    _loadTrips();
+  }
+
+  Future<void> _loadTrips() async {
+    try {
+      final backendTrips = await ApiService.getMyTrips();
+      if (backendTrips.isNotEmpty && mounted) {
+        setState(() {
+          trips = backendTrips;
+        });
+      }
+    } catch (_) {
+      // Retains offline fallback trips smoothly
+    }
+  }
+
+  final List<CommuteShortcut> shortcuts = const [
     CommuteShortcut(
       icon: Icons.home_work_rounded,
       label: 'Home ➔ Work',
@@ -31,7 +55,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ),
   ];
 
-      final List<Map<String, dynamic>> trips = [
+  List<Map<String, dynamic>> trips = [
     {
       'date': 'Today',
       'from': 'Bole',
@@ -220,6 +244,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
@@ -242,7 +267,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           child: IconButton(
             onPressed: () {
-              Navigator.pop(context);
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                context.go('/passenger');
+              }
             },
             icon: const Icon(
               Icons.arrow_back,
@@ -942,6 +971,92 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    final items = [
+      (Icons.home_outlined, 'Home'),
+      (Icons.map_outlined, 'Track'),
+      (Icons.history, 'History'),
+      (Icons.person_outline, 'Profile'),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (index) {
+              final selected = index == 2;
+              return InkWell(
+                onTap: () async {
+                  if (index == 0) {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      context.go('/passenger');
+                    }
+                  } else if (index == 1) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TrackScreen(),
+                      ),
+                    );
+                  } else if (index == 2) {
+                    // Already here
+                  } else if (index == 3) {
+                    final user = await LocalStorage.getUser();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfileScreen(
+                          fullName: user?['fullName'] ?? 'User',
+                          phoneNumber: user?['phone'] ?? user?['email'] ?? '',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      items[index].$1,
+                      color: selected ? primeBlue : Colors.grey[400],
+                      size: 22,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      items[index].$2,
+                      style: TextStyle(
+                        color: selected ? primeBlue : Colors.grey[400],
+                        fontSize: 11,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }

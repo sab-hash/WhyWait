@@ -81,6 +81,39 @@ class ApiService {
     return Map<String, dynamic>.from(data['user']);
   }
 
+  static Future<Map<String, dynamic>> updateProfile({
+    required String fullName,
+    required String phone,
+    required String email,
+  }) async {
+    final token = await LocalStorage.getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.put(
+      Uri.parse('http://localhost:8080/users/profile'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'fullName': fullName,
+        'phone': phone,
+        'email': email,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Failed to update profile');
+    }
+
+    return Map<String, dynamic>.from(data['user']);
+  }
+
   // ==================== REPORTS ====================
 
   static Future<Map<String, dynamic>> createReport({
@@ -143,4 +176,118 @@ class ApiService {
 
     return List<Map<String, dynamic>>.from(data['reports'] ?? []);
   }
+
+  // ==================== TRIPS & ANALYTICS ====================
+
+  static Future<List<Map<String, dynamic>>> getMyTrips() async {
+    final token = await LocalStorage.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/trips/me'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Failed to fetch trips');
+    }
+
+    return List<Map<String, dynamic>>.from(data['trips'] ?? []);
+  }
+
+  static Future<Map<String, dynamic>> getTripDetails(String id) async {
+    final token = await LocalStorage.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/trips/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Failed to fetch trip details');
+    }
+
+    return Map<String, dynamic>.from(data['trip']);
+  }
+
+  static Future<Map<String, dynamic>> getTripAnalytics({String? month}) async {
+    final token = await LocalStorage.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final uri = Uri.parse('http://localhost:8080/trips/analytics').replace(
+      queryParameters: month != null ? {'month': month} : null,
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Failed to fetch analytics');
+    }
+
+    return Map<String, dynamic>.from(data['analytics']);
+  }
+
+  static Future<List<Map<String, dynamic>>> getShortcuts() async {
+    final token = await LocalStorage.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:8080/trips/shortcuts'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Failed to fetch shortcuts');
+    }
+
+    return List<Map<String, dynamic>>.from(data['shortcuts'] ?? []);
+  }
+
+  // ==================== ROUTE PLANNER ====================
+
+  static Future<Map<String, dynamic>> planRoute({
+    required String from,
+    required String to,
+  }) async {
+    final uri = Uri.parse('http://localhost:8080/routes/plan').replace(
+      queryParameters: {'from': from, 'to': to},
+    );
+
+    final response = await http.get(uri);
+    final data = jsonDecode(response.body);
+    if (response.statusCode != 200) {
+      throw Exception(data['error'] ?? 'Failed to plan route');
+    }
+
+    return Map<String, dynamic>.from(data['plan']);
+  }
 }
+

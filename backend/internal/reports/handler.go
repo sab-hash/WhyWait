@@ -2,6 +2,7 @@ package reports
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -54,6 +55,18 @@ func (h *Handler) CreateReport(c *gin.Context) {
 		return
 	}
 
+	if request.TripID != nil {
+		val := strings.TrimSpace(*request.TripID)
+		if val == "" || val == "00000000-0000-0000-0000-000000000001" || len(val) != 36 {
+			// If tripId is dummy or a route name (e.g. "Bole → Mexico"), preserve it in vehicle_details
+			if request.VehicleDetails == nil || *request.VehicleDetails == "" {
+				routeInfo := "Route: " + val
+				request.VehicleDetails = &routeInfo
+			}
+			request.TripID = nil
+		}
+	}
+
 	report, err := h.Repo.Create(
 		passengerID,
 		request.TripID,
@@ -66,7 +79,7 @@ func (h *Handler) CreateReport(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error":   "Failed to create report",
+			"error":   "Failed to create report: " + err.Error(),
 		})
 		return
 	}

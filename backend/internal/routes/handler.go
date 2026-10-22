@@ -31,3 +31,31 @@ func (h *Handler) GetPopularRoutesHandler(c *gin.Context) {
 		"routes":  routesList,
 	})
 }
+
+// ==================== ROUTE PLANNER / CORRIDORS ====================
+func (h *Handler) PlanRouteHandler(c *gin.Context) {
+	from := c.Query("from")
+	to := c.Query("to")
+
+	if from == "" || to == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Both 'from' and 'to' parameters are required",
+		})
+		return
+	}
+
+	plan, err := h.Repo.PlanRoute(from, to)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to plan route",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"plan":    plan,
+	})
+}

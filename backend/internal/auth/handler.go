@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -128,16 +129,33 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// Query user by email OR phone
+	// Query user by email OR phone (with Ethiopian format normalization)
 	var id, fullName, email, phone, passwordHash, role string
+
+	input := strings.TrimSpace(creds.Email)
+	p1 := input
+	p2 := input
+	p3 := input
+
+	cleanDigits := strings.TrimPrefix(input, "+251")
+	cleanDigits = strings.TrimPrefix(cleanDigits, "251")
+	if strings.HasPrefix(cleanDigits, "0") {
+		p1 = cleanDigits
+		p2 = strings.TrimPrefix(cleanDigits, "0")
+		p3 = "+251" + p2
+	} else if len(cleanDigits) == 9 && strings.HasPrefix(cleanDigits, "9") {
+		p1 = "0" + cleanDigits
+		p2 = cleanDigits
+		p3 = "+251" + cleanDigits
+	}
 
 	query := `
 		SELECT id, full_name, email, phone, password_hash, role
 		FROM users
-		WHERE email = $1 OR phone = $1
+		WHERE email = $1 OR phone = $1 OR phone = $2 OR phone = $3 OR phone = $4
 	`
 
-	err = h.DB.QueryRow(query, creds.Email).Scan(
+	err = h.DB.QueryRow(query, input, p1, p2, p3).Scan(
 		&id,
 		&fullName,
 		&email,

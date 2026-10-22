@@ -1,6 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/storage/local_storage.dart';
+import 'history_screen.dart';
+import 'profile_screen.dart';
 
 // ==================== MODEL ====================
 
@@ -28,17 +35,16 @@ class Taxi {
   });
 
   factory Taxi.fromJson(Map<String, dynamic> json) {
+    final statusStr = (json['status'] ?? 'available').toString();
     return Taxi(
-      id: json['id'].toString(),
-      name: json['name'] as String,
-      plate: json['plate'] as String,
-      distanceKm: (json['distance_km'] as num).toDouble(),
-      etaMinutes: json['eta_minutes'] as int,
-      status: (json['status'] as String) == 'available'
-          ? TaxiStatus.available
-          : TaxiStatus.filling,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      id: (json['id'] ?? json['taxi_id'] ?? '').toString(),
+      name: (json['driverName'] ?? json['driver_name'] ?? json['name'] ?? 'Taxi').toString(),
+      plate: (json['plate'] ?? json['vehicle_plate'] ?? '').toString(),
+      distanceKm: ((json['distance_km'] ?? json['distanceKm'] ?? 1.2) as num).toDouble(),
+      etaMinutes: ((json['eta_minutes'] ?? json['etaMinutes'] ?? 4) as num).toInt(),
+      status: statusStr == 'available' ? TaxiStatus.available : TaxiStatus.filling,
+      latitude: ((json['latitude'] ?? json['lat'] ?? 9.0092) as num).toDouble(),
+      longitude: ((json['longitude'] ?? json['lng'] ?? 38.7469) as num).toDouble(),
     );
   }
 
@@ -57,8 +63,22 @@ class Taxi {
 }
 
 class TaxiService {
-  Future<List<Taxi>> fetchNearbyTaxis() async {
-    await Future.delayed(const Duration(milliseconds: 400)); // simulate network
+  Future<List<Taxi>> fetchNearbyTaxis([String station = 'Mexico']) async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/taxis/approaching?station=$station'),
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final list = (data['taxis'] as List?) ?? [];
+        if (list.isNotEmpty) {
+          return list.map((item) => Taxi.fromJson(Map<String, dynamic>.from(item))).toList();
+        }
+      }
+    } catch (_) {
+      // Gracefully fall back to mock data if backend not reachable
+    }
     return _mockTaxis;
   }
 }
@@ -118,11 +138,31 @@ class _TrackScreenState extends State<TrackScreen> {
   String? _error;
   bool _isLoading = true;
   int _currentNavIndex = 1;
+  Timer? _liveTimer;
 
   @override
   void initState() {
     super.initState();
     _loadTaxis();
+    _liveTimer = Timer.periodic(const Duration(seconds: 4), (_) => _refreshTaxis());
+  }
+
+  @override
+  void dispose() {
+    _liveTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshTaxis() async {
+    try {
+      final taxis = await _taxiService.fetchNearbyTaxis();
+      if (!mounted) return;
+      if (taxis.isNotEmpty) {
+        setState(() {
+          _taxis = taxis;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadTaxis() async {
@@ -260,7 +300,13 @@ class _TrackScreenState extends State<TrackScreen> {
           Row(
             children: [
               InkWell(
-                onTap: () => Navigator.maybePop(context),
+                onTap: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    context.go('/passenger');
+                  }
+                },
                 borderRadius: BorderRadius.circular(20),
                 child: const Padding(
                   padding: EdgeInsets.all(4),
@@ -690,7 +736,36 @@ class _TrackScreenState extends State<TrackScreen> {
             children: List.generate(items.length, (index) {
               final selected = index == _currentNavIndex;
               return InkWell(
-                onTap: () => setState(() => _currentNavIndex = index),
+                onTap: () async {
+                  if (index == 0) {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      context.go('/passenger');
+                    }
+                  } else if (index == 1) {
+                    setState(() => _currentNavIndex = 1);
+                  } else if (index == 2) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HistoryScreen(),
+                      ),
+                    );
+                  } else if (index == 3) {
+                    final user = await LocalStorage.getUser();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfileScreen(
+                          fullName: user?['fullName'] ?? 'User',
+                          phoneNumber: user?['phone'] ?? user?['email'] ?? '',
+                        ),
+                      ),
+                    );
+                  }
+                },
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

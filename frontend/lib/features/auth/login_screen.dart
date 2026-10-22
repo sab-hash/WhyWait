@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
@@ -29,13 +28,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _checkExistingAuth() async {
     final token = await LocalStorage.getToken();
+    final user = await LocalStorage.getUser();
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
       // User already logged in — go to passenger home
       context.go('/passenger', extra: {
-        'fullName': 'User',
-        'email': '',
+        'fullName': user?['fullName'] ?? 'User',
+        'email': user?['email'] ?? '',
       });
     }
   }
@@ -51,7 +51,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (phone.isEmpty) return 'Please enter your phone number';
-    if (phone.length < 9) return 'Enter a valid 9-digit phone number';
     if (password.isEmpty) return 'Please enter your password';
     if (password.length < 6) return 'Password must be at least 6 characters';
     return null;
@@ -70,12 +69,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
+    String loginIdentifier = phone;
+    if (RegExp(r'^9\d{8}$').hasMatch(loginIdentifier)) {
+      loginIdentifier = '0$loginIdentifier';
+    }
+
     try {
       final url = Uri.parse('http://localhost:8080/login');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': phone, 'password': password}),
+        body: jsonEncode({'email': loginIdentifier, 'password': password}),
       );
 
       if (!mounted) return;
@@ -91,6 +95,9 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         await LocalStorage.saveToken(token.toString());
+        if (user is Map) {
+          await LocalStorage.saveUser(Map<String, dynamic>.from(user));
+        }
 
         if (!mounted) return;
 
@@ -430,24 +437,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildSignUpRow() {
     return Center(
-      child: RichText(
-        text: TextSpan(
-          style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          children: [
-            const TextSpan(text: "Don't have an account? "),
-            TextSpan(
-              text: 'Sign up',
-              style: TextStyle(
-                color: primaryBlue,
-                fontWeight: FontWeight.w600,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "Don't have an account? ",
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          ),
+          InkWell(
+            onTap: () {
+              context.go('/register');
+            },
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Text(
+                'Sign up',
+                style: TextStyle(
+                  color: primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
-              recognizer: TapGestureRecognizer()
-                ..onTap = () {
-                  context.go('/register');
-                },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

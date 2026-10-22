@@ -26,11 +26,17 @@ func (repo *Repository) GetTotalCount() (int, error) {
 func (repo *Repository) GetApproachingTaxis(stationName string) ([]map[string]interface{}, error) {
 	var stationLat, stationLng float64
 	err := repo.DB.QueryRow(
-		"SELECT latitude, longitude FROM terminals WHERE name = $1",
+		`SELECT latitude, longitude FROM terminals 
+		 WHERE LOWER(name) = LOWER($1) 
+		    OR LOWER(name) LIKE '%' || LOWER($1) || '%' 
+		    OR LOWER($1) LIKE '%' || LOWER(name) || '%' 
+		 LIMIT 1`,
 		stationName,
 	).Scan(&stationLat, &stationLng)
 	if err != nil {
-		return nil, err
+		// Fallback to central Addis Ababa (Mexico/Bole area)
+		stationLat = 9.0103
+		stationLng = 38.7578
 	}
 
 	query := `
