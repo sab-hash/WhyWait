@@ -318,4 +318,79 @@ class DriverState extends ChangeNotifier {
     }
 
     return lengths.map((length) => length / total).toList();
+  }  /// Simulated taxi position along the assigned route.
+  ///
+  /// This is not a real GPS location.
+  ({double lat, double lng}) get driverPosition {
+    final stops = routeStops;
+
+    if (stops.isEmpty) {
+      throw StateError('Cannot calculate position: the route has no stops.');
+    }
+
+    if (stops.length == 1) {
+      return (
+        lat: stops.first.lat,
+        lng: stops.first.lng,
+      );
+    }
+
+    final fractions = _fractions(stops);
+    final progress = _progress.clamp(0.0, 1.0);
+
+    for (var i = 0; i < stops.length - 1; i++) {
+      if (progress <= fractions[i + 1]) {
+        final span = fractions[i + 1] - fractions[i];
+
+        final t = span <= 0
+            ? 0.0
+            : ((progress - fractions[i]) / span).clamp(0.0, 1.0);
+
+        return (
+          lat: stops[i].lat + (stops[i + 1].lat - stops[i].lat) * t,
+          lng: stops[i].lng + (stops[i + 1].lng - stops[i].lng) * t,
+        );
+      }
+    }
+
+    return (
+      lat: stops.last.lat,
+      lng: stops.last.lng,
+    );
+  }
+
+  /// Next stop and estimated minutes until the taxi reaches it.
+  ({Station stop, int minutes})? get nextStop {
+    if (_stage == TripStage.arrived) return null;
+
+    final stops = routeStops;
+    if (stops.length < 2) return null;
+
+    final fractions = _fractions(stops);
+
+    for (var i = 1; i < stops.length; i++) {
+      if (fractions[i] > _progress + 0.0001) {
+        final minutes = (
+          (fractions[i] - _progress) * routeMinutes
+        ).ceil();
+
+        return (
+          stop: stops[i],
+          minutes: math.max(0, minutes + delayMinutes),
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /// Estimated minutes remaining on the route.
+  int get etaMinutes {
+    if (_stage == TripStage.arrived) return 0;
+
+    return math.max(
+      0,
+      ((1.0 - _progress.clamp(0.0, 1.0)) * routeMinutes).ceil() +
+          delayMinutes,
+    );
   }
