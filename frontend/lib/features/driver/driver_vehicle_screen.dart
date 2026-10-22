@@ -280,4 +280,39 @@ class DriverVehicleScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
+    );                SizedBox(
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      if (!context.mounted) return;
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => const DriverDocumentsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.folder_copy_outlined,
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'Manage documents',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: DriverTheme.primaryBlue,
+                      side: BorderSide(
+                        color: DriverTheme.primaryBlue.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
