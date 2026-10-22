@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
+import '../../services/api_service.dart';
 import '../../core/storage/local_storage.dart';
-import 'report_screen.dart';
+import '../auth/login_screen.dart';
+
+class _SettingItem {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  const _SettingItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  }) : onTap = null;
+}
 
 class ProfileScreen extends StatefulWidget {
   final String fullName;
   final String phoneNumber;
-  final String email;
   final String? avatarUrl;
 
   const ProfileScreen({
     super.key,
     required this.fullName,
     required this.phoneNumber,
-    this.email = '',
     this.avatarUrl,
   });
 
@@ -23,210 +33,181 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const Color primaryBlue = Color(0xFF0B3D78);
-  static const Color secondaryBlue = Color(0xFF1A6BC4);
-  static const Color backgroundColor = Color(0xFFF5F7FA);
-  static const Color lightBlue = Color(0xFFE3F0FF);
-  static const Color darkText = Color(0xFF1A2B4A);
+    static const Color primaryBlue = Color(0xFF1565C0);
 
-  // Temporary UI data. Replace with API-provided values when the backend
-  // contract for wallets, commute analytics, and preferences is available.
-  final String commuterId = 'AD-8842';
-  final double telebirrBalance = 420.50;
-  final double cbeBalance = 150.00;
-  final double monthlySpend = 680.00;
-  final double timeSavedHours = 3.5;
+  int _currentNavIndex = 3;
 
-  String preferredMode = 'Minibus Taxi';
-  bool discountActive = true;
-  bool _showBalances = false;
+  final int trips = 24;
+  final int favorites = 3;
+  final String avgWait = '~6m';
 
-  String get _initials {
-    final name = widget.fullName.trim();
-    if (name.isEmpty) return 'U';
-
-    final parts = name.split(RegExp(r'\s+'));
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-
-    return (parts.first[0] + parts.last[0]).toUpperCase();
-  }
-
-  void _snack(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: primaryBlue,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
+  Map<String, dynamic>? _profile;
+  bool _isLoading = true;
+  String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await ApiService.getProfile();
+
+      if (!mounted) return;
+
+      setState(() {
+        _profile = profile;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+    @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F8FA),
+        body: SafeArea(child: _buildErrorState()),
+      );
+    }
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF7F8FA),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'ACCOUNT & WALLET',
-          style: TextStyle(
-            color: primaryBlue,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: primaryBlue),
-            onPressed: () => _snack('Settings coming soon'),
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildProfileBlock(),
-              const SizedBox(height: 20),
-              _sectionLabel('WALLETS & QUICK PAY'),
-              const SizedBox(height: 10),
-              _buildWalletsCard(),
-              const SizedBox(height: 22),
-              _sectionLabel('SAVED COMMUTE SHORTCUTS & ANALYTICS'),
-              const SizedBox(height: 10),
-              _buildCommuteShortcuts(),
-              const SizedBox(height: 22),
-              _sectionLabel('TRANSIT PREFERENCES & SUBSIDIES'),
-              const SizedBox(height: 10),
-              _buildTransitPreferences(),
-              const SizedBox(height: 22),
-              _sectionLabel('COMMUTER SAFETY & REPORTING'),
-              const SizedBox(height: 10),
-              _buildSafetySection(),
-              const SizedBox(height: 22),
-              _buildBottomActions(),
+              _buildHeader(),
+              Transform.translate(
+                offset: const Offset(0, -24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildStatsCard(),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  'SETTINGS',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey[500],
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: _settingItems
+                      .map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildSettingRow(item),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                child: _buildSignOutButton(),
+              ),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-        color: Colors.grey.shade600,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildProfileBlock() {
+  Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
+      decoration: const BoxDecoration(
+        color: primaryBlue,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
       ),
-      child: Row(
+      child: Column(
         children: [
           Container(
-            width: 68,
-            height: 68,
+            width: 88,
+            height: 88,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: primaryBlue, width: 2),
+              border: Border.all(color: Colors.white, width: 3),
             ),
             child: ClipOval(
-              child: widget.avatarUrl != null &&
-                      widget.avatarUrl!.isNotEmpty
+              child: widget.avatarUrl != null
                   ? Image.network(
                       widget.avatarUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _avatarFallback(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _avatarFallback(),
                     )
                   : _avatarFallback(),
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.fullName.isEmpty ? 'Commuter' : widget.fullName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: darkText,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${widget.phoneNumber.isEmpty ? "Phone number not provided" : widget.phoneNumber} • Commuter ID: #$commuterId',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (widget.email.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.email,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle_rounded,
-                        color: Colors.green,
-                        size: 14,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Verified Commuter',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          const SizedBox(height: 14),
+          Text(
+            _isLoading
+                ? 'Loading...'
+                : (_profile?['fullName'] ?? widget.fullName),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _isLoading
+                ? 'Loading...'
+                : (_profile?['phone'] ?? widget.phoneNumber),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () {},
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white,
+              side: BorderSide.none,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: Text(
+              'Edit Profile',
+              style: TextStyle(
+                color: primaryBlue,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -236,598 +217,190 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _avatarFallback() {
     return Container(
-      color: primaryBlue,
-      alignment: Alignment.center,
-      child: Text(
-        _initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      color: Colors.white.withValues(alpha: 0.2),
+      child: const Icon(Icons.person, size: 44, color: Colors.white),
     );
   }
 
-  Widget _buildWalletsCard() {
+  Widget _buildStatsCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onTap: () => setState(() => _showBalances = !_showBalances),
-                child: Row(
-                  children: [
-                    Icon(
-                      _showBalances
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      size: 16,
-                      color: primaryBlue,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _showBalances ? 'Hide' : 'Show',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: primaryBlue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: _walletBox(
-                  title: 'Telebirr Balance',
-                  amount: telebirrBalance,
-                  accent: const Color(0xFF16A34A),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _walletBox(
-                  title: 'CBE Birr',
-                  amount: cbeBalance,
-                  accent: const Color(0xFF7C3AED),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _quickAction(
-                  icon: Icons.qr_code_scanner_rounded,
-                  label: 'Scan QR to Pay',
-                  onTap: () => _snack('Opening scanner...'),
-                  filled: true,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _quickAction(
-                  icon: Icons.add_rounded,
-                  label: 'Top Up',
-                  onTap: () => _snack('Top up wallet'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _quickAction(
-                  icon: Icons.autorenew_rounded,
-                  label: 'Auto-Pay',
-                  onTap: () => _snack('Auto-pay settings'),
-                ),
-              ),
-            ],
-          ),
+          Expanded(child: _statColumn('$trips', 'Trips')),
+          _statDivider(),
+          Expanded(child: _statColumn('$favorites', 'Favorites')),
+          _statDivider(),
+          Expanded(child: _statColumn(avgWait, 'Avg. wait')),
         ],
       ),
     );
   }
 
-  Widget _walletBox({
-    required String title,
-    required double amount,
-    required Color accent,
-  }) {
-    return GestureDetector(
-      onTap: () => setState(() => _showBalances = !_showBalances),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: accent.withValues(alpha: 0.25)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: accent,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 6),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: _showBalances
-                  ? Text(
-                      'Br. ${amount.toStringAsFixed(2)}',
-                      key: const ValueKey('amount'),
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
-                      ),
-                    )
-                  : const Text(
-                      '••••••',
-                      key: ValueKey('hidden-amount'),
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
-                        letterSpacing: 2,
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _quickAction({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool filled = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        decoration: BoxDecoration(
-          color: filled ? primaryBlue : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: filled ? primaryBlue : Colors.grey.shade300,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: filled ? Colors.white : primaryBlue,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: filled ? Colors.white : darkText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCommuteShortcuts() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _commuteRow(
-            title: 'Home ➔ Work',
-            subtitle: 'Megenagna ➔ Mexico',
-          ),
-          const Divider(height: 20),
-          _commuteRow(
-            title: 'Work ➔ Home',
-            subtitle: 'Mexico ➔ Megenagna',
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: lightBlue,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'October Spend',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Br. ${monthlySpend.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: primaryBlue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 30,
-                  color: primaryBlue.withValues(alpha: 0.15),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 14),
-                        child: Text(
-                          'Time Saved',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 14),
-                        child: Text(
-                          '~${timeSavedHours}h',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: primaryBlue,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _commuteRow({
-    required String title,
-    required String subtitle,
-  }) {
-    return Row(
+  Widget _statColumn(String value, String label) {
+    return Column(
       children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: lightBlue,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(
-            Icons.alt_route_rounded,
-            color: primaryBlue,
-            size: 18,
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: darkText,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        TextButton(
-          onPressed: () => _snack('Checking queue for $subtitle'),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: const Text(
-            'Check Queue',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: primaryBlue,
-            ),
-          ),
-        ),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
       ],
     );
   }
 
-  Widget _buildTransitPreferences() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Preferred Mode',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _modeChip(
-                  label: 'Minibus Taxi',
-                  icon: Icons.local_taxi_rounded,
-                  selected: preferredMode == 'Minibus Taxi',
-                  onTap: () =>
-                      setState(() => preferredMode = 'Minibus Taxi'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _modeChip(
-                  label: 'Sheger Bus',
-                  icon: Icons.directions_bus_rounded,
-                  selected: preferredMode == 'Sheger Bus',
-                  onTap: () => setState(() => preferredMode = 'Sheger Bus'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          GestureDetector(
-            onTap: () => setState(() => discountActive = !discountActive),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: discountActive
-                    ? Colors.green.withValues(alpha: 0.08)
-                    : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: discountActive
-                      ? Colors.green.withValues(alpha: 0.25)
-                      : Colors.grey.shade300,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.school_rounded,
-                    color: discountActive ? Colors.green : Colors.grey,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Student / Public Service Discount Pass',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: darkText,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: discountActive
-                          ? Colors.green.withValues(alpha: 0.15)
-                          : Colors.grey.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      discountActive ? 'Active' : 'Inactive',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: discountActive ? Colors.green : Colors.grey,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _statDivider() {
+    return Container(width: 1, height: 34, color: Colors.grey[200]);
   }
 
-  Widget _modeChip({
-    required String label,
-    required IconData icon,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        decoration: BoxDecoration(
-          color: selected ? primaryBlue : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? primaryBlue : Colors.grey.shade300,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: selected ? Colors.white : primaryBlue,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: selected ? Colors.white : darkText,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  List<_SettingItem> get _settingItems => [
+    _SettingItem(
+      icon: Icons.notifications_none_rounded,
+      title: 'Notifications',
+      subtitle: 'Alerts when taxi is 1 min away',
+    ),
+    _SettingItem(
+      icon: Icons.location_on_outlined,
+      title: 'Saved Stations',
+      subtitle: 'Mexico, Bole, CMC',
+    ),
+    _SettingItem(
+      icon: Icons.shield_outlined,
+      title: 'Privacy & Security',
+      subtitle: 'Password, data settings',
+    ),
+    _SettingItem(
+      icon: Icons.translate_rounded,
+      title: 'Language',
+      subtitle: 'English',
+    ),
+    _SettingItem(
+      icon: Icons.headset_mic_outlined,
+      title: 'Support',
+      subtitle: 'Help center, contact us',
+    ),
+  ];
 
-  Widget _buildSafetySection() {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const ReportScreen(),
-          ),
-        );
-      },
+  Widget _buildSettingRow(_SettingItem item) {
+    return InkWell(
+            onTap: item.onTap ??
+          () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.title} — coming soon'),
+                backgroundColor: primaryBlue,
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
-              offset: const Offset(0, 3),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                color: primaryBlue.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.shield_rounded,
-                color: Colors.red,
-                size: 24,
-              ),
+              child: Icon(item.icon, color: primaryBlue, size: 20),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Report & Emergency SOS',
-                    style: TextStyle(
+                    item.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: darkText,
+                      color: Colors.black87,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Tariff abuse, safety issues, or share your trip',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey,
-                    ),
+                    item.subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.red,
-              size: 22,
+            Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignOutButton() {
+    return InkWell(
+      onTap: () async {
+        await LocalStorage.removeToken();
+
+        if (!mounted) return;
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Sign Out',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
           ],
         ),
@@ -835,63 +408,117 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildBottomActions() {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _snack('Opening trip history'),
-            icon: const Icon(Icons.receipt_long_rounded, size: 18),
-            label: const Text(
-              'Full Trip History & Receipts',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: primaryBlue,
-              side: BorderSide(
-                color: primaryBlue.withValues(alpha: 0.4),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
+  Widget _buildBottomNav() {
+    final items = [
+      (Icons.home_outlined, 'Home'),
+      (Icons.map_outlined, 'Track'),
+      (Icons.history, 'History'),
+      (Icons.person_outline, 'Profile'),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (index) {
+              final selected = index == _currentNavIndex;
+              return InkWell(
+                onTap: () => setState(() => _currentNavIndex = index),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      items[index].$1,
+                      color: selected ? primaryBlue : Colors.grey[400],
+                      size: 22,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      items[index].$2,
+                      style: TextStyle(
+                        color: selected ? primaryBlue : Colors.grey[400],
+                        fontSize: 11,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ),
         ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              await LocalStorage.removeToken();
-              if (!mounted) return;
-              context.go('/login');
-            },
-            icon: const Icon(Icons.logout_rounded, size: 18),
-            label: const Text(
-              'Sign Out',
+      ),
+    );
+  }
+    Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Something went wrong',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.redAccent,
-              side: BorderSide(
-                color: Colors.redAccent.withValues(alpha: 0.4),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+            const SizedBox(height: 8),
+            Text(
+              'Could not load profile. Check your connection.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _error = null;
+                });
+                _loadProfile();
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

@@ -1,18 +1,18 @@
-```dart
+
 import 'package:go_router/go_router.dart';
 
-import '../../features/passenger/history_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/passenger/passenger_shell.dart';
 import '../../features/passenger/request_ride_screen.dart';
+import '../../features/passenger/history_screen.dart';
 import '../../features/driver/driver_home_screen.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/',
   routes: [
     GoRoute(
-      path: '/login',
+      path: '/',
       builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
@@ -21,13 +21,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/passenger',
-      builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>? ?? {};
-        return PassengerShell(
-          fullName: extra['fullName'] ?? 'Abebe',
-          email: extra['email'] ?? 'abebe@whywait.et',
-        );
-      },
+      builder: (context, state) => const PassengerShell(),
     ),
     GoRoute(
       path: '/passenger/request-ride',
@@ -40,4 +34,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/driver',
       builder: (context, state) {
-        final extra = state.extra as Map
+        return const DriverHomeScreen();
+      },
+    ),
+  ],
+);

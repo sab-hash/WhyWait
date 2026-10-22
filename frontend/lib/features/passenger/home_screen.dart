@@ -1,25 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:go_router/go_router.dart';
-import '../../services/grpc_client.dart';
-import '../../services/passenger_state.dart';
-import '../driver/driver_home_screen.dart';
+import '../../services/api_service.dart';
 import 'report_screen.dart';
-import 'route_planner_screen.dart';
+import 'profile_screen.dart';
+import 'history_screen.dart';
+import 'live_tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String fullName;
   final String email;
 
-  /// 'passenger' (default) or 'driver'.
-  final String role;
-
-  const HomeScreen({
-    super.key,
-    required this.fullName,
-    required this.email,
-    this.role = 'passenger',
-  });
+  const HomeScreen({super.key, required this.fullName, required this.email});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -30,243 +20,149 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color backgroundColor = Color(0xFFF7F9FC);
   static const Color lightBlue = Color(0xFFE3F2FD);
   static const Color darkText = Color(0xFF333333);
-  static const Color accentYellow = Color(0xFFF59E0B);
 
-  String currentLocation = 'Megenagna Hub';
-  String selectedStation = 'Megenagna Terminal';
-  String stationDistance = '';
-  String? _destination;
-  String? _avatarUrl;
-  String queueStatus = 'Moderate';
-  int queueWaitMins = 15;
-  bool _isPeakHour = false;
+  int selectedIndex = 0;
 
-  List<Map<String, dynamic>> _terminals = [];
+  String selectedStation = 'Bole Taxi Station';
+  String stationDistance = '1.2 km away';
+
+  List<dynamic> _terminals = [];
   int _taxiCount = 0;
   int _nearbyCount = 0;
   int _avgWait = 0;
-  List<Map<String, dynamic>> _popularRoutes = [];
-  bool _isLoading = true;
-  bool _userChoseStation = false;
+  List<dynamic> _popularRoutes = [];
+    bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _updatePeakHour();
     _loadData();
   }
 
-  void _updatePeakHour() {
-    final h = DateTime.now().hour;
-    _isPeakHour = (h >= 7 && h <= 9) || (h >= 17 && h <= 19);
-  }
-
-  String get _greeting {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good Morning,';
-    if (h < 17) return 'Good Afternoon,';
-    return 'Good Evening,';
-  }
-
-  String get _initials {
-    final parts = widget.fullName.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts.first.isEmpty) return 'U';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts.first[0] + parts.last[0]).toUpperCase();
-  }
-
-  Color _queueColor() {
-    if (queueWaitMins <= 5) return Colors.green;
-    if (queueWaitMins <= 20) return accentYellow;
-    return Colors.red;
-  }
-
-  void _loadData() async {
-    setState(() => _isLoading = true);
+   Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
     try {
-      final terminalsFuture = GrpcClient().getTerminals();
-      final statusFuture = GrpcClient().getTaxiStatus();
-      final routesFuture = GrpcClient().getPopularRoutes();
+      final terminals = await ApiService.getTerminals();
+      final status = await ApiService.getTaxiStatus();
+      final routes = await ApiService.getPopularRoutes();
 
-      final terminals = await terminalsFuture;
-      final status = await statusFuture;
-      final routes = await routesFuture;
+      if (!mounted) return;
 
       setState(() {
-        _terminals = terminals.terminals
-            .map((t) => {
-                  'id': t.id,
-                  'name': t.name,
-                  'latitude': t.latitude,
-                  'longitude': t.longitude,
-                  'address': t.address,
-                  'city': t.city,
-                  'distance': 1.2,
-                })
-            .toList();
-
-        if (!_userChoseStation && _terminals.isNotEmpty) {
-          final nearest = _terminals.reduce((a, b) =>
-              (a['distance'] as num) <= (b['distance'] as num) ? a : b);
-          selectedStation = nearest['name'] ?? 'Unknown';
-          stationDistance =
-              '${(nearest['distance'] as num).toStringAsFixed(1)} km away';
-        }
-
-        _taxiCount = status.available;
-        _nearbyCount = status.nearbyStations;
-        _avgWait = status.averageWait;
-        queueWaitMins = status.averageWait;
-
-        _popularRoutes = routes.routes
-            .map((r) => {
-                  'from': r.from,
-                  'to': r.to,
-                  'waitTime': r.waitTime,
-                  'fare': 15,
-                })
-            .toList();
-
+        _terminals = terminals;
+        _taxiCount = status['available'] ?? 0;
+        _nearbyCount = status['nearby_stations'] ?? 0;
+        _avgWait = status['average_wait'] ?? 0;
+        _popularRoutes = routes;
         _isLoading = false;
       });
-
-      PassengerState().terminals = _terminals;
-      PassengerState().selectedStation = selectedStation;
     } catch (e) {
-      debugPrint('Error loading home data: $e');
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
-  }
-
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: primaryBlue,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // ── Driver mode: delegate to the dedicated driver dashboard. ──
-    if (widget.role == 'driver') {
-      return DriverHomeScreen(
-        driverName: widget.fullName,
-        email: widget.email,
-      );
-    }
-
-    // ── Passenger mode. ──
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTopBar(),
-              const SizedBox(height: 22),
-              _buildLocationSearchSection(),
-              const SizedBox(height: 22),
-              _buildStationRadar(),
-              const SizedBox(height: 18),
-              _buildRecommendedCorridor(),
-              const SizedBox(height: 18),
-              _buildBoardOnTheLine(),
-              const SizedBox(height: 18),
-              _buildCrowdAlerts(),
-              const SizedBox(height: 14),
-              _buildQuickFarePay(),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+            body: SafeArea(
+        child: _error != null
+            ? _buildErrorState()
+            : _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 24),
+                        _buildSearchBar(),
+                        const SizedBox(height: 18),
+                        _buildStationCard(),
+                        const SizedBox(height: 20),
+                        _buildSummaryCards(),
+                        const SizedBox(height: 28),
+                        _buildPopularRoutes(),
+                      ],
+                    ),
+                  ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ReportScreen()),
+          );
+        },
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.report_problem_outlined),
+        label: const Text('Report', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
-  // ================= TOP BAR =================
-  Widget _buildTopBar() {
+  // ==================== HEADER ====================
+  Widget _buildHeader() {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _greeting,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Good morning,',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: 2),
-              Text(
-                widget.fullName,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: primaryBlue,
-                ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${widget.fullName}!',
+              style: const TextStyle(
+                fontSize: 27,
+                fontWeight: FontWeight.bold,
+                color: primaryBlue,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        if (_isPeakHour)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: accentYellow.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: accentYellow.withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.trending_up_rounded,
-                    size: 14, color: accentYellow),
-                const SizedBox(width: 4),
-                const Text(
-                  'Peak Hour',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: accentYellow,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(width: 10),
         GestureDetector(
           onTap: () {},
           child: Container(
-            width: 46,
-            height: 46,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
+              color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(color: primaryBlue, width: 2),
+              border: Border.all(color: primaryBlue, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: primaryBlue.withValues(alpha: 0.2),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
               ],
             ),
-            child: ClipOval(
-              child: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                  ? Image.network(
-                      _avatarUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _avatarFallback(),
-                    )
-                  : _avatarFallback(),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              size: 27,
+              color: primaryBlue,
             ),
           ),
         ),
@@ -274,28 +170,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _avatarFallback() {
+  // ==================== SEARCH BAR ====================
+  Widget _buildSearchBar() {
     return Container(
-      color: primaryBlue,
-      alignment: Alignment.center,
-      child: Text(
-        _initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  // ================= LOCATION + SEARCH + SHORTCUTS =================
-  Widget _buildLocationSearchSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
+      height: 58,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
@@ -305,580 +186,276 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: lightBlue,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.my_location_rounded,
-                    size: 18, color: primaryBlue),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'CURRENT',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade500,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      currentLocation,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Where are you going?',
+          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: primaryBlue,
+            size: 25,
           ),
-          const SizedBox(height: 14),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RoutePlannerScreen()),
-              );
-            },
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search_rounded,
-                      color: primaryBlue, size: 22),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _destination ?? 'Where to? Enter destination',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _destination == null
-                            ? Colors.grey.shade600
-                            : darkText,
-                        fontWeight: _destination == null
-                            ? FontWeight.w500
-                            : FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
+          suffixIcon: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: lightBlue,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.tune_rounded, color: primaryBlue, size: 20),
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 17),
+        ),
+      ),
+    );
+  }
+
+  // ==================== STATION CARD ====================
+  Widget _buildStationCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: primaryBlue,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.location_on_rounded,
+              color: primaryBlue,
+              size: 25,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _quickChip(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  onTap: () => setState(() => _destination = 'Home'),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'YOUR STATION',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white70,
+                    letterSpacing: 1,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _quickChip(
-                  icon: Icons.work_rounded,
-                  label: 'Work',
-                  onTap: () => setState(() => _destination = 'Work'),
+                const SizedBox(height: 5),
+                Text(
+                  selectedStation,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _quickChip(
-                  icon: Icons.school_rounded,
-                  label: 'Campus',
-                  onTap: () => setState(() => _destination = 'Campus'),
+                const SizedBox(height: 3),
+                Text(
+                  stationDistance,
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
                 ),
+              ],
+            ),
+          ),
+          OutlinedButton(
+            onPressed: _changeStation,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-            ],
+            ),
+            child: const Text(
+              'Change',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _quickChip({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: lightBlue,
-          borderRadius: BorderRadius.circular(10),
+  // ==================== SUMMARY CARDS ====================
+  Widget _buildSummaryCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.local_taxi_rounded,
+            value: _isLoading ? '...' : '$_taxiCount',
+            label: 'Taxis\navailable',
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        const SizedBox(width: 10),
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.location_city_rounded,
+            value: _isLoading ? '...' : '$_nearbyCount',
+            label: 'Nearby\nstations',
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.access_time_rounded,
+            value: _isLoading ? '...' : '~$_avgWait min',
+            label: 'Average\nwaiting',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryCard({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      height: 137,
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: lightBlue,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: primaryBlue, size: 21),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: primaryBlue,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              height: 1.25,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==================== POPULAR ROUTES ====================
+  Widget _buildPopularRoutes() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_popularRoutes.isEmpty) {
+      return const Center(child: Text('No popular routes available'));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 15, color: primaryBlue),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            const Text(
+              'POPULAR ROUTES',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
                 color: primaryBlue,
+                letterSpacing: 0.8,
+              ),
+            ),
+                        TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'View all',
+                style: TextStyle(
+                  color: primaryBlue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ================= STATION RADAR =================
-  Widget _buildStationRadar() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'STATION RADAR',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: primaryBlue,
-            letterSpacing: 1.2,
-          ),
-        ),
         const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: primaryBlue,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: primaryBlue.withValues(alpha: 0.2),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.location_on_rounded,
-                              color: primaryBlue, size: 22),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                selectedStation,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                stationDistance.isEmpty
-                                    ? 'Nearest to you'
-                                    : stationDistance,
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.white70),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _changeStation,
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'Change',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: _queueColor(),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Queue:',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$queueStatus (~$queueWaitMins min wait)',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      _showSnack('Virtual token issued. Show at the terminal.'),
-                  icon: const Icon(Icons.confirmation_number_rounded, size: 18),
-                  label: const Text(
-                    'Get Virtual Token',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: primaryBlue,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ================= RECOMMENDED CORRIDOR =================
-  Widget _buildRecommendedCorridor() {
-    final route = _popularRoutes.isNotEmpty
-        ? _popularRoutes.first
-        : {'from': 'Megenagna', 'to': 'Mexico', 'waitTime': 4};
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'RECOMMENDED CORRIDOR',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: primaryBlue,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${route['from']} ➔ ${route['to']} via Bole Road',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _showRouteSuggestions,
-                    child: const Icon(Icons.alt_route_rounded,
-                        color: primaryBlue, size: 22),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _statBlock(
-                      icon: Icons.access_time_rounded,
-                      label: 'Next',
-                      value: '${route['waitTime'] ?? 4} min',
-                    ),
-                  ),
-                  _vDivider(),
-                  Expanded(
-                    child: _statBlock(
-                      icon: Icons.local_taxi_rounded,
-                      label: 'Taxis',
-                      value: '$_taxiCount',
-                    ),
-                  ),
-                  _vDivider(),
-                  Expanded(
-                    child: _statBlock(
-                      icon: Icons.payments_outlined,
-                      label: 'Fare',
-                      value: '${route['fare'] ?? 15} ETB',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _statBlock({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Column(
-      children: [
-        Icon(icon, size: 16, color: primaryBlue),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: darkText,
-          ),
-        ),
-        const SizedBox(height: 1),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _vDivider() {
-    return Container(width: 1, height: 40, color: Colors.grey.shade200);
-  }
-
-  // ================= BOARD ON-THE-LINE =================
-  Widget _buildBoardOnTheLine() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'BOARD ON-THE-LINE',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: primaryBlue,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: primaryBlue.withValues(alpha: 0.25)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: lightBlue,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.directions_walk_rounded,
-                        color: primaryBlue, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Mid-Route Hop-On',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: darkText,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Standing along the route?',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showSnack(
-                      'Pickup node requested. Awaiting conductor.'),
-                  icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-                  label: const Text(
-                    'Request Pickup Node',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: primaryBlue,
-                    side: BorderSide(color: primaryBlue.withValues(alpha: 0.5)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ================= CROWD ALERTS =================
-  Widget _buildCrowdAlerts() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lightbulb_outline_rounded,
-              color: Color(0xFFB45309), size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              text: const TextSpan(
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: Color(0xFF78350F),
-                  height: 1.35,
-                ),
-                children: [
-                  TextSpan(
-                    text: 'Tip: ',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextSpan(
-                    text: 'Stadium Hub queue is 10 mins faster right now',
-                  ),
-                ],
-              ),
+        ..._popularRoutes.map((route) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _routeCard(
+              from: route['from'] ?? 'Unknown',
+              to: route['to'] ?? 'Unknown',
+              waitTime: '~${route['waitTime'] ?? 5} min',
             ),
-          ),
-        ],
-      ),
+          );
+        }),
+      ],
     );
   }
 
-  // ================= QUICK FARE PAY =================
-  Widget _buildQuickFarePay() {
+  Widget _routeCard({
+    required String from,
+    required String to,
+    required String waitTime,
+  }) {
     return GestureDetector(
-      onTap: () => _showSnack('Opening QR scanner...'),
+      onTap: () {
+        _showRouteDetails(from: from, to: to, waitTime: waitTime);
+      },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
@@ -895,249 +472,186 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 38,
               decoration: BoxDecoration(
                 color: lightBlue,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(11),
               ),
-              child: const Icon(Icons.qr_code_scanner_rounded,
-                  color: primaryBlue, size: 20),
+              child: const Icon(
+                Icons.local_taxi_rounded,
+                color: primaryBlue,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Quick Fare Pay',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: darkText,
-                ),
+            Expanded(
+              child: Row(
+                children: [
+                  Text(
+                    from,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: primaryBlue,
+                    size: 17,
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    to,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Text(
-              'Scan QR',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: primaryBlue,
-              ),
+            Icon(
+              Icons.access_time_rounded,
+              size: 15,
+              color: Colors.grey.shade500,
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
-                color: primaryBlue, size: 20),
+            Text(
+              waitTime,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 3),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: primaryBlue,
+              size: 21,
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ================= ROUTE SUGGESTIONS =================
-  void _showRouteSuggestions() {
-    final suggestions = [
-      {
-        'title': 'Direct from $selectedStation',
-        'sub': 'Fixed line · no transfers',
-        'note': 'Traffic heavy on Bole Road',
-        'eta': '25 min',
-        'fare': '15 ETB',
-        'tag': 'Slowest',
-        'tagColor': Colors.orange,
-      },
-      {
-        'title': 'Via Meskel Square Station',
-        'sub': 'Walk 300m → line taxi → final stop',
-        'note': 'Avoids the main road',
-        'eta': '15 min',
-        'fare': '12 ETB',
-        'tag': 'Recommended',
-        'tagColor': Colors.green,
-      },
-      {
-        'title': 'Via Piassa Station (backroad)',
-        'sub': 'Line taxi → short walk',
-        'note': 'Less crowded at this hour',
-        'eta': '18 min',
-        'fare': '14 ETB',
-        'tag': 'Alternative',
-        'tagColor': primaryBlue,
-      },
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Suggested Corridors',
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                  color: primaryBlue,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Best options to your destination right now',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
-              ...suggestions.map((s) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _suggestionCard(s),
-                  )),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _suggestionCard(Map<String, dynamic> s) {
+  // ==================== BOTTOM NAVIGATION ====================
+  Widget _buildBottomNavigation() {
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Expanded(
-                child: Text(
-                  s['title'],
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: darkText,
-                  ),
-                ),
+              _navItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                label: 'Home',
+                index: 0,
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: (s['tagColor'] as Color).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  s['tag'],
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: s['tagColor'] as Color,
-                  ),
-                ),
+              _navItem(
+                icon: Icons.location_on_outlined,
+                activeIcon: Icons.location_on_rounded,
+                label: 'Track',
+                index: 1,
+              ),
+              _navItem(
+                icon: Icons.receipt_long_outlined,
+                activeIcon: Icons.receipt_long_rounded,
+                label: 'Trips',
+                index: 2,
+              ),
+              _navItem(
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: 'Profile',
+                index: 3,
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            s['sub'],
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            s['note'],
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade500,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(Icons.access_time_rounded,
-                  size: 15, color: primaryBlue),
-              const SizedBox(width: 4),
-              Text(
-                s['eta'],
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: darkText,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Icon(Icons.payments_outlined,
-                  size: 15, color: primaryBlue),
-              const SizedBox(width: 4),
-              Text(
-                s['fare'],
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: darkText,
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                height: 34,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _destination = s['title'];
-                    });
-                    _showSnack('Selected: ${s['title']}');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Take this',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  // ================= CHANGE STATION =================
+  Widget _navItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+  }) {
+        final bool isSelected = selectedIndex == index;
+    if (!isSelected) {
+      // no-op to keep the lint from flagging it
+    }
+
+       return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedIndex = index;
+        });
+
+        // Tab 2 — Trips → History screen
+        if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const HistoryScreen(),
+            ),
+          );
+          return;
+        }
+
+        // Tab 3 — Profile
+        if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProfileScreen(
+                fullName: widget.fullName,
+                phoneNumber: widget.email,
+              ),
+            ),
+          );
+          return;
+        }
+
+        // Tabs 0 (Home) and 1 (Track) — still unimplemented, show snackbar
+                // Tab 1 — Track → Live Tracking
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const TrackScreen(),
+            ),
+          );
+          return;
+        }
+      }
+       );
+  }
+
+  // ==================== CHANGE STATION ====================
   void _changeStation() {
     if (_terminals.isEmpty) {
-      _showSnack('No terminals available');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No terminals available'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -1187,8 +701,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: lightBlue,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.location_on_rounded,
-                        color: primaryBlue, size: 21),
+                    child: const Icon(
+                      Icons.location_on_rounded,
+                      color: primaryBlue,
+                      size: 21,
+                    ),
                   ),
                   title: Text(
                     stationName,
@@ -1198,16 +715,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle_rounded,
-                          color: primaryBlue)
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: primaryBlue,
+                        )
                       : null,
                   onTap: () {
                     setState(() {
                       selectedStation = stationName;
                       stationDistance =
                           '${(terminal['distance'] ?? 1.2).toStringAsFixed(1)} km away';
-                      _userChoseStation = true;
-                      PassengerState().selectedStation = selectedStation;
                     });
                     Navigator.pop(context);
                   },
