@@ -1,23 +1,13 @@
 import 'package:flutter/material.dart';
 
-class DriverTrip {
-  final DateTime date;
-  final String time;
-  final String from;
-  final String to;
-  final int passengers;
-  final int fare;
+import '../../models/driver_trip.dart';
+import 'driver_state.dart';
+import 'driver_theme.dart';
+import 'driver_widgets.dart';
 
-  const DriverTrip({
-    required this.date,
-    required this.time,
-    required this.from,
-    required this.to,
-    required this.passengers,
-    required this.fare,
-  });
-}
-
+/// History tab: the driver's past trips.
+/// Date and time, route, seats carried, fare per seat and the trip status.
+/// No passenger names are shown.
 class DriverHistoryScreen extends StatefulWidget {
   const DriverHistoryScreen({super.key});
 
@@ -26,117 +16,24 @@ class DriverHistoryScreen extends StatefulWidget {
 }
 
 class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
-  static const Color primeBlue = Color(0xFF1565C0);
-  static const Color backgroundColor = Color(0xFFF7F9FC);
+  final DriverState _state = DriverState.instance;
 
   int selectedTab = 0;
 
-  final List<DriverTrip> trips = [
-    DriverTrip(
-      date: DateTime(2026, 8, 18),
-      time: '08:30 AM',
-      from: 'Bole',
-      to: 'Megenagna',
-      passengers: 10,
-      fare: 300,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 18),
-      time: '11:15 AM',
-      from: 'Megenagna',
-      to: 'Piassa',
-      passengers: 8,
-      fare: 240,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 17),
-      time: '05:45 PM',
-      from: 'Megenagna',
-      to: 'Piassa',
-      passengers: 12,
-      fare: 360,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 16),
-      time: '02:15 PM',
-      from: 'Piassa',
-      to: 'Bole',
-      passengers: 9,
-      fare: 270,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 15),
-      time: '09:10 AM',
-      from: 'Mexico',
-      to: 'Megenagna',
-      passengers: 11,
-      fare: 330,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 14),
-      time: '06:20 PM',
-      from: 'Bole',
-      to: 'Mexico',
-      passengers: 9,
-      fare: 270,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 12),
-      time: '04:30 PM',
-      from: 'Piassa',
-      to: 'Megenagna',
-      passengers: 12,
-      fare: 360,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 10),
-      time: '08:50 AM',
-      from: 'Bole',
-      to: 'Piassa',
-      passengers: 8,
-      fare: 240,
-    ),
-    DriverTrip(
-      date: DateTime(2026, 8, 7),
-      time: '10:30 AM',
-      from: 'Megenagna',
-      to: 'Bole',
-      passengers: 10,
-      fare: 300,
-    ),
-  ];
-
-  DateTime get today {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-
-  DateTime get startOfWeek {
-    return today.subtract(Duration(days: today.weekday - 1));
-  }
-
   List<DriverTrip> get filteredTrips {
+    final trips = _state.trips;
+
     if (selectedTab == 0) {
-      return trips.where((trip) => _isSameDay(trip.date, today)).toList();
+      final start = _state.startOfToday;
+      return trips.where((trip) => !trip.date.isBefore(start)).toList();
     }
+
     if (selectedTab == 1) {
-      return trips.where((trip) => !trip.date.isBefore(startOfWeek)).toList();
+      final start = _state.startOfWeek;
+      return trips.where((trip) => !trip.date.isBefore(start)).toList();
     }
+
     return trips;
-  }
-
-  bool _isSameDay(DateTime first, DateTime second) {
-    return first.year == second.year &&
-        first.month == second.month &&
-        first.day == second.day;
-  }
-
-  int get totalPassengers {
-    return filteredTrips.fold(0, (sum, trip) => sum + trip.passengers);
-  }
-
-  int get totalEarnings {
-    return filteredTrips.fold(0, (sum, trip) => sum + trip.fare);
   }
 
   String get selectedTitle {
@@ -147,93 +44,52 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: primeBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Trip History',
-          style: TextStyle(fontSize: 21, fontWeight: FontWeight.w700),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTabs(),
-            _buildSummary(),
-            Expanded(
-              child: filteredTrips.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                      itemCount: filteredTrips.length,
-                      itemBuilder: (context, index) {
-                        return _buildTripCard(filteredTrips[index]);
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-      // ✅ Bottom navigation bar is now provided by DriverScaffold (via go_router)
-    );
-  }
+    return ListenableBuilder(
+      listenable: _state,
+      builder: (context, _) {
+        final trips = filteredTrips;
 
-  // ========================================================================
-  // TABS
-  // ========================================================================
-  Widget _buildTabs() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 18, 16, 8),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          _buildTab(title: 'Today', index: 0),
-          _buildTab(title: 'This Week', index: 1),
-          _buildTab(title: 'All', index: 2),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTab({required String title, required int index}) {
-    final bool isSelected = selectedTab == index;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => selectedTab = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 11),
-          decoration: BoxDecoration(
-            color: isSelected ? primeBlue : Colors.transparent,
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF6B7280),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
+        return Scaffold(
+          backgroundColor: DriverTheme.background,
+          appBar: buildDriverAppBar('Trip History', showBack: false),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                  child: DriverSegmentedTabs(
+                    labels: const ['Today', 'This Week', 'All'],
+                    selectedIndex: selectedTab,
+                    onChanged: (index) => setState(() => selectedTab = index),
+                  ),
+                ),
+                _buildSummary(trips),
+                Expanded(
+                  child: trips.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                          itemCount: trips.length,
+                          itemBuilder: (context, index) {
+                            return _buildTripCard(trips[index]);
+                          },
+                        ),
+                ),
+              ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  // ========================================================================
-  // SUMMARY
-  // ========================================================================
-  Widget _buildSummary() {
+  Widget _buildSummary(List<DriverTrip> trips) {
+    final seats = trips
+        .where((trip) => trip.status != TripResult.cancelled)
+        .fold<int>(0, (sum, trip) => sum + trip.seats);
+    final earnings =
+        trips.fold<int>(0, (sum, trip) => sum + trip.estimatedEarnings);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
       child: Row(
@@ -242,23 +98,23 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             child: _buildSummaryCard(
               icon: Icons.route_rounded,
               title: selectedTitle,
-              value: '${filteredTrips.length}',
+              value: '${trips.length}',
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: _buildSummaryCard(
-              icon: Icons.people_alt_rounded,
-              title: 'Passengers',
-              value: '$totalPassengers',
+              icon: Icons.event_seat_rounded,
+              title: 'Seats carried',
+              value: '$seats',
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: _buildSummaryCard(
               icon: Icons.payments_rounded,
-              title: 'Earnings',
-              value: '$totalEarnings',
+              title: 'Earnings (est.)',
+              value: '$earnings',
             ),
           ),
         ],
@@ -286,7 +142,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
       ),
       child: Column(
         children: [
-          Icon(icon, color: primeBlue, size: 22),
+          Icon(icon, color: DriverTheme.primaryBlue, size: 22),
           const SizedBox(height: 7),
           Text(
             title,
@@ -304,7 +160,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Color(0xFF1F2937),
+              color: DriverTheme.textDark,
               fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
@@ -314,9 +170,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
-  // ========================================================================
-  // TRIP CARD
-  // ========================================================================
   Widget _buildTripCard(DriverTrip trip) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -340,12 +193,12 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: primeBlue.withValues(alpha: 0.10),
+                  color: DriverTheme.primaryBlue.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.local_taxi_rounded,
-                  color: primeBlue,
+                  color: DriverTheme.primaryBlue,
                   size: 23,
                 ),
               ),
@@ -355,28 +208,38 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _formatDate(trip.date),
+                      DriverTheme.formatDate(trip.date),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F2937),
+                        color: DriverTheme.textDark,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      trip.time,
+                      DriverTheme.formatTime(trip.date),
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
               ),
-              Text(
-                '${trip.fare} ETB',
-                style: const TextStyle(
-                  color: primeBlue,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${trip.farePerSeat} ETB',
+                    style: const TextStyle(
+                      color: DriverTheme.primaryBlue,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'per seat',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
               ),
             ],
           ),
@@ -405,19 +268,19 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: DriverTheme.background,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
                 const Icon(
-                  Icons.people_alt_outlined,
-                  color: primeBlue,
+                  Icons.event_seat_outlined,
+                  color: DriverTheme.primaryBlue,
                   size: 19,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${trip.passengers} passengers',
+                  '${trip.seats} ${trip.seats == 1 ? 'seat' : 'seats'} carried',
                   style: const TextStyle(
                     color: Color(0xFF374151),
                     fontSize: 13,
@@ -425,25 +288,47 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
                   ),
                 ),
                 const Spacer(),
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.green,
-                  size: 18,
-                ),
-                const SizedBox(width: 5),
-                const Text(
-                  'Completed',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                _buildStatus(trip.status),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatus(TripResult status) {
+    IconData icon;
+    Color color;
+
+    switch (status) {
+      case TripResult.completed:
+        icon = Icons.check_circle_rounded;
+        color = Colors.green;
+        break;
+      case TripResult.cancelled:
+        icon = Icons.cancel_rounded;
+        color = Colors.red;
+        break;
+      case TripResult.interrupted:
+        icon = Icons.warning_rounded;
+        color = DriverTheme.warning;
+        break;
+    }
+
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 5),
+        Text(
+          status.label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -454,11 +339,10 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     required String location,
   }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
           width: 20,
-          child: Icon(icon, color: primeBlue, size: iconSize),
+          child: Icon(icon, color: DriverTheme.primaryBlue, size: iconSize),
         ),
         const SizedBox(width: 12),
         Column(
@@ -476,7 +360,7 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
             Text(
               location,
               style: const TextStyle(
-                color: Color(0xFF1F2937),
+                color: DriverTheme.textDark,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -487,9 +371,6 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
     );
   }
 
-  // ========================================================================
-  // EMPTY STATE
-  // ========================================================================
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -497,31 +378,19 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: primeBlue.withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.history_rounded,
-                color: primeBlue,
-                size: 34,
-              ),
-            ),
+            const RoundIcon(icon: Icons.history_rounded, size: 72),
             const SizedBox(height: 18),
             const Text(
               'No trips found',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1F2937),
+                color: DriverTheme.textDark,
               ),
             ),
             const SizedBox(height: 7),
             Text(
-              'There are no completed trips for $selectedTitle.',
+              'There are no trips for $selectedTitle.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: Colors.grey),
             ),
@@ -529,16 +398,5 @@ class _DriverHistoryScreenState extends State<DriverHistoryScreen> {
         ),
       ),
     );
-  }
-
-  // ========================================================================
-  // HELPERS
-  // ========================================================================
-  String _formatDate(DateTime date) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 }
