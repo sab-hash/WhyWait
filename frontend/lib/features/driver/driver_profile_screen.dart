@@ -1,143 +1,163 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 import '../../core/storage/local_storage.dart';
+import '../../models/driver_models.dart';
 import '../auth/login_screen.dart';
+import 'driver_documents_screen.dart';
+import 'driver_earnings_screen.dart';
+import 'driver_notifications_screen.dart';
+import 'driver_safety_screen.dart';
+import 'driver_state.dart';
+import 'driver_theme.dart';
+import 'driver_vehicle_screen.dart';
+import 'driver_widgets.dart';
 
-class _SettingItem {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-
-  const _SettingItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.onTap,
-  });
-}
-
-class DriverProfileScreen extends StatefulWidget {
-  final String fullName;
-  final String phoneNumber;
-  final String? avatarUrl;
-  final double rating;
-  final int totalTrips;
-  final double earningsToday;
-  final String vehicleModel;
-  final String vehiclePlate;
-  final String vehicleColor;
-
-  const DriverProfileScreen({
-    super.key,
-    required this.fullName,
-    required this.phoneNumber,
-    this.avatarUrl,
-    required this.rating,
-    required this.totalTrips,
-    required this.earningsToday,
-    required this.vehicleModel,
-    required this.vehiclePlate,
-    required this.vehicleColor,
-  });
-
-  @override
-  State<DriverProfileScreen> createState() => _DriverProfileScreenState();
-}
-
-class _DriverProfileScreenState extends State<DriverProfileScreen> {
-  static const Color primaryBlue = Color(0xFF0B3D78);
-
-  bool _onTrip = false;
-  String _currentRoute = 'Mexico → Bole';
-
-  void _handleTripToggle() {
-    setState(() => _onTrip = !_onTrip);
-    // TODO: when backend is ready — call ApiService.startTrip() / endTrip()
-  }
-
-  Future<void> _handleSignOut() async {
-    await LocalStorage.removeToken();
-    if (!mounted) return;
-    context.go('/login');
-  }
+/// Profile tab: name, phone, photo, driver ID, verification status and
+/// rating, plus the doors to Vehicle, Documents, Earnings, Notifications
+/// and Safety. Sign out is at the bottom.
+class DriverProfileScreen extends StatelessWidget {
+  const DriverProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(),
-              Transform.translate(
-                offset: const Offset(0, -24),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _buildStatsCard(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(
-                  'VEHICLE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.grey[500],
-                    letterSpacing: 0.5,
+    final state = DriverState.instance;
+
+    return ListenableBuilder(
+      listenable: state,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: DriverTheme.background,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(state),
+                  Transform.translate(
+                    offset: const Offset(0, -24),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildStatsCard(state),
+                    ),
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildVehicleCard(),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: Text(
-                  'SETTINGS',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.grey[500],
-                    letterSpacing: 0.5,
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: DriverGroupLabel('VEHICLE'),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildVehicleCard(context, state),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
+                    child: DriverGroupLabel('ACCOUNT'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.folder_copy_outlined,
+                            title: 'Documents',
+                            subtitle: _documentsSubtitle(state),
+                            onTap: () => _open(
+                              context,
+                              const DriverDocumentsScreen(),
+                            ),
+                          ),
+                        ),
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'Earnings',
+                            subtitle: 'Today, this week, this month',
+                            onTap: () => _open(
+                              context,
+                              const DriverEarningsScreen(),
+                            ),
+                          ),
+                        ),
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.notifications_none_rounded,
+                            title: 'Notifications',
+                            subtitle: 'Queue, route and document alerts',
+                            trailing: state.unreadNotifications > 0
+                                ? StatusChip(
+                                    label: '${state.unreadNotifications} new',
+                                    color: DriverTheme.danger,
+                                  )
+                                : null,
+                            onTap: () => _open(
+                              context,
+                              const DriverNotificationsScreen(),
+                            ),
+                          ),
+                        ),
+                        _row(
+                          DriverRowTile(
+                            icon: Icons.health_and_safety_outlined,
+                            title: 'Safety',
+                            subtitle: 'SOS, contacts, share location',
+                            onTap: () => _open(
+                              context,
+                              const DriverSafetyScreen(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    child: _buildSignOutButton(context),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: _settingItems
-                      .map((item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildSettingRow(item),
-                          ))
-                      .toList(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                child: _buildSignOutButton(),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  // ========================================================================
-  // HEADER
-  // ========================================================================
-  Widget _buildHeader() {
+  Widget _row(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: child,
+    );
+  }
+
+  void _open(BuildContext context, Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  String _documentsSubtitle(DriverState state) {
+    final attention = state.documentsNeedingAttention;
+    final pending = state.documents
+        .where((document) => document.status == DocStatus.pending)
+        .length;
+
+    final parts = <String>[];
+    if (attention > 0) parts.add('$attention need attention');
+    if (pending > 0) parts.add('$pending pending');
+
+    return parts.isEmpty ? 'All documents up to date' : parts.join(' • ');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Header
+  // ---------------------------------------------------------------------------
+
+  Widget _buildHeader(DriverState state) {
+    final profile = state.profile;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
       decoration: const BoxDecoration(
-        color: primaryBlue,
+        color: DriverTheme.deepBlue,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(28),
           bottomRight: Radius.circular(28),
@@ -153,18 +173,19 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
               border: Border.all(color: Colors.white, width: 3),
             ),
             child: ClipOval(
-              child: widget.avatarUrl != null
+              child: profile.photoUrl != null
                   ? Image.network(
-                      widget.avatarUrl!,
+                      profile.photoUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _avatarFallback(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _avatarFallback(),
                     )
                   : _avatarFallback(),
             ),
           ),
           const SizedBox(height: 14),
           Text(
-            widget.fullName,
+            profile.fullName,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -173,14 +194,26 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            widget.phoneNumber,
+            profile.phone,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
           const SizedBox(height: 16),
-          _buildTripStatus(),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _headerChip(
+                icon: Icons.badge_outlined,
+                text: 'ID ${profile.driverId}',
+                color: DriverTheme.deepBlue,
+              ),
+              _verificationChip(state.verification),
+            ],
+          ),
         ],
       ),
     );
@@ -188,50 +221,70 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
 
   Widget _avatarFallback() {
     return Container(
-      color: Colors.white.withOpacity(0.2),
+      color: Colors.white.withValues(alpha: 0.2),
       child: const Icon(Icons.person, size: 44, color: Colors.white),
     );
   }
 
-  Widget _buildTripStatus() {
-    return Column(
-      children: [
-        if (_onTrip) ...[
+  Widget _verificationChip(Verification verification) {
+    switch (verification) {
+      case Verification.verified:
+        return _headerChip(
+          icon: Icons.verified_rounded,
+          text: 'Verified',
+          color: DriverTheme.success,
+        );
+      case Verification.pending:
+        return _headerChip(
+          icon: Icons.hourglass_bottom_rounded,
+          text: 'Pending review',
+          color: const Color(0xFFB7791F),
+        );
+      case Verification.actionNeeded:
+        return _headerChip(
+          icon: Icons.error_outline_rounded,
+          text: 'Action needed',
+          color: DriverTheme.danger,
+        );
+    }
+  }
+
+  Widget _headerChip({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
           Text(
-            _currentRoute,
+            text,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 10),
         ],
-        ElevatedButton.icon(
-          onPressed: _handleTripToggle,
-          icon: Icon(
-            _onTrip ? Icons.stop_circle_outlined : Icons.play_circle_outline,
-            size: 18,
-          ),
-          label: Text(_onTrip ? 'End Trip' : 'Start Trip'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _onTrip ? Colors.redAccent : Colors.white,
-            foregroundColor: _onTrip ? Colors.white : primaryBlue,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  // ========================================================================
-  // STATS CARD
-  // ========================================================================
-  Widget _buildStatsCard() {
+  // ---------------------------------------------------------------------------
+  // Stats and vehicle
+  // ---------------------------------------------------------------------------
+
+  Widget _buildStatsCard(DriverState state) {
+    final today = state.earningsSince(state.startOfToday);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
@@ -239,7 +292,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -247,11 +300,22 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       ),
       child: Row(
         children: [
-          Expanded(child: _statColumn('${widget.rating.toStringAsFixed(1)} ★', 'Rating')),
+          if (DriverConfig.ratingsEnabled) ...[
+            Expanded(
+              child: _statColumn(
+                '${state.profile.rating.toStringAsFixed(1)} ★',
+                'Rating',
+              ),
+            ),
+            _statDivider(),
+          ],
+          Expanded(
+            child: _statColumn('${state.completedTripsTotal}', 'Trips'),
+          ),
           _statDivider(),
-          Expanded(child: _statColumn('${widget.totalTrips}', 'Trips')),
-          _statDivider(),
-          Expanded(child: _statColumn('${widget.earningsToday.toStringAsFixed(0)} ETB', 'Today')),
+          Expanded(
+            child: _statColumn('${today.estimated} ETB', 'Today (est.)'),
+          ),
         ],
       ),
     );
@@ -269,163 +333,33 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
       ],
     );
   }
 
-  Widget _statDivider() => Container(width: 1, height: 34, color: Colors.grey[200]);
+  Widget _statDivider() {
+    return Container(width: 1, height: 34, color: Colors.grey[200]);
+  }
 
-  // ========================================================================
-  // VEHICLE CARD
-  // ========================================================================
-  Widget _buildVehicleCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.directions_car_filled_rounded,
-              color: primaryBlue,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${widget.vehicleColor} ${widget.vehicleModel}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  widget.vehiclePlate,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
-        ],
-      ),
+  Widget _buildVehicleCard(BuildContext context, DriverState state) {
+    final vehicle = state.vehicle;
+
+    return DriverRowTile(
+      icon: Icons.directions_car_filled_rounded,
+      title: '${vehicle.color} ${vehicle.model}',
+      subtitle: vehicle.plate,
+      onTap: () => _open(context, const DriverVehicleScreen()),
     );
   }
 
-  // ========================================================================
-  // SETTINGS
-  // ========================================================================
-  List<_SettingItem> get _settingItems => [
-    _SettingItem(
-      icon: Icons.account_balance_wallet_outlined,
-      title: 'Earnings & Payouts',
-      subtitle: 'View history, cash out',
-    ),
-    _SettingItem(
-      icon: Icons.notifications_none_rounded,
-      title: 'Notifications',
-      subtitle: 'Trip and route alerts',
-    ),
-    _SettingItem(
-      icon: Icons.shield_outlined,
-      title: 'Privacy & Security',
-      subtitle: 'Password, data settings',
-    ),
-    _SettingItem(
-      icon: Icons.headset_mic_outlined,
-      title: 'Support',
-      subtitle: 'Help center, contact us',
-    ),
-  ];
+  // ---------------------------------------------------------------------------
+  // Sign out
+  // ---------------------------------------------------------------------------
 
-  Widget _buildSettingRow(_SettingItem item) {
+  Widget _buildSignOutButton(BuildContext context) {
     return InkWell(
-      onTap: item.onTap ?? () {},
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: primaryBlue.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(item.icon, color: primaryBlue, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ========================================================================
-  // SIGN OUT BUTTON
-  // ========================================================================
-  Widget _buildSignOutButton() {
-    return InkWell(
-      onTap: _handleSignOut,
+      onTap: () => _signOut(context),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -434,7 +368,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -456,6 +390,75 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _signOut(BuildContext context) async {
+    final state = DriverState.instance;
+
+    // A driver on a trip must not sign out: the taxi would vanish for
+    // passengers, the same rule as going offline.
+    if (!state.canGoOffline) {
+      showDriverSnack(
+        context,
+        "You can't sign out during a trip. End the trip first.",
+        isError: true,
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Sign out?',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'You will be taken off the queue and become invisible to '
+            'passengers.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Sign Out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Check the result before removing the saved token.
+    final error = state.setOnline(false);
+
+    if (error != null) {
+      if (context.mounted) {
+        showDriverSnack(context, error, isError: true);
+      }
+      return;
+    }
+
+    await LocalStorage.removeToken();
+
+    if (!context.mounted) return;
+
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
     );
   }
 }
