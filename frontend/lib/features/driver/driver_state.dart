@@ -257,4 +257,65 @@ class DriverState extends ChangeNotifier {
   void _startSimulation() {}
   void _stopSimulation() {}
   ProblemReport? _problem;
-}
+}  // --------------------------------------------------------------------------
+  // Route geometry and ETA
+  // --------------------------------------------------------------------------
+
+  Station stationByName(String name) {
+    for (final station in stations) {
+      if (station.name == name) return station;
+    }
+
+    throw StateError('Station "$name" was not found in the route data.');
+  }
+
+  /// Ordered stops for the driver's current direction.
+  List<Station> get routeStops {
+    final stops = DriverMockData.assignedRouteStopNames
+        .map(stationByName)
+        .toList();
+
+    return _forward ? stops : stops.reversed.toList();
+  }
+
+  /// Terminal where the taxi is waiting before departure.
+  Station? get currentStation {
+    if (_stage == TripStage.inQueue || _stage == TripStage.loading) {
+      final stops = routeStops;
+      return stops.isEmpty ? null : stops.first;
+    }
+
+    return null;
+  }
+
+  /// Calculates normalized progress values for each stop.
+  ///
+  /// If all coordinates are identical, evenly spaced fractions prevent
+  /// division by zero.
+  List<double> _fractions(List<Station> stops) {
+    if (stops.isEmpty) return const [];
+
+    if (stops.length == 1) return const [0.0];
+
+    final lengths = <double>[0.0];
+
+    for (var i = 1; i < stops.length; i++) {
+      final dLat = stops[i].lat - stops[i - 1].lat;
+      final dLng = stops[i].lng - stops[i - 1].lng;
+
+      lengths.add(
+        lengths.last + math.sqrt(dLat * dLat + dLng * dLng),
+      );
+    }
+
+    final total = lengths.last;
+
+    if (total <= 0) {
+      return List<double>.generate(
+        stops.length,
+        (index) => index / (stops.length - 1),
+      );
+    }
+
+    return lengths.map((length) => length / total).toList();
+  }
