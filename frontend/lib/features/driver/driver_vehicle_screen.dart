@@ -232,3 +232,52 @@ class DriverVehicleScreen extends StatelessWidget {
     // Full card body arrives in the next commit.
     return SizedBox(height: 120, child: Center(child: Text(label)));
   }
+      return DriverCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.build_circle_outlined,
+                color: DriverTheme.deepBlue,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Maintenance status',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: DriverTheme.textDark,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: StatusChip(
+                  label: label,
+                  color: color,
+                  icon: icon,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(
+            height: 1,
+            color: DriverTheme.divider,
+          ),
+          const SizedBox(height: 14),
+          _dateRow(
+            'Last service',
+            DriverTheme.formatDate(vehicle.lastService),
+          ),
+          const SizedBox(height: 10),
+          _dateRow(
+            'Next service',
+            DriverTheme.formatDate(vehicle.nextService),
+          ),
+        ],
+      ),
+    );
