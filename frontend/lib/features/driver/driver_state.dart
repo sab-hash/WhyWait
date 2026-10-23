@@ -432,3 +432,53 @@ class DriverState extends ChangeNotifier {
     _simulation?.cancel();
     _simulation = null;
   }
+    // --------------------------------------------------------------------------
+  // Safety: problem reports, SOS, location sharing and contacts
+  // --------------------------------------------------------------------------
+
+  ProblemReport? _problem;
+  ProblemReport? _lastProblem;
+
+  /// Current problem, or the most recently reported problem after reset.
+  ProblemReport? get problem => _problem ?? _lastProblem;
+
+  /// Only an active trip problem affects the current ETA.
+  int get delayMinutes {
+    if (!isOnTrip) return 0;
+    return _problem?.delayMinutes ?? 0;
+  }
+
+  /// Records a problem locally and applies its delay to the active trip.
+  ///
+  /// This does not send a report to the Go backend.
+  void reportProblem({
+    required String type,
+    required int delayMinutes,
+    String note = '',
+  }) {
+    final normalizedType = type.trim();
+
+    if (normalizedType.isEmpty) return;
+
+    final report = ProblemReport(
+      type: normalizedType,
+      note: note.trim(),
+      delayMinutes: delayMinutes.clamp(0, 240),
+      reportedAt: DateTime.now(),
+    );
+
+    _problem = report;
+    _lastProblem = report;
+
+    notifyListeners();
+  }
+
+  /// Clears the current and most recently displayed problem.
+  void clearProblem() {
+    if (_problem == null && _lastProblem == null) return;
+
+    _problem = null;
+    _lastProblem = null;
+
+    notifyListeners();
+  }
