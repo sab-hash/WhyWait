@@ -394,3 +394,41 @@ class DriverState extends ChangeNotifier {
           delayMinutes,
     );
   }
+    /// Starts the local demo simulation.
+  ///
+  /// Progress advances every two seconds until the destination is reached.
+  /// The driver still confirms arrival through the normal trip controls.
+  void _startSimulation() {
+    _stopSimulation();
+
+    if (_progress >= 1.0) return;
+
+    _simulation = Timer.periodic(
+      const Duration(seconds: 2),
+      (timer) {
+        if (_stage != TripStage.onRoute) {
+          timer.cancel();
+          if (identical(_simulation, timer)) {
+            _simulation = null;
+          }
+          return;
+        }
+
+        _progress = math.min(1.0, _progress + 0.02);
+
+        if (_progress >= 1.0) {
+          timer.cancel();
+          if (identical(_simulation, timer)) {
+            _simulation = null;
+          }
+        }
+
+        notifyListeners();
+      },
+    );
+  }
+
+  void _stopSimulation() {
+    _simulation?.cancel();
+    _simulation = null;
+  }
