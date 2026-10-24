@@ -1,4 +1,3 @@
-
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/login_screen.dart';
@@ -24,11 +23,12 @@ final GoRouter appRouter = GoRouter(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
     ),
+
+    // ==================== PASSENGER ====================
     GoRoute(
       path: '/passenger',
       builder: (context, state) {
         final extra = state.extra is Map ? state.extra as Map : null;
-
         return HomeScreen(
           fullName: (extra?['fullName'] ?? 'User').toString(),
           email: (extra?['email'] ?? '').toString(),
@@ -39,7 +39,6 @@ final GoRouter appRouter = GoRouter(
       path: '/passenger/shell',
       builder: (context, state) {
         final extra = state.extra is Map ? state.extra as Map : null;
-
         return PassengerShell(
           fullName: (extra?['fullName'] ?? 'User').toString(),
           email: (extra?['email'] ?? '').toString(),
@@ -54,6 +53,8 @@ final GoRouter appRouter = GoRouter(
       path: '/history',
       builder: (context, state) => const HistoryScreen(),
     ),
+
+    // ==================== DRIVER ====================
     GoRoute(
       path: '/driver',
       builder: (context, state) {

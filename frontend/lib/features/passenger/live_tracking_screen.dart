@@ -403,15 +403,17 @@ class _TrackScreenState extends State<TrackScreen> {
                 markers: [
                   Marker(
                     point: pickupLocation,
-                    width: 70,
-                    height: 60,
+                    width: 90,
+                    height: 75,
+                    alignment: Alignment.center,
                     child: _buildPickupPin(),
                   ),
                   ..._taxis.map(
                     (taxi) => Marker(
                       point: LatLng(taxi.latitude, taxi.longitude),
-                      width: 50,
-                      height: 50,
+                      width: 60,
+                      height: 60,
+                      alignment: Alignment.center,
                       child: _buildTaxiMarker(taxi),
                     ),
                   ),
@@ -455,72 +457,78 @@ class _TrackScreenState extends State<TrackScreen> {
   }
 
   Widget _buildPickupPin() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: primaryBlue,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: primaryBlue,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+            ),
+            child: const Icon(Icons.location_on, color: Colors.white, size: 18),
           ),
-          child: const Icon(Icons.location_on, color: Colors.white, size: 18),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-              ),
-            ],
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+            child: const Text(
+              'Mexico',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+            ),
           ),
-          child: const Text(
-            'Mexico',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildTaxiMarker(Taxi taxi) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: primaryBlue, width: 2),
-          ),
-          child: Icon(Icons.local_taxi, color: primaryBlue, size: 14),
-        ),
-        Container(
-          margin: const EdgeInsets.only(top: 2),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          decoration: BoxDecoration(
-            color: primaryBlue,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            '${taxi.etaMinutes}m',
-            style: const TextStyle(
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
               color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
+              shape: BoxShape.circle,
+              border: Border.all(color: primaryBlue, width: 2),
+            ),
+            child: const Icon(Icons.local_taxi, color: primaryBlue, size: 14),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: primaryBlue,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${taxi.etaMinutes}m',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
