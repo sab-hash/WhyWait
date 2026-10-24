@@ -465,3 +465,141 @@ func (s *TaxiServer) generateToken(userID, email, role string) string {
 	}
 	return "jwt-token-" + userID + "-" + email
 }
+
+// ============================================================
+// ADMIN METHODS
+// ============================================================
+
+func (s *TaxiServer) RegisterTaxiDriver(ctx context.Context, req *api.RegisterTaxiDriverRequest) (*api.RegisterTaxiDriverResponse, error) {
+	log.Printf("📝 Registering taxi: %s, Driver: %s", req.VehiclePlate, req.DriverName)
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to hash password")
+	}
+
+	var userID string
+	userQuery := `INSERT INTO users (full_name, phone, email, password_hash, role) VALUES ($1, $2, $3, $4, 'driver') RETURNING id`
+	err = s.DB.QueryRow(userQuery, req.DriverName, req.Phone, req.Email, string(hashedPassword)).Scan(&userID)
+	if err != nil {
+		log.Printf("❌ Failed to create driver user: %v", err)
+		return nil, status.Error(codes.AlreadyExists, "Phone or email already exists")
+	}
+
+	var taxiID string
+	taxiQuery := `INSERT INTO taxis (driver_name, phone, vehicle_plate, vehicle_model, vehicle_color, terminal_a_id, terminal_b_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7, 'offline') RETURNING id`
+	err = s.DB.QueryRow(taxiQuery, req.DriverName, req.Phone, req.VehiclePlate, req.VehicleModel, req.VehicleColor, req.TerminalAId, req.TerminalBId).Scan(&taxiID)
+	if err != nil {
+		s.DB.Exec("DELETE FROM users WHERE id = $1", userID) // rollback
+		return nil, status.Error(codes.Internal, "Failed to create taxi: "+err.Error())
+	}
+
+	return &api.RegisterTaxiDriverResponse{
+		Success: true,
+		Message: "Taxi and driver registered successfully",
+		TaxiId:  taxiID,
+		UserId:  userID,
+	}, nil
+}
+
+func (s *TaxiServer) GetTaxiRoutes(ctx context.Context, req *api.Empty) (*api.TaxiRoutesResponse, error) {
+	query := `
+		SELECT t.id, t.vehicle_plate, t.driver_name, t.status,
+			COALESCE(ta.name, 'Not assigned'), COALESCE(tb.name, 'Not assigned'),
+			tl.latitude, tl.longitude
+		FROM taxis t
+		LEFT JOIN terminals ta ON t.terminal_a_id = ta.id
+		LEFT JOIN terminals tb ON t.terminal_b_id = tb.id
+		LEFT JOIN taxi_locations tl ON t.id = tl.taxi_id
+		ORDER BY t.vehicle_plate
+	`
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to fetch taxi routes")
+	}
+	defer rows.Close()
+
+	var taxis []*api.TaxiRouteInfo
+	for rows.Next() {
+		var id, plate, driverName, status, termA, termB string
+		var lat, lng sql.NullFloat64
+		err := rows.Scan(&id, &plate, &driverName, &status, &termA, &termB, &lat, &lng)
+		if err != nil {
+			continue
+		}
+		clat, clng := 0.0, 0.0
+		if lat.Valid {
+			clat = lat.Float64
+		}
+		if lng.Valid {
+			clng = lng.Float64
+		}
+
+		taxis = append(taxis, &api.TaxiRouteInfo{
+			TaxiId: id, Plate: plate, DriverName: driverName, Status: status,
+			TerminalAName: termA, TerminalBName: termB,
+			CurrentLatitude: clat, CurrentLongitude: clng, OnRoute: true,
+		})
+	}
+	return &api.TaxiRoutesResponse{Taxis: taxis}, nil
+}
+
+func (s *TaxiServer) GetReports(ctx context.Context, req *api.GetReportsRequest) (*api.GetReportsResponse, error) {
+	query := `
+		SELECT r.id, r.user_id, u.full_name, u.phone, r.type, r.description, r.status, 
+		       TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI:SS'), TO_CHAR(r.updated_at, 'YYYY-MM-DD HH24:MI:SS')
+		FROM reports r
+		LEFT JOIN users u ON r.user_id = u.id
+		WHERE ($1 = '' OR r.status = $1)
+		ORDER BY r.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := s.DB.Query(query, req.Status, req.Limit, req.Offset)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to fetch reports")
+	}
+	defer rows.Close()
+
+	var reports []*api.ReportInfo
+	for rows.Next() {
+		var id, uid, uname, uphone, rtype, desc, status, cat, uat string
+		err := rows.Scan(&id, &uid, &uname, &uphone, &rtype, &desc, &status, &cat, &uat)
+		if err != nil {
+			continue
+		}
+		reports = append(reports, &api.ReportInfo{
+			Id: id, UserId: uid, UserName: uname, UserPhone: uphone,
+			Type: rtype, Description: desc, Status: status, CreatedAt: cat, UpdatedAt: uat,
+		})
+	}
+	var total int32
+	s.DB.QueryRow("SELECT COUNT(*) FROM reports WHERE ($1 = '' OR status = $1)", req.Status).Scan(&total)
+	return &api.GetReportsResponse{Reports: reports, Total: total}, nil
+}
+
+func (s *TaxiServer) UpdateReportStatus(ctx context.Context, req *api.UpdateReportStatusRequest) (*api.UpdateReportStatusResponse, error) {
+	if req.Status != "reviewed" && req.Status != "resolved" {
+		return nil, status.Error(codes.InvalidArgument, "Invalid status")
+	}
+	_, err := s.DB.Exec("UPDATE reports SET status = $1, updated_at = NOW() WHERE id = $2", req.Status, req.ReportId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to update report")
+	}
+	return &api.UpdateReportStatusResponse{Success: true, Message: "Updated"}, nil
+}
+
+func (s *TaxiServer) GetAdminStats(ctx context.Context, req *api.Empty) (*api.AdminStatsResponse, error) {
+	var total, pending, reviewed, resolved, taxis, terms, users int32
+	s.DB.QueryRow("SELECT COUNT(*) FROM reports").Scan(&total)
+	s.DB.QueryRow("SELECT COUNT(*) FROM reports WHERE status = 'pending'").Scan(&pending)
+	s.DB.QueryRow("SELECT COUNT(*) FROM reports WHERE status = 'reviewed'").Scan(&reviewed)
+	s.DB.QueryRow("SELECT COUNT(*) FROM reports WHERE status = 'resolved'").Scan(&resolved)
+	s.DB.QueryRow("SELECT COUNT(*) FROM taxis").Scan(&taxis)
+	s.DB.QueryRow("SELECT COUNT(*) FROM terminals").Scan(&terms)
+	s.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&users)
+
+	return &api.AdminStatsResponse{
+		TotalReports: total, PendingReports: pending, ReviewedReports: reviewed, ResolvedReports: resolved,
+		TotalTaxis: taxis, TotalTerminals: terms, TotalUsers: users,
+	}, nil
+}

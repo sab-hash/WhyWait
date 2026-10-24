@@ -4,10 +4,6 @@ package whywait;
 
 option go_package = "whywait-backend/api";
 
-// ============================================================
-// SERVICES
-// ============================================================
-
 service TaxiService {
   // ===== AUTH =====
   rpc Register (RegisterRequest) returns (AuthResponse);
@@ -18,25 +14,28 @@ service TaxiService {
   rpc GetPopularRoutes (Empty) returns (PopularRoutesResponse);
   rpc GetTaxiStatus (Empty) returns (TaxiStatusResponse);
 
-  // ===== REAL-TIME TRACKING (Server Streaming) =====
+  // ===== REAL-TIME TRACKING =====
   rpc TrackTaxis (TrackRequest) returns (stream TaxiUpdate);
 
   // ===== DRIVER =====
   rpc UpdateLocation (LocationUpdate) returns (LocationResponse);
   rpc UpdateDriverStatus (DriverStatusRequest) returns (DriverStatusResponse);
-
-  // ===== ASSIGNED TAXIS =====
   rpc GetAssignedTaxis (AssignedTaxisRequest) returns (AssignedTaxisResponse);
+
+  // ===== ADMIN =====
+  rpc GetReports (GetReportsRequest) returns (GetReportsResponse);
+  rpc UpdateReportStatus (UpdateReportStatusRequest) returns (UpdateReportStatusResponse);
+  rpc GetAdminStats (Empty) returns (AdminStatsResponse);
+  rpc RegisterTaxiDriver (RegisterTaxiDriverRequest) returns (RegisterTaxiDriverResponse);
+  rpc GetTaxiRoutes (Empty) returns (TaxiRoutesResponse);
 }
 
 // ============================================================
 // MESSAGES
 // ============================================================
 
-// ----- EMPTY -----
 message Empty {}
 
-// ----- AUTH -----
 message RegisterRequest {
   string full_name = 1;
   string phone = 2;
@@ -63,7 +62,6 @@ message User {
   string role = 5;
 }
 
-// ----- PASSENGER -----
 message Terminal {
   string id = 1;
   string name = 2;
@@ -97,7 +95,6 @@ message TaxiStatusResponse {
   int32 nearby_stations = 5;
 }
 
-// ----- REAL-TIME TRACKING -----
 message TrackRequest {
   string station = 1;
 }
@@ -112,9 +109,10 @@ message TaxiUpdate {
   double distance_km = 7;
   int32 eta_minutes = 8;
   string station = 9;
+  string terminal_a_name = 10;
+  string terminal_b_name = 11;
 }
 
-// ----- DRIVER -----
 message LocationUpdate {
   string taxi_id = 1;
   double latitude = 2;
@@ -138,7 +136,6 @@ message DriverStatusResponse {
   string message = 2;
 }
 
-// ----- ASSIGNED TAXIS -----
 message AssignedTaxisRequest {
   string terminal_id = 1;
 }
@@ -156,4 +153,82 @@ message AssignedTaxiInfo {
 
 message AssignedTaxisResponse {
   repeated AssignedTaxiInfo taxis = 1;
+}
+
+message ReportInfo {
+  string id = 1;
+  string user_id = 2;
+  string user_name = 3;
+  string user_phone = 4;
+  string type = 5;
+  string description = 6;
+  string status = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message GetReportsRequest {
+  string status = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message GetReportsResponse {
+  repeated ReportInfo reports = 1;
+  int32 total = 2;
+}
+
+message UpdateReportStatusRequest {
+  string report_id = 1;
+  string status = 2;
+}
+
+message UpdateReportStatusResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message AdminStatsResponse {
+  int32 total_reports = 1;
+  int32 pending_reports = 2;
+  int32 reviewed_reports = 3;
+  int32 resolved_reports = 4;
+  int32 total_taxis = 5;
+  int32 total_terminals = 6;
+  int32 total_users = 7;
+}
+
+message RegisterTaxiDriverRequest {
+  string driver_name = 1;
+  string phone = 2;
+  string email = 3;
+  string password = 4;
+  string vehicle_plate = 5;
+  string vehicle_model = 6;
+  string vehicle_color = 7;
+  string terminal_a_id = 8;
+  string terminal_b_id = 9;
+}
+
+message RegisterTaxiDriverResponse {
+  bool success = 1;
+  string message = 2;
+  string taxi_id = 3;
+  string user_id = 4;
+}
+
+message TaxiRouteInfo {
+  string taxi_id = 1;
+  string plate = 2;
+  string driver_name = 3;
+  string status = 4;
+  string terminal_a_name = 5;
+  string terminal_b_name = 6;
+  double current_latitude = 7;
+  double current_longitude = 8;
+  bool on_route = 9;
+}
+
+message TaxiRoutesResponse {
+  repeated TaxiRouteInfo taxis = 1;
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/storage/local_storage.dart';
-import '../../services/grpc_client.dart';
-import '../../generated/whywait.pb.dart';
+import '../../services/admin_grpc_client.dart'; // 👈 Real Admin Client
+import '../../generated/whywait.pb.dart';      // 👈 Real generated data types
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -34,7 +34,8 @@ class _AdminDashboardState extends State<AdminDashboard>
   final _vehicleColorController = TextEditingController();
   String? _selectedTerminalAId;
   String? _selectedTerminalBId;
-  List<Terminal> _terminals = [];
+  
+  List<Terminal> _terminals = []; 
   bool _isRegistering = false;
 
   // ---- Taxi Routes ----
@@ -75,7 +76,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   // ============================================================
-  // LOAD DATA
+  // LOAD DATA (Using AdminGrpcClient)
   // ============================================================
   Future<void> _loadData() async {
     setState(() {
@@ -83,9 +84,9 @@ class _AdminDashboardState extends State<AdminDashboard>
       _isLoadingRoutes = true;
     });
     try {
-      final statsFuture = GrpcClient().getAdminStats();
-      final reportsFuture = GrpcClient().getReports(status: _filterStatus, limit: 100);
-      final routesFuture = GrpcClient().getTaxiRoutes();
+      final statsFuture = AdminGrpcClient().getAdminStats();
+      final reportsFuture = AdminGrpcClient().getReports(status: _filterStatus, limit: 100);
+      final routesFuture = AdminGrpcClient().getTaxiRoutes();
 
       final results = await Future.wait([statsFuture, reportsFuture, routesFuture]);
       if (!mounted) return;
@@ -109,7 +110,7 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   Future<void> _loadTerminals() async {
     try {
-      final response = await GrpcClient().getTerminals();
+      final response = await AdminGrpcClient().getTerminals();
       if (!mounted) return;
       setState(() {
         _terminals = response.terminals;
@@ -121,7 +122,7 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   Future<void> _updateReportStatus(String reportId, String newStatus) async {
     try {
-      await GrpcClient().updateReportStatus(reportId, newStatus);
+      await AdminGrpcClient().updateReportStatus(reportId, newStatus);
       _loadData(); // refresh
     } catch (e) {
       _showSnackbar('Error updating status: $e', Colors.red);
@@ -141,7 +142,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     setState(() => _isRegistering = true);
 
     try {
-      final response = await GrpcClient().registerTaxiDriver(
+      final response = await AdminGrpcClient().registerTaxiDriver(
         driverName: _driverNameController.text.trim(),
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
@@ -602,7 +603,10 @@ class _AdminDashboardState extends State<AdminDashboard>
                 DropdownButtonFormField<String>(
                   value: _selectedTerminalAId,
                   decoration: const InputDecoration(labelText: 'Terminal A (Starting Point)', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
-                  items: _terminals.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                  items: _terminals.map((t) => DropdownMenuItem<String>(
+                    value: t.id.toString(),
+                    child: Text(t.name.toString()),
+                  )).toList(),
                   onChanged: (value) => setState(() => _selectedTerminalAId = value),
                   validator: (value) => value == null ? 'Please select Terminal A' : null,
                 ),
@@ -610,7 +614,10 @@ class _AdminDashboardState extends State<AdminDashboard>
                 DropdownButtonFormField<String>(
                   value: _selectedTerminalBId,
                   decoration: const InputDecoration(labelText: 'Terminal B (Destination)', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
-                  items: _terminals.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                  items: _terminals.map((t) => DropdownMenuItem<String>(
+                    value: t.id.toString(),
+                    child: Text(t.name.toString()),
+                  )).toList(),
                   onChanged: (value) => setState(() => _selectedTerminalBId = value),
                   validator: (value) => value == null ? 'Please select Terminal B' : null,
                 ),

@@ -93,4 +93,5 @@ class GrpcClient {
       ..isOnline = isOnline;
     return stub.updateDriverStatus(req);
   }
+  
 }

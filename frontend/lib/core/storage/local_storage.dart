@@ -42,4 +42,8 @@ class LocalStorage {
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
   }
+    static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
 }
