@@ -7,6 +7,7 @@ import '../../features/passenger/passenger_shell.dart';
 import '../../features/passenger/request_ride_screen.dart';
 import '../../features/passenger/history_screen.dart';
 import '../../features/driver/driver_home_screen.dart';
+import '../../features/admin/admin_dashboard.dart'; // ✅ Admin Import
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -64,6 +65,13 @@ final GoRouter appRouter = GoRouter(
           email: (extra?['email'] ?? '').toString(),
         );
       },
+    ),
+
+    // ==================== ADMIN ====================
+    // ✅ THIS IS THE MISSING PART
+    GoRoute(
+      path: '/admin',
+      builder: (context, state) => const AdminDashboard(),
     ),
   ],
 );
