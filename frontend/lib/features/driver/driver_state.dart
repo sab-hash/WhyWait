@@ -482,3 +482,64 @@ class DriverState extends ChangeNotifier {
 
     notifyListeners();
   }
+    DateTime? _sosSentAt;
+  bool _shareLocation = false;
+
+  final List<EmergencyContact> _contacts =
+      DriverMockData.contacts();
+
+  DateTime? get sosSentAt => _sosSentAt;
+
+  bool get shareLocation => _shareLocation;
+
+  List<EmergencyContact> get contacts =>
+      List.unmodifiable(_contacts);
+
+  /// Activates the local SOS state.
+  ///
+  /// This does NOT call emergency services, send notifications or transmit
+  /// the driver's GPS coordinates. Those actions require backend integration.
+  ///
+  /// Calling this more than once while active does not reset the timestamp.
+  void triggerSos() {
+    if (_sosSentAt != null) return;
+
+    _sosSentAt = DateTime.now();
+    _shareLocation = true;
+
+    notifyListeners();
+  }
+
+  /// Resets the local SOS state.
+  ///
+  /// This is not a backend cancellation or an emergency-services notification.
+  void cancelSos() {
+    if (_sosSentAt == null) return;
+
+    _sosSentAt = null;
+
+    notifyListeners();
+  }
+
+  /// Toggles the local location-sharing preference.
+  ///
+  /// This does not start or stop a GPS stream.
+  void setShareLocation(bool value) {
+    if (_shareLocation == value) return;
+
+    _shareLocation = value;
+
+    notifyListeners();
+  }
+
+  void addContact(EmergencyContact contact) {
+    _contacts.add(contact);
+    notifyListeners();
+  }
+
+  void removeContact(int index) {
+    if (index < 0 || index >= _contacts.length) return;
+
+    _contacts.removeAt(index);
+    notifyListeners();
+  }
