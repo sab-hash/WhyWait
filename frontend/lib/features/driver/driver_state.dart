@@ -215,8 +215,6 @@ class DriverState extends ChangeNotifier {
     _resetToQueue(rejoinQueue: true);
   }
 
-  final List<DriverTrip> _trips = <DriverTrip>[];
-
   void _recordTrip(
     TripResult result, {
     bool cashConfirmed = false,
@@ -253,11 +251,7 @@ class DriverState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Stubs; real implementations land in commits 7 and 8.
-  void _startSimulation() {}
-  void _stopSimulation() {}
-  ProblemReport? _problem;
-}  // --------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
   // Route geometry and ETA
   // --------------------------------------------------------------------------
 
@@ -318,7 +312,9 @@ class DriverState extends ChangeNotifier {
     }
 
     return lengths.map((length) => length / total).toList();
-  }  /// Simulated taxi position along the assigned route.
+  }
+
+  /// Simulated taxi position along the assigned route.
   ///
   /// This is not a real GPS location.
   ({double lat, double lng}) get driverPosition {
@@ -394,7 +390,8 @@ class DriverState extends ChangeNotifier {
           delayMinutes,
     );
   }
-    /// Starts the local demo simulation.
+
+  /// Starts the local demo simulation.
   ///
   /// Progress advances every two seconds until the destination is reached.
   /// The driver still confirms arrival through the normal trip controls.
@@ -432,12 +429,19 @@ class DriverState extends ChangeNotifier {
     _simulation?.cancel();
     _simulation = null;
   }
-    // --------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------
   // Safety: problem reports, SOS, location sharing and contacts
   // --------------------------------------------------------------------------
 
   ProblemReport? _problem;
   ProblemReport? _lastProblem;
+
+  DateTime? _sosSentAt;
+  bool _shareLocation = false;
+
+  final List<EmergencyContact> _contacts =
+      DriverMockData.contacts();
 
   /// Current problem, or the most recently reported problem after reset.
   ProblemReport? get problem => _problem ?? _lastProblem;
@@ -447,6 +451,13 @@ class DriverState extends ChangeNotifier {
     if (!isOnTrip) return 0;
     return _problem?.delayMinutes ?? 0;
   }
+
+  DateTime? get sosSentAt => _sosSentAt;
+
+  bool get shareLocation => _shareLocation;
+
+  List<EmergencyContact> get contacts =>
+      List.unmodifiable(_contacts);
 
   /// Records a problem locally and applies its delay to the active trip.
   ///
@@ -482,18 +493,6 @@ class DriverState extends ChangeNotifier {
 
     notifyListeners();
   }
-    DateTime? _sosSentAt;
-  bool _shareLocation = false;
-
-  final List<EmergencyContact> _contacts =
-      DriverMockData.contacts();
-
-  DateTime? get sosSentAt => _sosSentAt;
-
-  bool get shareLocation => _shareLocation;
-
-  List<EmergencyContact> get contacts =>
-      List.unmodifiable(_contacts);
 
   /// Activates the local SOS state.
   ///
@@ -543,3 +542,207 @@ class DriverState extends ChangeNotifier {
     _contacts.removeAt(index);
     notifyListeners();
   }
+
+  // --------------------------------------------------------------------------
+  // Trip history and earnings
+  // --------------------------------------------------------------------------
+
+  final List<DriverTrip> _trips = DriverTripData.generate();
+
+  List<DriverTrip> get trips => List.unmodifiable(_trips);
+
+  DateTime get startOfToday {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  /// Monday at the beginning of the current week.
+  DateTime get startOfWeek {
+    final today = startOfToday;
+    return today.subtract(Duration(days: today.weekday - 1));
+  }
+
+  DateTime get startOfMonth {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
+  /// Earnings from completed trips since [start].
+  ///
+  /// Estimated earnings use fare multiplied by seats. Confirmed earnings
+  /// count only trips whose cash collection has been confirmed.
+  EarningsSummary earningsSince(DateTime start) {
+    var tripsCompleted = 0;
+    var seatsCarried = 0;
+    var estimated = 0;
+    var confirmed = 0;
+
+    for (final trip in _trips) {
+      if (trip.status != TripResult.completed) continue;
+      if (trip.date.isBefore(start)) continue;
+
+      tripsCompleted++;
+      seatsCarried += trip.seats;
+      estimated += trip.estimatedEarnings;
+      confirmed += trip.confirmedEarnings;
+    }
+
+    return EarningsSummary(
+      tripsCompleted: tripsCompleted,
+      seatsCarried: seatsCarried,
+      estimated: estimated,
+      confirmed: confirmed,
+    );
+  }
+
+  /// Marks cash as collected for a trip in the local history.
+  ///
+  /// This change is not persisted to the backend.
+  void confirmTripCash(DriverTrip trip) {
+    final index = _trips.indexOf(trip);
+
+    if (index == -1 || _trips[index].cashConfirmed) return;
+
+    _trips[index] = _trips[index].copyWith(
+      cashConfirmed: true,
+    );
+
+    notifyListeners();
+  }
+
+  /// Calculates commission, or returns null when commission is disabled.
+  double? commissionOn(int amount) {
+    final percent = DriverConfig.commissionPercent;
+
+    if (percent == null) return null;
+
+    return amount * percent / 100;
+  }
+
+  int get completedTripsTotal {
+    return _trips
+        .where((trip) => trip.status == TripResult.completed)
+        .length;
+  }
+
+  // --------------------------------------------------------------------------
+  // Notifications
+  // --------------------------------------------------------------------------
+
+  final List<DriverNotification> _notifications =
+      DriverMockData.notifications();
+
+  List<DriverNotification> get notifications =>
+      List.unmodifiable(_notifications);
+
+  int get unreadNotifications =>
+      _notifications.where((notification) => !notification.read).length;
+
+  void markNotificationRead(String id) {
+    final index = _notifications.indexWhere(
+      (notification) => notification.id == id,
+    );
+
+    if (index == -1 || _notifications[index].read) return;
+
+    _notifications[index] = _notifications[index].copyWith(
+      read: true,
+    );
+
+    notifyListeners();
+  }
+
+  void markAllNotificationsRead() {
+    var changed = false;
+
+    for (var i = 0; i < _notifications.length; i++) {
+      if (_notifications[i].read) continue;
+
+      _notifications[i] = _notifications[i].copyWith(
+        read: true,
+      );
+
+      changed = true;
+    }
+
+    if (changed) notifyListeners();
+  }
+
+  // --------------------------------------------------------------------------
+  // Documents and verification
+  // --------------------------------------------------------------------------
+
+  final List<DriverDocument> _documents =
+      DriverMockData.documents();
+
+  List<DriverDocument> get documents =>
+      List.unmodifiable(_documents);
+
+  DriverDocument documentById(String id) {
+    return _documents.firstWhere(
+      (document) => document.id == id,
+      orElse: () => throw StateError(
+        'Document "$id" was not found.',
+      ),
+    );
+  }
+
+  /// Marks a document as uploaded in local state.
+  ///
+  /// Actual file selection, upload and admin verification are not implemented.
+  void uploadDocument(String id) {
+    final index = _documents.indexWhere(
+      (document) => document.id == id,
+    );
+
+    if (index == -1) return;
+
+    _documents[index] = _documents[index].copyWith(
+      uploaded: true,
+      verified: false,
+    );
+
+    notifyListeners();
+  }
+
+  Verification get verification {
+    var pending = false;
+
+    for (final document in _documents) {
+      final status = document.status;
+
+      if (status == DocStatus.expired ||
+          status == DocStatus.missing) {
+        return Verification.actionNeeded;
+      }
+
+      if (status == DocStatus.pending) {
+        pending = true;
+      }
+    }
+
+    return pending
+        ? Verification.pending
+        : Verification.verified;
+  }
+
+  int get documentsNeedingAttention {
+    return _documents.where((document) {
+      final status = document.status;
+
+      return status == DocStatus.expiring ||
+          status == DocStatus.expired ||
+          status == DocStatus.missing;
+    }).length;
+  }
+
+  // --------------------------------------------------------------------------
+  // Cleanup
+  // --------------------------------------------------------------------------
+
+  @override
+  void dispose() {
+    _stopSimulation();
+    super.dispose();
+  }
+}
