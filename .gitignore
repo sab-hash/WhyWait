@@ -17,3 +17,6 @@
 analyze.txt
 debug.txt
 *.log
+# Ignore generated protobuf files
+backend/api/*.pb.go
+frontend/lib/generated/
