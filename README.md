@@ -260,14 +260,13 @@ Examples of useful evidence to include:
 
 ## 👥 Project Team
 
-  Name                CTC ID         Classroom   Role
-  ------------------- -------------- ----------- --------------------
-  Surafel Yihun       CTC-10004-26   3006        Backend Developer
-  Wengelle Yohannes   CTC-5554-26    3006        Backend Developer
-  Victory Bedru       CTC-4461-26    3006        Frontend Developer
-  Sabah Fuad          CTC-1156-26    3006        Frontend Developer
-  Siham Baharu        CTC-6989-26    3006        Database Developer
-
+| Name | CTC Number | Classroom | Role |
+|---|---|---|---|
+| Surafel Yihun | CTC-10004-26 | 3006 | Backend Developer |
+| Wengelle Yohannes | CTC-5554-26 | 3006 | Backend Developer |
+| Victory Bedru | CTC-4461-26 | 3006 | Frontend Developer |
+| Sabah Fuad | CTC-1156-26 | 3006 | Frontend Developer |
+| Siham Baharu | CTC-6989-26 | 3006 | Database |
 ------------------------------------------------------------------------
 
 ## 🚧 Remaining Work
