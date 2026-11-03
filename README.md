@@ -41,7 +41,7 @@ In many cities, especially in developing regions, taxi services face significant
 | Passenger Frontend (Flutter) | ✅ Complete | All screens built, merged to `main` |
 | Driver Frontend (Flutter) | ✅ Complete | All screens built, merged to `main` |
 | Admin Panel (Flutter Web) | ✅ Complete | All screens built, merged to `main` |
-| Deployment | In progress | Render (backend) + Vercel (frontend) |
+| Deployment |🟡 In progress | Render (backend) + Vercel (frontend) |
 
 ---
 
@@ -93,9 +93,12 @@ In many cities, especially in developing regions, taxi services face significant
 
 ---
 
-Name	CTC Number	Classroom Number	Role
-Surafel Yihun	CTC-10004-26	3006	Backend Developer
-Wengelle Yohannes	CTC-5554-26	3006	Backend Developer
-Victory Bedru	CTC-4461-26	3006	Frontend Developer
-Sabah Fuad	CTC-1156-26	3006	Frontend Developer
-Siham Baharu	CTC-6989-26	3006	Database
+## 👥 Project Team
+
+| Name | CTC Number | Classroom | Role |
+|---|---|---|---|
+| Surafel Yihun | CTC-10004-26 | 3006 | Backend Developer |
+| Wengelle Yohannes | CTC-5554-26 | 3006 | Backend Developer |
+| Victory Bedru | CTC-4461-26 | 3006 | Frontend Developer |
+| Sabah Fuad | CTC-1156-26 | 3006 | Frontend Developer |
+| Siham Baharu | CTC-6989-26 | 3006 | Database |
