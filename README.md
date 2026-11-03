@@ -6,7 +6,11 @@
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 
 ---
+## 🎥 Project Demo & Explanation
 
+Watch the video explanation here:
+
+[▶ Watch Project Explanation](https://drive.google.com/file/d/10IuAi29xDkng820UzyWseNtZ0pxn8FZ-/view?usp=sharing)
 ## Short Description
 
 **WhyWait** is a modern, real-time taxi tracking platform that connects passengers with nearby drivers through a seamless mobile application. Built with Flutter for the frontend, Go for the backend, and PostgreSQL for data storage, WhyWait eliminates the uncertainty of traditional taxi hailing by providing live vehicle tracking, estimated arrival times, and secure user authentication.
