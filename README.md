@@ -36,8 +36,8 @@ In many cities, especially in developing regions, taxi services face significant
 | Backend (Go + Postgres) ✅ Complete | All screens built, merged to `main` |
 | Passenger Frontend (Flutter) | ✅ Complete | All screens built, merged to `main` |
 | Driver Frontend (Flutter) | ✅ Complete | All screens built, merged to `main` |
-| Admin Panel (Flutter Web)✅ Complete | All screens built, merged to `main` |
-| Deployment | 🔴 Not started | Render (backend) + Vercel (frontend) |
+| Admin Panel (Flutter Web) | ✅ Complete | All screens built, merged to `main` |
+| Deployment | In progress | Render (backend) + Vercel (frontend) |
 
 ---
 
