@@ -33,10 +33,10 @@ In many cities, especially in developing regions, taxi services face significant
 
 | Component | Status | Notes |
 |---|---|---|
-| Backend (Go + Postgres) | 🟡 In progress | REST + gRPC endpoints, JWT auth |
+| Backend (Go + Postgres) ✅ Complete | All screens built, merged to `main` |
 | Passenger Frontend (Flutter) | ✅ Complete | All screens built, merged to `main` |
-| Driver Frontend (Flutter) | 🟡 In progress | Driver dashboard, seat counter, safety actions |
-| Admin Panel (Flutter Web) | 🟡 Planned | Next milestone |
+| Driver Frontend (Flutter) | ✅ Complete | All screens built, merged to `main` |
+| Admin Panel (Flutter Web)✅ Complete | All screens built, merged to `main` |
 | Deployment | 🔴 Not started | Render (backend) + Vercel (frontend) |
 
 ---
