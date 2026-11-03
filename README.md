@@ -30,6 +30,16 @@ manage users, drivers, taxis, terminals, and reports.
 The platform uses Flutter for its frontend, Go for its backend, and
 PostgreSQL for data storage. It uses REST APIs for application
 operations and gRPC streaming for real-time updates.
+## 📸 Screenshots
+
+### Passenger App
+![WhyWait Passenger App](screenshots/passenger.png)
+
+### Driver App
+![WhyWait Driver App](screenshots/driver.png)
+
+### Admin Dashboard
+![WhyWait Admin Dashboard](screenshots/admin.png)
 
 ## 🎯 Problem & Solution
 
